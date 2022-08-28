@@ -1,0 +1,115 @@
+from src.graph import UGraph
+import networkx as nx 
+from matplotlib import pyplot as plt
+import pickle
+
+datasets_wgraph = ['brain_a1','brain_h1']
+datasets_unwgraph = ['flickr','biomine']
+
+decompdataset_to_filename = {
+            "maniu_demo_1_4": "decomp/maniu/demo_1_4.txt"
+}
+dataset_to_filename = {
+            "maniu_demo": "data/maniu/demo.txt",
+            "biomine" : "data/large/biomine.txt",
+            "brain_a1": "data/large/brain/a1/conf_mod_a_1_KKI_0050792.txt",
+            "brain_h1": "data/large/brain/h1/conf_mod_h_1_KKI_0050776.txt",
+            #-----
+            "flickr" : "data/large/Flickr.txt",
+            "flickr_s" : "data/Flickr.txt",
+            "twitter_s" : "data/twitter.txt",
+            "default" : "data/test.txt",
+            "default2": "data/test2.txt",
+            'ER_5_7': 'data/ER/ER_5_7.graph',
+            'ER_10_15': 'data/ER/ER_10_15.graph',
+            'ER_15_22': 'data/ER/ER_15_22.graph'
+    }
+queries = {
+        "maniu_demo": [1],
+        'default': [1],
+        'ER_5_7': [0,2],
+        'ER_10_15': [0,2],
+        'ER_15_22': [0,2,4],
+        'twitter_s': [5,10,15,20],
+        "biomine" : [1,2,3,4,5],
+        "flickr" : [1,2,3,4,5],
+        "brain_a1": [1,2,3,4,5],
+        "brain_h1": [1,2,3,4,5]
+}
+def get_decompGraph(dataset, source, target):
+    name = dataset+'_'+str(source)+'_'+str(target)
+    G = UGraph()
+    try:
+        with open(decompdataset_to_filename[name],'r') as f:
+            for line in f:
+                u,v,lenth, w,p = line.split()
+                G.add_wedge(u,v, lenth, float(w),float(p))
+    except KeyError as e:
+        print("Wrong dataset name provided.")
+        raise e
+    return G 
+
+def get_dataset(dataset):
+    """
+    Load the graph datasets into memory as UGraph(). // The dataset is assumed to be simple Graph.
+    """
+    if dataset in datasets_unwgraph:
+        has_weight = False
+    else:
+        has_weight = True 
+    G = UGraph()
+    try:
+        with open(dataset_to_filename[dataset]) as f:
+            i = 0
+            for line in f:
+                if dataset.startswith('brain') and i==0: # Ignore first line of these datasets.
+                    i+=1
+                    continue 
+                if not has_weight:
+                    u,v,p = line.split()
+                    G.add_edge(u,v,float(p))
+                else:
+                    u,v,w,p = line.split()
+                    G.add_edge(u,v,float(p),weight=float(w))
+    except KeyError as e:
+        print("Wrong dataset name provided.")
+        raise e
+    return G 
+
+def draw_possible_world(nx_graph, seed = 1):
+    """ Plot a networkx weighted graph whose weight is probability. """
+    fig,ax = plt.subplots()
+    pos = nx.spring_layout(nx_graph, seed = seed, weight = None)
+
+    nx.draw_networkx_nodes(nx_graph, pos = pos, ax = ax)
+
+    nx.draw_networkx_edges(nx_graph, pos = pos, edgelist = nx_graph.edges, ax = ax)
+
+    labels = nx.get_edge_attributes(nx_graph,'weight')
+    nx.draw_networkx_labels(nx_graph, pos = pos, ax = ax, font_size = 14)
+    nx.draw_networkx_edge_labels(nx_graph,pos, ax = ax, edge_labels=labels, font_size = 14)
+    # plt.title(title)
+    fig.tight_layout()
+    # if savedrawing:
+    #     plt.savefig(filename, bbox_inches = 'tight')
+    plt.show()
+
+
+def save_dict(dict,fname = 'temp/temp.pkl'):
+    """ Save a dictionary """
+    print('Saving dictionary to: ',fname)
+    with open(fname, 'wb') as handle:
+        pickle.dump(dict, handle, protocol= 4) 
+
+def load_dict(fname = 'temp/temp.pkl'):
+    """ Load a dictionary """
+    print('Loading dictionary from: ',fname)
+    with open(fname, 'rb') as handle:
+        dict = pickle.load(handle)
+        return dict 
+
+def save_ugraph(ugraph, fname='temp/graph.pkl'):
+    save_dict(ugraph,fname)
+
+def load_ugraph(fname = 'temp/graph.pkl'):
+    return load_dict(fname)
