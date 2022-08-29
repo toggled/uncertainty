@@ -2,7 +2,8 @@ import itertools,os
 import networkx as nx
 from matplotlib import pyplot as plt 
 import random 
-from src.graph import UGraph as Graph 
+from src.graph import UGraph as Graph
+from src.graph import UMultiGraph as multiGraph
 from networkx.algorithms.bipartite.matching import INFINITY
 from scipy.stats import entropy
 import math 
@@ -18,7 +19,7 @@ class Query:
     """
     A generic Query class that exactly evaluating the queries considered in the paper.
     """
-    def __init__(self, prob_graph, qtype, args = {}) -> None:
+    def __init__(self, prob_graph, qtype, args = {}):
         """ Input: 
             An uncertain graph and 
             a query type => ( e.g. Degree, Shortest path length , #Triangles)
@@ -33,7 +34,7 @@ class Query:
         self.support_set = set()
         self.confidence = {}
         self.evaluation_times = []
-        if self.qtype == 'reach':
+        if self.qtype == 'reach' or self.qtype == 'sp':
             self.u = args['u']
             self.v = args['v']
     
@@ -84,6 +85,27 @@ class Query:
                     self.freq_distr[reachable] = self.freq_distr.get(reachable,0) + G[1] 
                     self.possible_world_statistic[reachable] = self.possible_world_statistic.get(reachable,0) + 1
                     self.support_set.add(reachable)
+                    self.evaluation_times.append(time()-start_tm)
+
+        if self.qtype == 'sp': # length of shortest path
+                print('sp')
+                u = self.u 
+                v = self.v
+                assert (u != None and v != None)
+                self.plot_properties['xlabel'] = 'Reachability ('+str(u)+'~'+str(v)+')'
+                self.plot_properties['ylabel'] = 'Prob.'
+                for x, G in enumerate(self.p_graph.enumerate_worlds()):
+                    start_tm = time()
+                    nx_G = nx.Graph()
+                    nx_G.add_edges_from(G[0])
+                    sp_len = INFINITY
+                    if (u in nx_G) and (v in nx_G):
+                        if (nx.has_path(nx_G,u,v)):
+                            sp_len = nx.shortest_path_length(nx_G, source=u, target=v)
+                    self.results.append((G[0], sp_len, G[1]))
+                    self.freq_distr[sp_len] = self.freq_distr.get(sp_len,0) + G[1] 
+                    self.possible_world_statistic[sp_len] = self.possible_world_statistic.get(sp_len,0) + 1
+                    self.support_set.add(sp_len)
                     self.evaluation_times.append(time()-start_tm)
 
         if self.qtype =="diam":
@@ -145,6 +167,7 @@ class Query:
         #         self.support_set.add(length)
 
     def evalG(self,G):
+        """ Function to evaluate a given possible world G"""
         assert isinstance(G,list)
         if self.qtype == 'reach': # Reachability
             u = self.u 
@@ -158,6 +181,19 @@ class Query:
                     reachable = 1 
 
             return reachable
+
+        if self.qtype == 'sp': # length of shortest path
+            u = self.u 
+            v = self.v
+            assert (u != None and v != None)
+            
+            nx_G = nx.Graph()
+            nx_G.add_edges_from(G)
+            sp_len = INFINITY
+            if (u in nx_G) and (v in nx_G):
+                if (nx.has_path(nx_G,u,v)):
+                    sp_len = nx.shortest_path_length(nx_G, source=u, target=v)
+            return sp_len
 
         if self.qtype =="diam":
             self.plot_properties['xlabel'] = 'Diam'
@@ -506,3 +542,142 @@ class Query:
                 self.PrG[i] = self.PrG[i] * p_up_e / self.p_graph.edict[ej]
             else:
                 self.PrG[i] = self.PrG[i] * (1-p_up_e) / (1-self.p_graph.edict[ej])
+
+class wQuery(Query):
+    """
+    A generic Query class that exactly evaluates the queries on a weighted graph.
+    """
+    def __init__(self, prob_graph, qtype, args = {}):
+        """ Input: 
+            An uncertain graph and 
+            a query type => ( e.g. Degree, Shortest path length , #Triangles)
+        """
+        super().__init__(prob_graph,qtype,args)
+
+    def evalG(self,G):
+        """ Function to evaluate a given possible world G (weighted)"""
+        assert isinstance(G,list)
+        if self.qtype == 'reach': # Reachability
+            return super().evalG(G)
+
+        if self.qtype == 'sp': # length of shortest path
+            u = self.u 
+            v = self.v
+            assert (u != None and v != None)
+            
+            nx_G = nx.Graph()
+            nx_G.add_weighted_edges_from([(e[0],e[1], self.p_graph.weights[(e[0],e[1])]) for e in G])
+            sp_len = INFINITY
+            if (u in nx_G) and (v in nx_G):
+                if (nx.has_path(nx_G,u,v)):
+                    sp_len = nx.dijkstra_path_length(nx_G, source=u, target=v)
+            return sp_len
+
+        if self.qtype =="diam":
+            return super().evalG(G) 
+            
+        if self.qtype == 'tri':
+            return super().evalG(G)
+
+class multiGraphQuery(Query):
+    """
+    A generic Query class that exactly evaluates the queries on an unweighted multigraph.
+    """
+    def __init__(self, prob_graph, qtype, args = {}):
+        """ Input: 
+            An uncertain graph and 
+            a query type => ( e.g. Degree, Shortest path length , #Triangles)
+        """
+        assert isinstance(prob_graph,multiGraph)
+        super().__init__(prob_graph,qtype,args)
+
+    def evalG(self,G):
+        """ Function to evaluate a given possible world G (multigraph)"""
+        # print('Multigraph eval.')
+        assert isinstance(G,list)
+        if self.qtype == 'reach': # Reachability
+            u = self.u 
+            v = self.v
+            assert (u != None and v != None)
+            nx_G = nx.MultiGraph()
+            nx_G.add_edges_from(G)
+            reachable = 0
+            if (u in nx_G) and (v in nx_G):
+                if (nx.has_path(nx_G,u,v)):
+                    reachable = 1 
+
+            return reachable
+
+        if self.qtype == 'sp': # length of shortest path
+            u = self.u 
+            v = self.v
+            assert (u != None and v != None)
+            
+            nx_G = nx.MultiGraph()
+            nx_G.add_edges_from(G)
+            sp_len = INFINITY
+            if (u in nx_G) and (v in nx_G):
+                if (nx.has_path(nx_G,u,v)):
+                    sp_len = nx.shortest_path_length(nx_G, source=u, target=v)
+            return sp_len
+
+        if self.qtype =="diam":
+            self.plot_properties['xlabel'] = 'Diam'
+            self.plot_properties['ylabel'] = 'Prob.'
+           
+            nx_G = nx.MultiGraph()
+            nx_G.add_edges_from(G)
+            if nx_G.number_of_edges() == 0:
+                diam = INFINITY
+            else:
+                if not nx.is_connected(nx_G):
+                    diam = INFINITY
+                else:
+                    diam = nx.diameter(nx_G)
+            
+            return diam 
+            
+        if self.qtype == 'tri':
+            g = nx.MultiGraph()
+            g.add_edges_from(G)
+            num_triangles = sum(nx.triangles(g).values()) / 3
+            return num_triangles
+
+class multiGraphwQuery(multiGraphQuery):
+    """
+    A generic Query class that exactly evaluates the queries on a weighted multigraph.
+    """
+    def __init__(self, prob_graph, qtype, args = {}):
+        """ Input: 
+            An uncertain graph and 
+            a query type => ( e.g. reachability, Shortest path length , #Triangles)
+        """
+        super().__init__(prob_graph,qtype,args)
+
+    def evalG(self,G):
+        """ Function to evaluate a given possible world G (weighted multigraph)"""
+        # print('Multigraph eval.')
+        assert isinstance(G,list)
+        if self.qtype == 'reach': # Reachability
+            return super().evalG(G)
+
+        if self.qtype == 'sp': # length of shortest path
+            # print('weighted multigraph sp query')
+            u = self.u 
+            v = self.v
+            assert (u != None and v != None)
+            
+            nx_G = nx.MultiGraph()
+            nx_G.add_weighted_edges_from([(e[0],e[1], self.p_graph.weights[(e[0],e[1],e[2])]) for e in G])
+            sp_len = INFINITY
+            if (u in nx_G) and (v in nx_G):
+                if (nx.has_path(nx_G,u,v)):
+                    sp_len = nx.dijkstra_path_length(nx_G, source=u, target=v)
+            return sp_len
+
+
+        if self.qtype =="diam":
+            return super().evalG(G)
+            
+        if self.qtype == 'tri':
+            return super().evalG(G)

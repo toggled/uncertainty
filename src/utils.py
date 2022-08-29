@@ -1,16 +1,19 @@
-from src.graph import UGraph
+from src.graph import UGraph,UMultiGraph
 import networkx as nx 
 from matplotlib import pyplot as plt
 import pickle
 
-datasets_wgraph = ['brain_a1','brain_h1']
-datasets_unwgraph = ['flickr','biomine']
+
+datasets_wgraph = ['maniu_demow','brain_a1','brain_h1']
+datasets_unwgraph = ['maniu_demo','flickr','biomine']
 
 decompdataset_to_filename = {
-            "maniu_demo_1_4": "decomp/maniu/demo_1_4.txt"
+            "maniu_demo_1_4": "decomp/maniu/demo_1_4.txt",
+            "maniu_demow_1_4": "decomp/maniu/demo_1_4.txt",
 }
 dataset_to_filename = {
             "maniu_demo": "data/maniu/demo.txt",
+            "maniu_demow": "data/maniu/demow.txt",
             "biomine" : "data/large/biomine.txt",
             "brain_a1": "data/large/brain/a1/conf_mod_a_1_KKI_0050792.txt",
             "brain_h1": "data/large/brain/h1/conf_mod_h_1_KKI_0050776.txt",
@@ -36,27 +39,48 @@ queries = {
         "brain_a1": [1,2,3,4,5],
         "brain_h1": [1,2,3,4,5]
 }
+def is_weightedGraph(dataset):
+    if dataset in datasets_unwgraph:
+        return False 
+    return True 
+
 def get_decompGraph(dataset, source, target):
     name = dataset+'_'+str(source)+'_'+str(target)
-    G = UGraph()
-    try:
-        with open(decompdataset_to_filename[name],'r') as f:
-            for line in f:
-                u,v,lenth, w,p = line.split()
-                G.add_wedge(u,v, lenth, float(w),float(p))
-    except KeyError as e:
-        print("Wrong dataset name provided.")
-        raise e
-    return G 
+    G = UMultiGraph()
+
+    if dataset in datasets_unwgraph:
+        try:
+            with open(decompdataset_to_filename[name],'r') as f:
+                _id = 1
+                for line in f:
+                    u,v,l,w,p = line.split()
+                    # Since dataset is unweighted graph, ignore length l
+                    G.add_edge(u,v, _id, float(p),float(w))
+                    _id +=1
+        except KeyError as e:
+            print("Wrong dataset name provided.")
+            raise e
+        return G 
+
+    else:
+        try:
+            with open(decompdataset_to_filename[name],'r') as f:
+                _id = 1
+                for line in f:
+                    u,v,l,w,p = line.split()
+                    # Since dataset is weighted graph, length (l) column already contains weight of original edges + pseudo edges.
+                    G.add_edge(u,v, _id, float(p),float(l))
+                    _id +=1
+        except KeyError as e:
+            print("Wrong dataset name provided.")
+            raise e
+        return G 
 
 def get_dataset(dataset):
     """
     Load the graph datasets into memory as UGraph(). // The dataset is assumed to be simple Graph.
     """
-    if dataset in datasets_unwgraph:
-        has_weight = False
-    else:
-        has_weight = True 
+    has_weight = is_weightedGraph(dataset)
     G = UGraph()
     try:
         with open(dataset_to_filename[dataset]) as f:

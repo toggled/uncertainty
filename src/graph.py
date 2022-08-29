@@ -168,8 +168,9 @@ class UGraph:
         # nx_graph = nx.Graph()
         poss_world = []
         poss_world_prob = 1
-        for e in self.edict:
+        for e in self.Edges:
             p = self.edict[e]
+            # print(e,p)
             if random.random() < p:
                 # nx_graph.add_edge(*e,weight = p)
                 poss_world.append(e)
@@ -209,9 +210,9 @@ class UMultiGraph(UGraph):
     A generic class for Uncertain Graph data structure and for various operations on it. 
     """
     def __init__(self):
-        super(UGraph, self).__init__()
+        super().__init__()
 
-    def add_edge(self,u,v,id,prob, weight = 1.0):
+    def add_edge(self,u,v,id, prob, weight = 1.0):
         """ Add edge e = (u,v) along with p(e) """
         (u,v) = (min(u,v),max(u,v))
         self.Edges.append((u,v,id))

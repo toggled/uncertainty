@@ -391,6 +391,8 @@ class ApproximateAlgorithm:
         for i in range(N):
             hat_Pr = {}
             for g in self.G.get_Ksample(T):
+                # if i==0:
+                # print(g[0])
                 start_tm = time()
                 omega = self.Query.evalG(g[0])
                 query_evaluation_times.append(time()-start_tm)

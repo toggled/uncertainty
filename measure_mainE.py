@@ -3,9 +3,9 @@
 # Currently => Unweighted, simple Uncertain Graph
 # Adopt => Weighted, Uncertain Multi-Graph. (Shortest)
 # Subgraph => Multi-graph (SP => Assume may have Weights).
-# 1. Add Shortest path query. 
-# 2. Weighted graph.
-# 3. Multi-graph. 
+# 1. Add Shortest path query. (done)
+# 2. Weighted graph. (done)
+# 3. Multi-graph. (done)
 # 4. Dataset => 1) Twitter 2) Weighted graph. (Road network)
 # 5. Implement Update type: U2 [ Use Expected Entropy in the optimization criteria. (Expectation over p_{up}(e) \in {0,1}) ]
 # ----- Modify Algorithm5's opt. criteria. And implement a crowd-sourced variant. (non-adaptive to crowd-sourcing result.)
@@ -15,9 +15,9 @@
 
 import argparse,os,sys
 import networkx as nx
-from src.utils import get_dataset,get_decompGraph, draw_possible_world,save_dict
+from src.utils import get_dataset,get_decompGraph, draw_possible_world,save_dict,is_weightedGraph
 from src.algorithm import Algorithm,ApproximateAlgorithm
-from src.query import Query
+from src.query import Query,wQuery,multiGraphQuery,multiGraphwQuery
 import pandas as pd
 
 parser = argparse.ArgumentParser()
@@ -29,7 +29,7 @@ parser.add_argument("-T",'--T',type = int, default = 1, help= '#of Possible worl
 parser.add_argument("-v", "--verbose", action='store_true')
 parser.add_argument('-s','--source',type = str, default = None)
 parser.add_argument('-t','--target',type = str, default = None)
-parser.add_argument('-pr','--property',type = str, default = 'tri', help = "either tri/diam/reach")
+parser.add_argument('-pr','--property',type = str, default = 'tri', help = "either tri/diam/reach/sp")
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
 
 # Demo usages:
@@ -54,15 +54,25 @@ G = get_dataset(args.dataset)
 # Q.eval(None,None,None)
 if args.property == 'reach':
     print('Reachability(',args.source,',',args.target,')')
-    Q = Query(G,'reach',{'u':args.source,'v':args.target})
+    if is_weightedGraph(args.dataset):
+        Q = wQuery(G,'reach',{'u':args.source,'v':args.target})
+    else:
+        Q = Query(G,'reach',{'u':args.source,'v':args.target})
+
+if args.property == 'sp':
+    print('SP(',args.source,',',args.target,')')
+    if is_weightedGraph(args.dataset):
+        Q = wQuery(G,'sp',{'u':args.source,'v':args.target})
+    else:
+        Q = Query(G,'sp',{'u':args.source,'v':args.target})
+
 if args.property == 'diam':
     sys.exit(1)
     # print('diameter')
     # Q = Query(G,'diam')
 if args.property == 'tri':
-    sys.exit(1)
-    # print('#Triangles')
-    # Q = Query(G,'tri')
+    print('#Triangles')
+    Q = Query(G,'tri')
 # Q = Query(G,'reach',{'u':'a','v':'c'})
 # Q.eval()
 # print(Q.get_distribution())
@@ -76,7 +86,20 @@ if args.algo == 'exact':
 elif args.algo == 'eappr': # efficient approximate measurement of uncertainty
     print("Efficiently measure uncertainty approximately")
     decomp_g = get_decompGraph(args.dataset, args.source, args.target)
-    Q = Query(decomp_g,'reach',{'u':args.source,'v':args.target})
+    # print(decomp_g.Edges)
+    if args.property == 'reach':
+        Q = multiGraphQuery(decomp_g,'reach',{'u':args.source,'v':args.target})
+
+    if args.property == 'sp':
+        if is_weightedGraph(args.dataset):
+            Q = multiGraphwQuery(decomp_g,'sp',{'u':args.source,'v':args.target}) # only SP requires weighted multigraph query
+        else:
+            Q = multiGraphQuery(decomp_g,'sp',{'u':args.source,'v':args.target})
+
+    if args.property == 'tri':
+        Q = multiGraphQuery(decomp_g,'tri')
+
+   
     a = ApproximateAlgorithm(decomp_g,Q)
     a.measure_uncertainty(N=args.N, T = args.T)
     a.algostat['algorithm'] = args.algo
@@ -102,7 +125,7 @@ output['N'],output['T'] = [("None","None"),(args.N,args.T)][args.algo == 'appr' 
 for k in a.algostat.keys():
     if k!='result' and k!='k': 
         output[k] = a.algostat[k]
-# print(output)
+print(output)
 if (not args.verbose):
     csv_name = 'output/measure_'+args.dataset+'.csv'
     if os.path.exists(csv_name):
@@ -110,5 +133,5 @@ if (not args.verbose):
     else:
         result_df = pd.DataFrame()
     result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
-    result.to_csv(csv_name, header=True, index=False)
-    print(result.head())
+    # result.to_csv(csv_name, header=True, index=False)
+    # print(result.head())
