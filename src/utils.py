@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import pickle
 
 
-datasets_wgraph = ['maniu_demow','brain_a1','brain_h1']
+datasets_wgraph = ['maniu_demow','brain_a1','brain_h1','rome','brno','porto','sanfrancisco']
 datasets_unwgraph = ['maniu_demo','flickr','biomine']
 
 decompdataset_to_filename = {
@@ -14,6 +14,10 @@ decompdataset_to_filename = {
 dataset_to_filename = {
             "maniu_demo": "data/maniu/demo.txt",
             "maniu_demow": "data/maniu/demow.txt",
+            "rome": "data/large/road/Rome.graph",
+            "brno": "data/large/road/Brno.graph",
+            "porto": "data/large/road/Porto.graph",
+            "sfco": "data/large/road/SanFrancisco.graph",
             "biomine" : "data/large/biomine.txt",
             "brain_a1": "data/large/brain/a1/conf_mod_a_1_KKI_0050792.txt",
             "brain_h1": "data/large/brain/h1/conf_mod_h_1_KKI_0050776.txt",

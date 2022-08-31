@@ -7,7 +7,7 @@ import networkx as nx
 import random,argparse
 import os
 import sys
-from src.utils import get_dataset
+from src.utils import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dataset", type=str, default="default")
@@ -18,10 +18,13 @@ MAX_EDGE_LENGTH = 1000
 # dist = list(range(5,21,5))
 dist = list(range(1,6))
 
+datasets_wgraph = ['maniu_demow','brain_a1','brain_h1','rome']
+datasets_unwgraph = ['maniu_demo','flickr','biomine']
+
 # Another option to (faster) generate queries, but here the pairs won't be picked uniformly at random
 # First a start vertex is picked uniformly at random and then the end vertex is picked uniformly at random from
 # the vertices at a certain hop distance
-def generate_queries_skewed(g, filename, distances = [1],queries_per_category = 2):
+def generate_queries_skewed(g, filename, distances = [1],queries_per_category = 100):
     print("Generating queries for {}".format(filename))
     print(filename)
     
@@ -102,8 +105,8 @@ if __name__ == "__main__":
     dir_name = "data/"+args.dataset
     if not os.path.isdir(dir_name):
         os.mkdir(dir_name)
-
-    g = get_dataset(args.dataset).get_unweighted_graph_rep()
+    
+    g = get_dataset(args.dataset).get_unweighted_simple_graph_rep()
     generate_queries_skewed(g,"data/"+args.dataset+"/"+args.dataset,distances = dist)
 
 

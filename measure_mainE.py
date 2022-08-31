@@ -1,4 +1,4 @@
-""" Main file to make uncertainty estimation of reachability query more efficient using SPQR subgraphs. """
+""" Main file to make uncertainty estimation more efficient using SPQR subgraphs. """
 # TODO:
 # Currently => Unweighted, simple Uncertain Graph
 # Adopt => Weighted, Uncertain Multi-Graph. (Shortest)

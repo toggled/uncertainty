@@ -205,6 +205,16 @@ class UGraph:
             nx_graph.add_edge(*e)
         return nx_graph 
 
+    def get_unweighted_simple_graph_rep(self):
+        """ 
+        Returns the unweighted graph representation of the uncertain graph. 
+        (Needed for Generating example queries in Generate_queries.py) 
+        """
+        nx_graph = nx.Graph()
+        for edge in self.edict:
+            e = (edge[0],edge[1])
+            nx_graph.add_edge(*e)
+        return nx_graph 
 class UMultiGraph(UGraph):
     """
     A generic class for Uncertain Graph data structure and for various operations on it. 
