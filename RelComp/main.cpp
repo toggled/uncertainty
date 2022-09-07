@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
 		cout << "Computing and Writing subgraph for source target list..."<< endl;
 		IndSubgraph t(&g);
 		t.decompose_graph(2, file_name_decomp+"/"+graph_name);
-		cout<<"t.decompose_graph()\n";
+//		cout<<"t.decompose_graph()\n";
 		Menu::writeProbTree(file_name_decomp, graph_name, source_target_pairs, t);
 		cout << "**Done!"<< endl;
 	}

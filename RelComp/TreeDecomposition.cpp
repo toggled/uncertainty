@@ -246,7 +246,7 @@ void TreeDecomposition::write_decomposition_tot( NodeIdType source, NodeIdType t
 	// TODO: Modify graph_name location. (to write in decomp/)
     std::string s1 = std::to_string(source);
 	std::string t1 = std::to_string(target);
-    std::cout<<"Output filename: "<<graph_name+"_query_subgraph_"+s1+"_"+t1+".txt"<<"\n";
+//    std::cout<<"Output filename: "<<graph_name+"_query_subgraph_"+s1+"_"+t1+".txt"<<"\n";
     std::ofstream file_root(graph_name+"_query_subgraph_"+s1+"_"+t1+".txt");
     root_bag->write_bag_to_file(file_root);
     file_root.close();
@@ -258,7 +258,7 @@ void TreeDecomposition::load_decomposition(std::string path_prefix, std::string 
     bag_map.clear();
     std::ostringstream index_name;
     index_name << path_prefix << "/"<<graph_name<<"_index.txt";
-    std::cout<<"index_name: "<<index_name.str()<<"\n";
+//    std::cout<<"index_name: "<<index_name.str()<<"\n";
     std::ifstream file_index(index_name.str());
     file_index >> number_bags;
     file_index.close();
