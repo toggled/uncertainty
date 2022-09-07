@@ -12,24 +12,31 @@ int main(int argc, char* argv[]) {
 	if(argc < 4){
 		cout << "usage " << argv[0] << endl
 				<< " -i input file" << endl
-				<< " -d directory" << endl
+                << " -l input file directory"<< endl
+				<< " -d output directory" << endl
 				<< " -s source-target file" << endl
 				<< " -m method [1= TreeDecomposition, 2= IndSubgraph, 3=Reachability]"<< endl;
 		return 0;
 	}
 
 	std::string graph_name;
+    std::string graph_dir;
 	std::string file_name_decomp;
 	std::string source_target_pairs;
 	int c, metric=0;
 
-	while ((c = getopt(argc, argv, "i:d:s:m:")) != -1) {
+	while ((c = getopt(argc, argv, "i:l:d:s:m:")) != -1) {
 		switch(c) {
 		case 'i':
 			graph_name=strdup(optarg);
 			break;
+        case 'l':
+            graph_dir=strdup(optarg);
+            break;
 		case 'd':
 			file_name_decomp=strdup(optarg); //set path to folder containing bags etc.
+            if (std::experimental::filesystem::exists(file_name_decomp)==false)
+                std::experimental::filesystem::create_directories(file_name_decomp);
 			break;
 		case 's':
 			source_target_pairs=strdup(optarg);
@@ -41,7 +48,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	//Load graph
-	std::ifstream input_stream(graph_name.c_str());
+	std::ifstream input_stream((graph_dir+"/"+graph_name).c_str());
 
 	ProbabilisticGraph g(input_stream);
 	if(metric==1){
@@ -70,7 +77,8 @@ int main(int argc, char* argv[]) {
 	if(metric==5){
 		cout << "Computing and Writing subgraph for source target list..."<< endl;
 		IndSubgraph t(&g);
-		t.decompose_graph(2, graph_name);
+		t.decompose_graph(2, file_name_decomp+"/"+graph_name);
+		cout<<"t.decompose_graph()\n";
 		Menu::writeProbTree(file_name_decomp, graph_name, source_target_pairs, t);
 		cout << "**Done!"<< endl;
 	}

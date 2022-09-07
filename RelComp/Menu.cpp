@@ -21,7 +21,8 @@ void Menu::findkProbTree(std::string file_name_decomp, std::string graph_name, s
 	Bag* root_bag = decomp.get_root();
 
 	std::cout << std::endl << "Reading Source-Target file..." << std::endl;
-	std::vector<std::pair<VertexDescr, VertexDescr>> source_target_pairs = FileIO::readSourceTargetFile(source_target_file);
+	std::vector<std::pair<VertexDescr, VertexDescr>> source_target_pairs;
+	FileIO::readSourceTargetFile(source_target_file,source_target_pairs);
 
 	// Get graph name
 	std::cout << "Graph name: ";
@@ -132,18 +133,23 @@ void Menu::findkProbTree(std::string file_name_decomp, std::string graph_name, s
 }
 
 
-void Menu::writeProbTree(std::string file_name_decomp, std::string graph_name, std::string source_target_file, 	IndSubgraph t)
+void Menu::writeProbTree(std::string file_name_decomp, std::string graph_name, std::string source_target_file, 	IndSubgraph &t)
 {
+	std::cout<<"writeProbTree()\n";
 	//std::cout << "Input dir of Index: " << std::endl << std::flush;
 	// Get dir of index
 	//std::string file_name_decomp("./");
+    std::cout<<file_name_decomp<<"\n";
+    std::cout<<graph_name<<"\n";
 	TreeDecomposition decomp(file_name_decomp, graph_name);
 	//IndSubgraph decomp(t);
+	std::cout<<"decomp.get_root()\n";
 	Bag* root_bag = decomp.get_root();
 
 	std::cout << std::endl << "Reading Source-Target file..." << std::endl;
-	std::vector<std::pair<VertexDescr, VertexDescr>> source_target_pairs = FileIO::readSourceTargetFile(source_target_file);
-
+	std::vector<std::pair<VertexDescr, VertexDescr>> source_target_pairs;
+	FileIO::readSourceTargetFile(source_target_file,source_target_pairs);
+	std::cout<<"Done reading source-target file..\n";
 	int samples = 0;
 	NodeIdType source, target;
 
@@ -171,7 +177,8 @@ void Menu::writeProbTree(std::string file_name_decomp, std::string graph_name, s
 		int hit_bags = 0;
 		try {
 			if ((src != -1) || (tgt != -1)) hit_bags = decomp.redo_computations(src, tgt);
-			decomp.write_decomposition_tot(source, target, graph_name);
+			std::cout<<"write_decomposition_tot()\n";
+			decomp.write_decomposition_tot(source, target, file_name_decomp+"/"+graph_name);
 		}
 		catch (int e) {
 			std::cerr << "exception " << e << "caught in " << src << "->" << \
@@ -185,6 +192,7 @@ void Menu::writeProbTree(std::string file_name_decomp, std::string graph_name, s
 		std::cout<<"duration:"<<duration<<"ms   memory:  "<<mm.getPeakMemory()<<std::endl;
 	}
 
+//    t1.join();
 	mm.stopMonitoring();
 }
 

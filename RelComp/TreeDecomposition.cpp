@@ -188,6 +188,7 @@ void TreeDecomposition::move_edges_to_bag(Bag *bag){
 }
 
 void TreeDecomposition::write_decomposition(){
+    std::cout<<"write_decomposition()-start\n";
     std::ofstream file_bags("bags");
     for(Bag* bag:*(bags)) bag->write_bag_to_file(file_bags);
     file_bags.close();
@@ -208,6 +209,8 @@ void TreeDecomposition::write_decomposition(){
     std::ofstream file_stats("stats");
     file_stats << treewidth << " " << bags->size() << " " << width << " " << height << " " << root_bag->get_number_nodes() << " " << root_bag->get_number_edges() << " " << root_bag->get_number_computed_edges() << std::endl;
     file_stats.close();
+    std::cout<<"write_decomposition()-end\n";
+
 }
 
 
@@ -240,9 +243,10 @@ void TreeDecomposition::write_decomposition(){
 
 */
 void TreeDecomposition::write_decomposition_tot( NodeIdType source, NodeIdType target, std::string graph_name){
-	std::string s1 = std::to_string(source);
+	// TODO: Modify graph_name location. (to write in decomp/)
+    std::string s1 = std::to_string(source);
 	std::string t1 = std::to_string(target);
-
+    std::cout<<"Output filename: "<<graph_name+"_query_subgraph_"+s1+"_"+t1+".txt"<<"\n";
     std::ofstream file_root(graph_name+"_query_subgraph_"+s1+"_"+t1+".txt");
     root_bag->write_bag_to_file(file_root);
     file_root.close();
@@ -254,6 +258,7 @@ void TreeDecomposition::load_decomposition(std::string path_prefix, std::string 
     bag_map.clear();
     std::ostringstream index_name;
     index_name << path_prefix << "/"<<graph_name<<"_index.txt";
+    std::cout<<"index_name: "<<index_name.str()<<"\n";
     std::ifstream file_index(index_name.str());
     file_index >> number_bags;
     file_index.close();

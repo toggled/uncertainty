@@ -38,7 +38,7 @@ public:
 	static std::map<VertexDescr, std::map<VertexDescr, std::string>> readFullBFSSharingFile(std::string file_name);
 	static std::string readBFSSharingFileGetEdgeBitVector(std::string file_name, size_t source, size_t target, size_t size);
 	static std::list<Mapping> readDBLPFile(std::string file_path);
-	static std::vector<std::pair<VertexDescr, VertexDescr>> readSourceTargetFile(std::string file_path);
+	static void readSourceTargetFile(std::string file_path,std::vector<std::pair<VertexDescr, VertexDescr>>& source_target_pairs);
 	static std::string getFilePath();
 	static void generateBFSHash(std::string index_file_name, std::string hash_file_name);
 	static void saveFile(std::list<Mapping> mapping_list);

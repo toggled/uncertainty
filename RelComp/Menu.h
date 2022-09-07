@@ -40,7 +40,7 @@ public:
 	static void findkRSS(Graph& graph);
 	static void findkLazyPropagation(Graph& graph);
 	static void findkProbTree(std::string file_name_decomp, std::string graph_name, std::string source_target_pairs);
-	static void writeProbTree(std::string file_name_decomp, std::string graph_name, std::string source_target_pairs, IndSubgraph t);
+	static void writeProbTree(std::string file_name_decomp, std::string graph_name, std::string source_target_pairs, IndSubgraph& t);
 
 	static void debugCommand(Graph& graph);
 };

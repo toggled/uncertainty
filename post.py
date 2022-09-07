@@ -12,9 +12,9 @@ os.system("./clean.sh")
 path = "NNdhUiT@biggraph.scse.ntu.edu.sg:/data1/Naheed/uncertainty/"
 
 if(args.all):
-    os.system("tar -czvf file_to_send.tar.gz uncertainty/* src/* data/*  *.py *sh *md")
+    os.system("tar -czvf file_to_send.tar.gz uncertainty/* src/* RelComp/* data/* decomp/* *.py *sh *md")
 else:
-    os.system("tar -czvf file_to_send.tar.gz uncertainty/* src/* *.py *sh *md")
+    os.system("tar -czvf file_to_send.tar.gz uncertainty/* src/* RelComp/* *.py *sh *md")
 os.system("rsync -vaP file_to_send.tar.gz "+path)
 
 

@@ -134,9 +134,9 @@ std::list<Mapping> FileIO::readDBLPFile(std::string file_path)
 	return mapping_list;
 }
 
-std::vector<std::pair<VertexDescr, VertexDescr>> FileIO::readSourceTargetFile(std::string file_path)
+void FileIO::readSourceTargetFile(std::string file_path, std::vector<std::pair<VertexDescr, VertexDescr>>& source_target_pairs)
 {
-	std::vector<std::pair<VertexDescr, VertexDescr>> source_target_pairs;
+	// std::vector<std::pair<VertexDescr, VertexDescr>> source_target_pairs;
 	std::fstream file;
 	file.open(file_path);
 	std::string content;
@@ -148,7 +148,8 @@ std::vector<std::pair<VertexDescr, VertexDescr>> FileIO::readSourceTargetFile(st
 				source_target_pairs.push_back(std::make_pair(source, target));
 			}
 	}
-	return source_target_pairs;
+	file.close();
+	// return std::move(source_target_pairs);
 }
 // Given a BFS Sharing file, generate hash file for BFS Sharing
 void FileIO::generateBFSHash(std::string index_file_name, std::string hash_file_name)

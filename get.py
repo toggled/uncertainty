@@ -8,6 +8,7 @@ args = parser.parse_args()
 
 
 path = "NNdhUiT@biggraph.scse.ntu.edu.sg:/data1/Naheed/uncertainty/output/"
+path2 = "NNdhUiT@biggraph.scse.ntu.edu.sg:/data1/Naheed/uncertainty/decomp/"
 
 os.system("rm -r server_output | mkdir -p server_output")
 if(os.path.isdir("server_output")):
@@ -16,6 +17,8 @@ os.system("mkdir -p server_output/" )
 if(not args.large):
     os.system("rsync -vaP "+path+"/output.tar.gz server_output" +args.token+"/")
     os.system("tar -xvf server_output" +args.token+"/output.tar.gz -C server_output" +args.token+"/")
+    os.system("rsync -vaP "+path2+"/decomp.tar.gz server_output" +args.token+"/")
+    os.system("tar -xvf server_output" +args.token+"/decomp.tar.gz -C server_output" +args.token+"/")
 
 if(args.large):
     os.system("rsync -vaP "+path+"/*.csv server_output" +args.token+"/")

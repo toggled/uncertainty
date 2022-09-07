@@ -13,6 +13,12 @@
 # 6. Evaluation of Point #5. [We compare Adaptive (Can be implemented by using non-adaptive alg. k times) vs Non-adaptive ]
 # 7. Test All the uncertainty reduction Algorithms' implementation adapted for #5 
 
+
+#TODO 
+# 1. Add stopping criteria in unc reduction algorithm.=> Implement two variants (var1, we stop early at k'<k when reduction is small , var2, we generate up to k but return my result at minima k'<k)
+# 2. Yllka => 1) Triangle query 2) Memory-leak in the subgraph 3) Implementation of Crowdsourcing paper for baseline.
+# 3. Theory of section 4: => If can't give approximaiton guarantee, point-out cases when the algorithm selects non-optimal edges, sub-obptimal. 
+
 import argparse,os,sys
 import networkx as nx
 from src.utils import get_dataset,get_decompGraph, draw_possible_world,save_dict,is_weightedGraph
@@ -133,5 +139,5 @@ if (not args.verbose):
     else:
         result_df = pd.DataFrame()
     result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
-    # result.to_csv(csv_name, header=True, index=False)
+    result.to_csv(csv_name, header=True, index=False)
     # print(result.head())
