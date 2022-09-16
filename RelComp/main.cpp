@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
 		case 'i':
 			graph_name=strdup(optarg);
 			break;
-        case 'l':
+        case 'l': // set path to folder containing graph_name
             graph_dir=strdup(optarg);
             break;
 		case 'd':
