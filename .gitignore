@@ -147,3 +147,5 @@ RelComp/.idea/
 RelComp/cmake-build-debug/
 RelComp/*.txt_*.txt
 RelComp/decomp
+RelComp/RelComp
+RelComp/*.vcxproj*

@@ -15,7 +15,9 @@ int main(int argc, char* argv[]) {
                 << " -l input file directory"<< endl
 				<< " -d output directory" << endl
 				<< " -s source-target file" << endl
-				<< " -m method [1= TreeDecomposition, 2= IndSubgraph, 3=Reachability]"<< endl;
+				<< " -m method [1= TreeDecomposition, 2= IndSubgraph, 3=Reachability]"
+				<<" -w Add this option to input weighted uncertain graphs"
+				<< endl;
 		return 0;
 	}
 
@@ -24,8 +26,8 @@ int main(int argc, char* argv[]) {
 	std::string file_name_decomp;
 	std::string source_target_pairs;
 	int c, metric=0;
-
-	while ((c = getopt(argc, argv, "i:l:d:s:m:")) != -1) {
+	bool isWeighted = false;
+	while ((c = getopt(argc, argv, "i:l:d:s:m:w:")) != -1) {
 		switch(c) {
 		case 'i':
 			graph_name=strdup(optarg);
@@ -44,13 +46,20 @@ int main(int argc, char* argv[]) {
 		case 'm':
 			metric = atoi(optarg);
 			break;
+		case 'w':
+			if (atoi(optarg)==1)	isWeighted = true;
+			break;
 		}
 	}
 
 	//Load graph
+	if (std::experimental::filesystem::exists(graph_dir+"/"+graph_name)==false){
+		std::cout<<" Input file does not exists. \n";
+		return -1;
+	}
+	if (isWeighted) cout<<"input weighted graph: "<<graph_dir+"/"+graph_name<<"\n";
 	std::ifstream input_stream((graph_dir+"/"+graph_name).c_str());
-
-	ProbabilisticGraph g(input_stream);
+	ProbabilisticGraph g(input_stream,isWeighted=isWeighted);
 	if(metric==1){
 		cout << "Computing bags using method TreeDecomposition..."<< endl;
 		TreeDecomposition t(&g);

@@ -10,25 +10,46 @@
 
 #include <fstream>
 
-ProbabilisticGraph::ProbabilisticGraph(std::ifstream& input_stream){
+ProbabilisticGraph::ProbabilisticGraph(std::ifstream& input_stream, bool isWeighted){
     undirected_distribution = new DistanceDistribution();
     undirected_distribution->add_to_distribution(1, 1.0f);
     number_edges = 0;
     NodeIdType id_first, id_second;
-
-    while(input_stream >> id_first >> id_second){
-        //*input_stream >> value;
-        DistanceDistribution* original = new DistanceDistribution();
-        //input_stream >> *original;
-		double probability;
-		input_stream >> probability;
-		original->add_to_distribution(1, probability);
-		//std::cout << "DistanceDistribution: " << *original << std::endl;
-        add_edge(id_first, id_second, original);
-        add_undirected_edge(id_first, id_second, undirected_distribution);
-        add_undirected_edge(id_second, id_first, undirected_distribution);
-        number_edges++;
-    }while(!(input_stream.eof()));
+    if (isWeighted){
+        double weight;
+        double probability;
+        while(input_stream >> id_first >> id_second >> weight>>probability){
+            //*input_stream >> value;
+            DistanceDistribution* original = new DistanceDistribution();
+            //input_stream >> *original;
+            
+            // input_stream >> probability;
+            original->add_to_distribution(1, probability);
+            //std::cout << "DistanceDistribution: " << *original << std::endl;
+            // add_edge(id_first, id_second, original);
+            add_weighted_edge(id_first, id_second, weight, original);
+            add_undirected_edge(id_first, id_second, undirected_distribution);
+            add_undirected_edge(id_second, id_first, undirected_distribution);
+            number_edges++;
+        }while(!(input_stream.eof()));
+        std::cout<<"num of edges: "<<number_edges<<"\n";
+    }
+    else{
+        while(input_stream >> id_first >> id_second){
+                //*input_stream >> value;
+                DistanceDistribution* original = new DistanceDistribution();
+                //input_stream >> *original;
+                double probability;
+                input_stream >> probability;
+                original->add_to_distribution(1, probability);
+                //std::cout << "DistanceDistribution: " << *original << std::endl;
+                add_edge(id_first, id_second, original);
+                add_undirected_edge(id_first, id_second, undirected_distribution);
+                add_undirected_edge(id_second, id_first, undirected_distribution);
+                number_edges++;
+            }while(!(input_stream.eof()));
+    }
+    
 };
 
 void ProbabilisticGraph::write_graph(std::ofstream &output_stream){
@@ -78,6 +99,23 @@ void ProbabilisticGraph::add_edge(NodeIdType key_first, NodeIdType key_second, D
     (*outgoing[key_first])[out->first]=out;
     (*incoming[key_second])[in->first]=in;
 };
+void  ProbabilisticGraph::add_weighted_edge(NodeIdType key_first, NodeIdType key_second, double weight, DistanceDistribution* value){
+    EdgeType* out= new EdgeType;
+    out->first = key_second;
+    out->second = value;
+    out->third = false;
+    out->weight = weight;
+    EdgeType* in = new EdgeType;
+    in->first = key_first;
+    in->second = value;
+    in->third = false;
+    in->weight = weight;
+    add_node(key_first);
+    add_node(key_second);
+    (*outgoing[key_first])[out->first]=out;
+    (*incoming[key_second])[in->first]=in;
+}
+
 
 EdgeType* ProbabilisticGraph::get_edge(NodeIdType key_first, NodeIdType key_second){
     EdgeType* edge = nullptr;
@@ -97,11 +135,12 @@ void ProbabilisticGraph::remove_edge(NodeIdType key_first, NodeIdType key_second
     if(incoming[key_second]->size()==0) incoming.erase(key_second);
 }
 
-void ProbabilisticGraph::add_undirected_edge(NodeIdType key_first, NodeIdType key_second, DistanceDistribution* value){
+void ProbabilisticGraph::add_undirected_edge(NodeIdType key_first, NodeIdType key_second, DistanceDistribution* value, double weight){
     EdgeType* out = new EdgeType;
     out->first = key_second;
     out->second = value;
     out->third = false;
+    out->weight = weight;
     (*undirected[key_first])[out->first]=out;
 };
 

@@ -20,7 +20,7 @@ class ProbabilisticGraph{
     
     DistanceDistribution* undirected_distribution;
 public:
-    ProbabilisticGraph(std::ifstream& input_stream);
+    ProbabilisticGraph(std::ifstream& input_stream, bool isWeighted = false);
     ~ProbabilisticGraph() {delete undirected_distribution;};
     bool is_node(NodeIdType node_id);
     std::unordered_map<NodeIdType, EdgeType*>* get_outgoing_nodes(NodeIdType node_id);
@@ -28,9 +28,10 @@ public:
     std::unordered_map<NodeIdType, EdgeType*>* get_neighbours(NodeIdType node_id);
     std::vector<NodeIdType> get_node_vector();
     void add_edge(NodeIdType key_first, NodeIdType key_second, DistanceDistribution* value);
+    void add_weighted_edge(NodeIdType key_first, NodeIdType key_second, double weight, DistanceDistribution* value);
     EdgeType* get_edge(NodeIdType key_first, NodeIdType key_second);
     void remove_edge(NodeIdType key_first, NodeIdType key_second);
-    void add_undirected_edge(NodeIdType key_first, NodeIdType key_second, DistanceDistribution* value);
+    void add_undirected_edge(NodeIdType key_first, NodeIdType key_second, DistanceDistribution* value, double weight=1.0);
     void remove_node(NodeIdType node);
     void remove_edge(NodeIdType key_first, EdgeType* edge);
     unsigned long get_number_nodes() {return (unsigned long)undirected.size();};

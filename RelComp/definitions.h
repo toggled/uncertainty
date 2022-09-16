@@ -30,6 +30,7 @@ typedef struct{
     NodeIdType first;
     DistanceDistribution* second;
     bool third;
+    double weight=1.0f;
 } EdgeType;
 typedef struct{
     
