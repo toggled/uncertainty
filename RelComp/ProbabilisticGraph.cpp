@@ -165,6 +165,3 @@ void ProbabilisticGraph::remove_node(NodeIdType node){
 void ProbabilisticGraph::remove_edge(NodeIdType node, EdgeType *edge){
     outgoing[node]->erase(edge->first);
 }
-
-
-
