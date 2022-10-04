@@ -10,7 +10,8 @@ def compute_reach(s, t, d):
     probGraph = UGraph()
     for e in G.edges:
         probGraph.add_edge(e[0],e[1],prob=G[e[0]][e[1]]['prob'])
-    Q = Query(probGraph, qtype='reach',args = {'u':s,'v':t})
+    # Q = Query(probGraph, qtype='reach',args = {'u':s,'v':t})
+    Q = Query(probGraph, qtype='reach_d',args = {'u':s,'v':t, 'd':d})
     
     # Exact Computation
     Q.eval()

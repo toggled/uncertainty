@@ -37,6 +37,10 @@ class Query:
         if self.qtype == 'reach' or self.qtype == 'sp':
             self.u = args['u']
             self.v = args['v']
+        if self.qtype == 'reach_d':
+            self.u = args['u']
+            self.v = args['v']
+            self.d = args['d']
     
     def reset(self, prob_graph):
         """ Reset the query with a new uncertain graph """
@@ -81,6 +85,28 @@ class Query:
                     if (u in nx_G) and (v in nx_G):
                         if (nx.has_path(nx_G,u,v)):
                             reachable = 1 
+                    self.results.append((G[0], reachable, G[1]))
+                    self.freq_distr[reachable] = self.freq_distr.get(reachable,0) + G[1] 
+                    self.possible_world_statistic[reachable] = self.possible_world_statistic.get(reachable,0) + 1
+                    self.support_set.add(reachable)
+                    self.evaluation_times.append(time()-start_tm)
+
+        if self.qtype == 'reach_d': # Reachability
+                u = self.u 
+                v = self.v
+                d = self.d
+                assert (u != None and v != None)
+                self.plot_properties['xlabel'] = 'Reachability ('+str(u)+'~'+str(v)+'<='+str(d)+')'
+                self.plot_properties['ylabel'] = 'Prob.'
+                for x, G in enumerate(self.p_graph.enumerate_worlds()):
+                    start_tm = time()
+                    nx_G = nx.Graph()
+                    nx_G.add_edges_from(G[0])
+                    reachable = 0
+                    if (u in nx_G) and (v in nx_G):
+                        if (nx.has_path(nx_G,u,v)):
+                            if nx.shortest_path_length(nx_G, source=u, target=v) <= d:
+                                reachable = 1 
                     self.results.append((G[0], reachable, G[1]))
                     self.freq_distr[reachable] = self.freq_distr.get(reachable,0) + G[1] 
                     self.possible_world_statistic[reachable] = self.possible_world_statistic.get(reachable,0) + 1
