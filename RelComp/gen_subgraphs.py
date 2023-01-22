@@ -22,6 +22,11 @@ def comp_subgraph(name, outname):
     f_orig=open(name, "r")
     f_fin=open(outname, "w")
     lines=f_orig.readlines()
+    if len(lines)==0:
+        print(lines)
+        print('empty subgraph')
+        return
+
     l=6
     if lines[l]=="0\n": 
         l+=2

@@ -48,23 +48,37 @@ def is_weightedGraph(dataset):
         return False 
     return True 
 
-def get_decompGraph(dataset, source, target):
+def get_decompGraph(dataset, source, target, dataset_path = None):
     name = dataset+'_'+str(source)+'_'+str(target)
     G = UMultiGraph()
 
     if dataset in datasets_unwgraph:
-        try:
-            with open(decompdataset_to_filename[name],'r') as f:
-                _id = 1
-                for line in f:
-                    u,v,l,w,p = line.split()
-                    # Since dataset is unweighted graph, ignore length l
-                    G.add_edge(u,v, _id, float(p),float(w))
-                    _id +=1
-        except KeyError as e:
-            print("Wrong dataset name provided.")
-            raise e
-        return G 
+        if dataset_path is not None:
+            try:
+                with open(dataset_path,'r') as f:
+                    _id = 1
+                    for line in f:
+                        u,v,w,p = line.split()
+                        # Since dataset is unweighted graph, ignore length l
+                        G.add_edge(u,v, _id, float(p),float(w))
+                        _id +=1
+            except KeyError as e:
+                print("Wrong dataset name provided.")
+                raise e
+            return G 
+        else:
+            try:
+                with open(decompdataset_to_filename[name],'r') as f:
+                    _id = 1
+                    for line in f:
+                        u,v,l,w,p = line.split()
+                        # Since dataset is unweighted graph, ignore length l
+                        G.add_edge(u,v, _id, float(p),float(w))
+                        _id +=1
+            except KeyError as e:
+                print("Wrong dataset name provided.")
+                raise e
+            return G 
 
     else:
         try:

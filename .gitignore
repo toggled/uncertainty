@@ -149,3 +149,5 @@ RelComp/*.txt_*.txt
 RelComp/decomp
 RelComp/RelComp
 RelComp/*.vcxproj*
+RelComp/Flickr_1_subg/
+baselinepapers/

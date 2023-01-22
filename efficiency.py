@@ -1,55 +1,36 @@
-""" Main file to make uncertainty estimation more efficient using SPQR subgraphs. """
-# TODO:
-# Currently => Unweighted, simple Uncertain Graph
-# Adopt => Weighted, Uncertain Multi-Graph. (Shortest)
-# Subgraph => Multi-graph (SP => Assume may have Weights).
-# 1. Add Shortest path query. (done)
-# 2. Weighted graph. (done)
-# 3. Multi-graph. (done)
-# 4. Dataset => 1) Twitter 2) Weighted graph. (Road network)
-# 5. Implement Update type: U2 [ Use Expected Entropy in the optimization criteria. (Expectation over p_{up}(e) \in {0,1}) ]
-# ----- Modify Algorithm5's opt. criteria. And implement a crowd-sourced variant. (non-adaptive to crowd-sourcing result.)
-
-# 6. Evaluation of Point #5. [We compare Adaptive (Can be implemented by using non-adaptive alg. k times) vs Non-adaptive ]
-# 7. Test All the uncertainty reduction Algorithms' implementation adapted for #5 
-
-
-#TODO 
-# 1. Add stopping criteria in unc reduction algorithm.=> Implement two variants (var1, we stop early at k'<k when reduction is small , var2, we generate up to k but return my result at minima k'<k)
-# 2. Yllka => 1) Triangle query 2) Memory-leak in the subgraph 3) Implementation of Crowdsourcing paper for baseline.
-# 3. Theory of section 4: => If can't give approximaiton guarantee, point-out cases when the algorithm selects non-optimal edges, sub-obptimal. 
-
 import argparse,os,sys
 import networkx as nx
 from src.utils import get_dataset,get_decompGraph, draw_possible_world,save_dict,is_weightedGraph
 from src.algorithm import Algorithm,ApproximateAlgorithm
 from src.query import Query,wQuery,multiGraphQuery,multiGraphwQuery
 import pandas as pd
-
+import itertools 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-d", "--dataset", type=str, default="default")
 parser.add_argument("-a", "--algo", type=str, default="exact", help = "exact/appr/eappr") 
 parser.add_argument("-N",'--N',type = int, default = 1, help = '#of batches')
 parser.add_argument("-T",'--T',type = int, default = 1, help= '#of Possible worlds in a batch')
 parser.add_argument("-v", "--verbose", action='store_true')
-parser.add_argument('-s','--source',type = str, default = None)
-parser.add_argument('-t','--target',type = str, default = None)
-parser.add_argument('-pr','--property',type = str, default = 'tri', help = "either tri/diam/reach/sp")
-parser.add_argument('-dgp','--dgraphpath',type = str, default = '', help = "Path to representative subgraph")
+parser.add_argument('-pr','--property',type = str, default = 'tri', help = "either tri/diam/reach")
 
-# parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
+datasets = ['Flickr','biomine']
+query_sets = [str(x) for x in [1,2]]
+subgraph_folders = ["_".join(x) for x in itertools.product(datasets,query_sets)]
+subgraph_folders = [x+'_subg' for x in subgraph_folders]
 
 # Demo usages:
 # Reachability query from x to u in default dataset using sampling: N = 10, T = 10
 # python measure_main.py -d default -a appr -pr reach -s x -t u -N 10 -T 10
 
-
+folder = subgraph_folders[0]
+file = os.listdir(folder)[0]
+u,v = file.split('.')[0].split('_')[-2:]
+u,v = int(u),int(v)
+print(folder,' -- ',file)
 args = parser.parse_args()
-dataset_to_path = args.dgraphpath
-if dataset_to_path !='':
-    args.source, args.target = dataset_to_path.split(".")[0].split("_")[-2:]
-G = get_dataset(args.dataset)
+
+G = get_dataset(folder.lower())
+
 # G.plot_probabilistic_graph()
 # print(G.get_num_edges())
 # print(G.get_num_vertices())
@@ -63,18 +44,18 @@ G = get_dataset(args.dataset)
 # Q = Query(G,'diam')
 # Q.eval(None,None,None)
 if args.property == 'reach':
-    print('Reachability(',args.source,',',args.target,')')
+    print('Reachability(',u,',',v,')')
     if is_weightedGraph(args.dataset):
-        Q = wQuery(G,'reach',{'u':args.source,'v':args.target})
+        Q = wQuery(G,'reach',{'u':u,'v':v})
     else:
-        Q = Query(G,'reach',{'u':args.source,'v':args.target})
+        Q = Query(G,'reach',{'u':u,'v':v})
 
 if args.property == 'sp':
-    print('SP(',args.source,',',args.target,')')
+    print('SP(',u,',',v,')')
     if is_weightedGraph(args.dataset):
-        Q = wQuery(G,'sp',{'u':args.source,'v':args.target})
+        Q = wQuery(G,'sp',{'u':u,'v':v})
     else:
-        Q = Query(G,'sp',{'u':args.source,'v':args.target})
+        Q = Query(G,'sp',{'u':u,'v':v})
 
 if args.property == 'diam':
     sys.exit(1)
@@ -95,8 +76,37 @@ if args.algo == 'exact':
     a.measure_uncertainty()
 elif args.algo == 'eappr': # efficient approximate measurement of uncertainty
     print("Efficiently measure uncertainty approximately")
+    G = UMultiGraph()
+
+    if dataset in datasets_unwgraph:
+        try:
+            with open(decompdataset_to_filename[name],'r') as f:
+                _id = 1
+                for line in f:
+                    u,v,l,w,p = line.split()
+                    # Since dataset is unweighted graph, ignore length l
+                    G.add_edge(u,v, _id, float(p),float(w))
+                    _id +=1
+        except KeyError as e:
+            print("Wrong dataset name provided.")
+            raise e
+        return G 
+
+    else:
+        try:
+            with open(decompdataset_to_filename[name],'r') as f:
+                _id = 1
+                for line in f:
+                    u,v,l,w,p = line.split()
+                    # Since dataset is weighted graph, length (l) column already contains weight of original edges + pseudo edges.
+                    G.add_edge(u,v, _id, float(p),float(l))
+                    _id +=1
+        except KeyError as e:
+            print("Wrong dataset name provided.")
+            raise e
+
+
     # decomp_g = get_decompGraph(args.dataset, args.source, args.target)
-    decomp_g = get_decompGraph(args.dataset,args.source,args.target,dataset_to_path)
     # print(decomp_g.Edges)
     if args.property == 'reach':
         Q = multiGraphQuery(decomp_g,'reach',{'u':args.source,'v':args.target})
@@ -127,8 +137,8 @@ os.system('mkdir -p output/')
 
 
 output = {}
-output['source'] = str(args.source)
-output['target'] = str(args.target)
+output['source'] = str(u)
+output['target'] = str(v)
 output['dataset'] = args.dataset
 output['P'] = args.property
 output['N'],output['T'] = [("None","None"),(args.N,args.T)][args.algo == 'appr' or args.algo == 'eappr']
@@ -147,4 +157,3 @@ if (not args.verbose):
     result.to_csv(csv_name, header=True, index=False)
     # print(result.head())
 
-#  python measure_mainE.py -d flickr -a eappr -N 1 -T 100 -pr reach -dgp RelComp/Flickr_1_subg/Flickr.txt_query_subgraph_148201_145630.txt
