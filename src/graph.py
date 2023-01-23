@@ -7,6 +7,7 @@ from time import time
 class UGraph:
     """
     A generic class for Uncertain Graph data structure and for various operations on it. 
+    Supports edge weights
     """
     def __init__(self):
         self.Edges = [] # Edge list of the uncertain graph
@@ -215,6 +216,17 @@ class UGraph:
             e = (edge[0],edge[1])
             nx_graph.add_edge(*e)
         return nx_graph 
+    def get_weighted_graph_rep(self):
+        """ 
+        Returns the unweighted graph representation of the uncertain graph. 
+        (Needed for Generating example queries in Generate_queries.py) 
+        """
+        nx_graph = nx.Graph()
+        for edge,prob in self.edict.items():
+            e = (edge[0],edge[1])
+            nx_graph.add_edge(*e,weight = self.weights[edge], prob = prob)
+        return nx_graph 
+
 class UMultiGraph(UGraph):
     """
     A generic class for Uncertain Graph data structure and for various operations on it. 
