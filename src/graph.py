@@ -3,7 +3,7 @@ import networkx as nx
 from matplotlib import pyplot as plt 
 import random 
 from time import time 
-
+from copy import deepcopy
 class UGraph:
     """
     A generic class for Uncertain Graph data structure and for various operations on it. 
@@ -28,12 +28,14 @@ class UGraph:
         ''' returns p_{up}(e): the probability of (u,v) after update without actually materialising it.  '''
         if type == 'o1':
             return 1
-        if type == 'o2':
+        elif type == 'o2':
             prob_prev = self.edict[(u,v)]
             if prob_prev>=0.5:
                 return 1
             else:
                 return 0
+        elif type == 'u2C':
+            return [0,1]
 
     def edge_update(self, u, v, type = 'o1'):
         '''  Updates the probability of an edge Given an op type '''
@@ -45,11 +47,18 @@ class UGraph:
         """ 
         Updates the probability of an edge to a given value
         """
-        (u,v) = (min(u,v),max(u,v))
-        assert ((u,v) in self.edict and (u,v) in self.notedict)
-        self.edict[(u,v)] = prob  
-        self.notedict[(u,v)] = 1 - prob
-        
+        if type(prob) is not list:
+            (u,v) = (min(u,v),max(u,v))
+            assert ((u,v) in self.edict and (u,v) in self.notedict)
+            self.edict[(u,v)] = prob  
+            self.notedict[(u,v)] = 1 - prob
+        else: # stochastic update
+            self.edict0 = deepcopy(self.edict)
+            self.edict0[(u,v,id)]  = 0 # Cleaned to 0
+            self.edict1 = deepcopy(self.edict)
+            self.edict1[(u,v,id)] = 1 # Cleaned to 1
+            return ([self.edict0,self.edict1])
+            
     def enumerate_worlds(self):
         """
         Explicitely enumerates all possible worlds.
@@ -246,12 +255,14 @@ class UMultiGraph(UGraph):
         ''' returns p_{up}(e): the probability of (u,v) after update without actually materialising it. '''
         if type == 'o1':
             return 1
-        if type == 'o2':
+        elif type == 'o2':
             prob_prev = self.edict[(u,v,id)]
             if prob_prev>=0.5:
                 return 1
             else:
                 return 0
+        elif type == 'u2C':
+            return [0,1]
 
     def edge_update(self, u, v, id, type = 'o1'):
         '''  Updates the probability of an edge Given an op type '''
@@ -263,11 +274,17 @@ class UMultiGraph(UGraph):
         """ 
         Updates the probability of an edge to a given value
         """
-        (u,v) = (min(u,v),max(u,v))
-        assert ((u,v,id) in self.edict and (u,v,id) in self.notedict)
-        self.edict[(u,v,id)] = prob  
-        self.notedict[(u,v,id)] = 1 - prob
-
+        if type(prob) is not list: # Deterministic update
+            (u,v) = (min(u,v),max(u,v))
+            assert ((u,v,id) in self.edict and (u,v,id) in self.notedict)
+            self.edict[(u,v,id)] = prob  
+            self.notedict[(u,v,id)] = 1 - prob
+        else: # stochastic update
+            self.edict0 = deepcopy(self.edict)
+            self.edict0[(u,v,id)]  = 0 # Cleaned to 0
+            self.edict1 = deepcopy(self.edict)
+            self.edict1[(u,v,id)] = 1 # Cleaned to 1
+            return ([self.edict0,self.edict1])
     def plot_probabilistic_graph(self, seed = 1, savedrawing = False, filename = 'ug_undirected.pdf', title = 'Uncertain graph'):
         pass 
 

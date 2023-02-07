@@ -67,11 +67,39 @@ if args.variant == 'exact':
     if args.algo == 'greedyct':
         print("Algorithm5:")
         a.algorithm5(k = args.k, update_type=args.utype, verbose = args.verbose)
+
+# elif args.variant == 'exact_adap':
+#     pass 
+
+# elif args.variant == 'exact_nonadap':
+#     pass 
+
+elif args.variant == 'greedyct_nonadap':
+    # select all k edges by running GreedyH-ApprHmem, only after conduct crowdsourcing of selected k edges. 
+    a = ApproximateAlgorithm(G,Query)
+    if args.algo == 'greedyct':
+        print("Algorithm5-S:")
+        assert (args.utype=='o2')
+        a.algorithm5(k = args.k, K = args.K, update_type=args.utype, verbose = args.verbose)
+        E_star = a.algostat['result']['edges']
+        for e in E_star:
+            G.edge_update(e[0],e[1],type = args.utype)
+        Query.reset(G)
+        Hstar = Query.compute_entropy()
+        print('Reduction (|H0-Hstar|) = ',a.algostat['result']['H0']-Hstar)
+
+    
+elif args.variant == 'greedyct_adap':
+    # select the top-1 edge by running GreedyH-ApprHmem, conduct crowdsourcing of the selected edge, 
+    # update the input graph based on crowdsourcing result, 
+    # then again select the top-1 edge by running GreedyH-ApprHmem on the updated graph -- repeat this for k times. 
+    pass 
 else:
     a = ApproximateAlgorithm(G,Query)
     if args.algo == 'greedyct':
         print("Algorithm5-S:")
         a.algorithm5(k = args.k, K = args.K, update_type=args.utype, verbose = args.verbose)
+        
     # print(a.algostat)
 # print(a.algostat)
 if args.verbose:
@@ -96,6 +124,7 @@ for k in a.algostat.keys():
     if k!='result':
         output[k] = a.algostat[k]
 print(output)
+# print('Expected reduction: ',self.algostat['result']['H0'] - self.algostat['result']['H0']*0.5 + )
 if (not args.verbose):
     csv_name = 'output/res_k'+str(args.k)+'.csv'
     if os.path.exists(csv_name):
