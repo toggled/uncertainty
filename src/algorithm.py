@@ -371,7 +371,7 @@ class ApproximateAlgorithm:
         self.algostat = {} 
         self.G = g 
         assert isinstance(self.G, Graph)
-        assert isinstance(query, Query)
+        # assert isinstance(query, Query)
         self.Query = query
         self.algostat['execution_time'] = 0
         self.algostat['result'] = {}

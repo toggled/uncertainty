@@ -29,13 +29,13 @@ for alg in algorithms:
     for d in dataset_list:
         for u in utypes:
             if args.qtype == 'reach':
-                cmd = "python main.py "+"-a " +alg + ' -va '+args.variant+ ' -K ' + K + " -u "+u+ ' -k '+str(k)+' -d '+d+' -s '+args.source + ' -t '+args.target + ' -pr ' +args.qtype
+                cmd = "python measure_main.py "+"-a " +alg + ' -va '+args.variant+ ' -K ' + K + " -u "+u+ ' -k '+str(k)+' -d '+d+' -s '+args.source + ' -t '+args.target + ' -pr ' +args.qtype
                 cmd_list.append(cmd)
             else:
-                cmd = "python main.py "+"-a " +alg + ' -va '+args.variant+ ' -K ' + K + " -u "+u+ ' -k '+str(k)+' -d '+d + ' -pr ' +args.qtype
+                cmd = "python measure_main.py "+"-a " +alg + ' -va '+args.variant+ ' -K ' + K + " -u "+u+ ' -k '+str(k)+' -d '+d + ' -pr ' +args.qtype
                 cmd_list.append(cmd)
 
 
 for c in cmd_list:
     print(c)
-    os.system(c)
+    # os.system(c)

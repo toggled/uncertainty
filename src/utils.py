@@ -5,12 +5,12 @@ import pickle
 
 
 datasets_wgraph = ['maniu_demow','brain_a1','brain_h1','rome','brno','porto','sanfrancisco']
-datasets_unwgraph = ['maniu_demo','flickr','biomine']
+datasets_unwgraph = ['maniu_demo','flickr','biomine', 'ER_15_22']
 
-decompdataset_to_filename = {
-            "maniu_demo_1_4": "decomp/maniu/demo_1_4.txt",
-            "maniu_demow_1_4": "decomp/maniu/demo_1_4.txt",
-}
+# decompdataset_to_filename = {
+#             "maniu_demo_1_4": "decomp/maniu/demo_1_4.txt",
+#             "maniu_demow_1_4": "decomp/maniu/demo_1_4.txt"
+# }
 dataset_to_filename = {
             "maniu_demo": "data/maniu/demo.txt",
             "maniu_demow": "data/maniu/demow.txt",
@@ -19,36 +19,49 @@ dataset_to_filename = {
             "porto": "data/large/road/Porto.graph",
             "sfco": "data/large/road/SanFrancisco.graph",
             "biomine" : "data/large/biomine.txt",
-            "brain_a1": "data/large/brain/a1/conf_mod_a_1_KKI_0050792.txt",
-            "brain_h1": "data/large/brain/h1/conf_mod_h_1_KKI_0050776.txt",
+            "brain_a1": "data/large/brain/a1_summary_graph.txt",
+            "brain_h1": "data/large/brain/h1_summary_graph.txt",
             #-----
             "flickr" : "data/large/Flickr.txt",
-            "flickr_s" : "data/Flickr.txt",
-            "twitter_s" : "data/twitter.txt",
-            "default" : "data/test.txt",
-            "default2": "data/test2.txt",
-            'ER_5_7': 'data/ER/ER_5_7.graph',
-            'ER_10_15': 'data/ER/ER_10_15.graph',
+            # "flickr_s" : "data/Flickr.txt",
+            # "twitter_s" : "data/twitter.txt",
+            # "default" : "data/test.txt",
+            # "default2": "data/test2.txt",
+            # 'ER_5_7': 'data/ER/ER_5_7.graph',
+            # 'ER_10_15': 'data/ER/ER_10_15.graph',
             'ER_15_22': 'data/ER/ER_15_22.graph'
     }
-queries = {
-        "maniu_demo": [1],
-        'default': [1],
-        'ER_5_7': [0,2],
-        'ER_10_15': [0,2],
-        'ER_15_22': [0,2,4],
-        'twitter_s': [5,10,15,20],
-        "biomine" : [1,2,3,4,5],
-        "flickr" : [1,2,3,4,5],
-        "brain_a1": [1,2,3,4,5],
-        "brain_h1": [1,2,3,4,5]
-}
+# queries = {
+#         "maniu_demo": [1],
+#         'default': [1],
+#         'ER_5_7': [0,2],
+#         'ER_10_15': [0,2],
+#         'ER_15_22': [0,2,4],
+#         # 'twitter_s': [5,10,15,20],
+#         "biomine" : [1,2,3,4,5],
+#         "flickr" : [1,2,3,4,5],
+#         "brain_a1": [1,2,3,4,5],
+#         "brain_h1": [1,2,3,4,5]
+# }
+def get_queries(queryfile,maxQ = -1):
+    queries = []
+
+    with open(queryfile,'r') as f:
+        count = 0
+        for line in f:
+            queries.append(line.split())
+            count += 1
+            if maxQ!=-1 and count>=maxQ:
+                break
+    return queries 
+
 def is_weightedGraph(dataset):
     if dataset in datasets_unwgraph:
         return False 
     return True 
 
 def get_decompGraph(dataset, source, target, dataset_path = None):
+    """ Load representative subgraph (maniu et al.) from Tree decomposition output """
     name = dataset+'_'+str(source)+'_'+str(target)
     G = UMultiGraph()
 
@@ -68,7 +81,7 @@ def get_decompGraph(dataset, source, target, dataset_path = None):
             return G 
         else:
             try:
-                with open(decompdataset_to_filename[name],'r') as f:
+                with open(dataset_path,'r') as f:
                     _id = 1
                     for line in f:
                         u,v,l,w,p = line.split()
@@ -82,7 +95,7 @@ def get_decompGraph(dataset, source, target, dataset_path = None):
 
     else:
         try:
-            with open(decompdataset_to_filename[name],'r') as f:
+            with open(dataset_path,'r') as f:
                 _id = 1
                 for line in f:
                     u,v,l,w,p = line.split()
