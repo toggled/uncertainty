@@ -112,7 +112,7 @@ if args.property == 'tri':
 # print(Query.compute_entropy())
 # Query.distr_plot()
 if debug: # Run algorithm for single query (Debugging purposes)
-    singleRun(Query)
+    singleRun(G,Query)
 else: # Run algorithms for all the queries
     if args.algo == 'eappr':
         for subpath,q in zip(rsubgraphpaths,queries):
