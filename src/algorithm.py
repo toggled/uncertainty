@@ -25,7 +25,7 @@ class Algorithm:
         Measures entropy exactly by sampling all possible worlds. 
         """
         start_execution_time = time()
-        self.Query.eval()
+        self.Query.eval(dontenumerateworlds = True)
         tm2 = time()
         H = self.Query.compute_entropy()
         self.algostat['execution_time'] = time() - start_execution_time
@@ -275,7 +275,7 @@ class Algorithm:
 
     def algorithm5(self, k, update_type = 'o1',verbose = False):
         """ 
-        Algorithm 5
+        Algorithm 5 (with Exact memoization)
         Returns selected edgeset, entropy value after selection, and entropy-reduction amount (DeltaH)
         """
         self.algostat['algorithm'] = 'Alg5'
@@ -390,7 +390,7 @@ class ApproximateAlgorithm:
         sum_H = 0
         for i in range(N):
             hat_Pr = {}
-            for g in self.G.get_Ksample(T):
+            for g in self.G.get_Ksample(T,seed=i):
                 # if i==0:
                 # print(g[0])
                 start_tm = time()

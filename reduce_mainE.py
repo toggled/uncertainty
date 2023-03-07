@@ -23,8 +23,6 @@ parser.add_argument("-K",'--K',type = int, default = 100, help='#of Possible wor
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
 
 # Demo usages:
-# Reachability query from x to u in default dataset using sampling: N = 10, T = 10
-# python measure_main.py -d default -a appr -pr reach -s x -t u -N 10 -T 10
 
 
 args = parser.parse_args()
@@ -123,7 +121,7 @@ for k in a.algostat['result']:
 for k in a.algostat.keys():
     if k!='result':
         output[k] = a.algostat[k]
-print(output)
+# print(output)
 # print('Expected reduction: ',self.algostat['result']['H0'] - self.algostat['result']['H0']*0.5 + )
 if (not args.verbose):
     csv_name = 'output/res_k'+str(args.k)+'.csv'
@@ -134,5 +132,5 @@ if (not args.verbose):
     # print(output)
     # print(pd.DataFrame(output,index = [0]).head())
     result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
-    # result.to_csv(csv_name, header=True, index=False)
+    result.to_csv(csv_name, header=True, index=False)
     print(result.head())

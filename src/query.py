@@ -52,7 +52,7 @@ class Query:
         self.support_set = set()
         self.confidence = {}
         self.evaluation_times = []
-    def eval(self):
+    def eval(self,dontenumerateworlds=True):
         """
         Given vertices u,v,w (some possibly None) as input, evaluates the query and 
         computes (world, value_of_the_property, prob) triplet for all possible worlds.
@@ -85,7 +85,10 @@ class Query:
                     if (u in nx_G) and (v in nx_G):
                         if (nx.has_path(nx_G,u,v)):
                             reachable = 1 
-                    self.results.append((G[0], reachable, G[1]))
+                    if dontenumerateworlds:
+                        self.results.append((None, reachable, G[1]))
+                    else:
+                        self.results.append((G[0], reachable, G[1]))
                     self.freq_distr[reachable] = self.freq_distr.get(reachable,0) + G[1] 
                     self.possible_world_statistic[reachable] = self.possible_world_statistic.get(reachable,0) + 1
                     self.support_set.add(reachable)
@@ -107,7 +110,10 @@ class Query:
                         if (nx.has_path(nx_G,u,v)):
                             if nx.shortest_path_length(nx_G, source=u, target=v) <= d:
                                 reachable = 1 
-                    self.results.append((G[0], reachable, G[1]))
+                    if dontenumerateworlds:
+                        self.results.append((None, reachable, G[1]))
+                    else:
+                        self.results.append((G[0], reachable, G[1]))
                     self.freq_distr[reachable] = self.freq_distr.get(reachable,0) + G[1] 
                     self.possible_world_statistic[reachable] = self.possible_world_statistic.get(reachable,0) + 1
                     self.support_set.add(reachable)
@@ -128,7 +134,10 @@ class Query:
                     if (u in nx_G) and (v in nx_G):
                         if (nx.has_path(nx_G,u,v)):
                             sp_len = nx.shortest_path_length(nx_G, source=u, target=v)
-                    self.results.append((G[0], sp_len, G[1]))
+                    if dontenumerateworlds:
+                        self.results.append((None, sp_len, G[1]))
+                    else:
+                        self.results.append((G[0], sp_len, G[1]))
                     self.freq_distr[sp_len] = self.freq_distr.get(sp_len,0) + G[1] 
                     self.possible_world_statistic[sp_len] = self.possible_world_statistic.get(sp_len,0) + 1
                     self.support_set.add(sp_len)
@@ -149,7 +158,10 @@ class Query:
                             diam = INFINITY
                         else:
                             diam = nx.diameter(nx_G)
-                    self.results.append((G[0], diam, G[1]))
+                    if dontenumerateworlds:
+                        self.results.append((None, diam, G[1]))
+                    else:
+                        self.results.append((G[0], diam, G[1]))
                     self.freq_distr[diam] = self.freq_distr.get(diam,0) + G[1] 
                     self.possible_world_statistic[diam] = self.possible_world_statistic.get(diam,0) + 1
                     self.support_set.add(diam)
@@ -164,8 +176,10 @@ class Query:
                 g = nx.Graph()
                 g.add_edges_from(G[0])
                 num_triangles = sum(nx.triangles(g).values()) / 3
-
-                self.results.append((G[0], num_triangles, G[1]))
+                if dontenumerateworlds:
+                    self.results.append((None, num_triangles, G[1]))
+                else:
+                    self.results.append((G[0], num_triangles, G[1]))
                 self.freq_distr[num_triangles] = self.freq_distr.get(num_triangles,0) + G[1] 
                 self.possible_world_statistic[num_triangles] = self.possible_world_statistic.get(num_triangles,0) + 1
                 self.support_set.add(num_triangles)
