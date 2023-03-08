@@ -5,6 +5,7 @@ from src.query import Query
 from time import time 
 import math 
 from math import log2
+import tracemalloc
 
 class Algorithm:
     """ A generic Algorithm class that implmenets all the Exact algorithms in the paper."""
@@ -19,21 +20,27 @@ class Algorithm:
         self.algostat['k'] = 0
         self.algostat['algorithm'] = ''
         self.algostat['support'] = []
-        
+        self.algostat['peak_memB'] = []
+
     def measure_uncertainty(self):
         """ 
         Measures entropy exactly by sampling all possible worlds. 
         """
+        memory_consumption_exact = []
+        tracemalloc.start()
         start_execution_time = time()
         self.Query.eval(dontenumerateworlds = True)
         tm2 = time()
         H = self.Query.compute_entropy()
+        current_mem_exact, peak_mem_exact = tracemalloc.get_traced_memory()
+        memory_consumption_exact.append(peak_mem_exact)
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['algorithm'] = 'exact'
         self.algostat['H'] = H 
         self.algostat['support'] =  str(list(self.Query.get_support()))
         self.algostat['query_eval_tm'] = sum(self.Query.evaluation_times) # time spent on query evlauation
         self.algostat['total_sample_tm'] = (tm2-start_execution_time) - self.algostat['query_eval_tm'] # Time spend on possible world sampling
+        self.algostat['peak_memB'] = max(memory_consumption_exact)
         return H
          
 
@@ -378,11 +385,14 @@ class ApproximateAlgorithm:
         self.algostat['k'] = 0
         self.algostat['support'] = [] # Since all sup values may not be observed in the sample, it is good to record those observed.
         self.algostat['algorithm'] = ''
-       
+        self.algostat['peak_memB'] = []
+    
     def measure_uncertainty(self, N=1, T=10):
         """
         Alg 2 
         """
+        memory_consumption_appr = []
+        tracemalloc.start()
         start_execution_time = time()
         query_evaluation_times = []
         hat_H_list = []
@@ -402,12 +412,15 @@ class ApproximateAlgorithm:
             hat_H_list.append(hat_H)
             sum_H += hat_H 
         mean_H =  sum_H /N
+        current_mem_appr, peak_mem_appr = tracemalloc.get_traced_memory()
+        memory_consumption_appr.append(peak_mem_appr)
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['algorithm'] = 'appr'
         self.algostat['H'] = mean_H
         self.algostat['support'] =  str(list(support_observed))
         self.algostat['total_sample_tm'] = sum(self.G.sample_time_list)
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
+        self.algostat['peak_memB'] = max(memory_consumption_appr)
         return mean_H 
 
     def algorithm3(self,  k, update_type = 'o1',verbose = False):

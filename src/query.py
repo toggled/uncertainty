@@ -479,7 +479,7 @@ class Query:
                     if diam not in self.phiInv:
                         self.phiInv[diam] = [i]
                     else:
-                        self.phiInv[diam].append(i)
+                        self.phiInv[diam].append(i)  
         
         if self.qtype == "tri":
             # print('Tri')
