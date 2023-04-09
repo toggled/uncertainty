@@ -52,6 +52,17 @@ class Query:
         self.support_set = set()
         self.confidence = {}
         self.evaluation_times = []
+    
+    def clear(self):
+        self.p_graph = None
+        self.results = None
+        self.freq_distr = None 
+        self.possible_world_statistic = None
+        self.support_set = None
+        self.confidence = None
+        self.evaluation_times = None
+
+    # @profile
     def eval(self,dontenumerateworlds=True):
         """
         Given vertices u,v,w (some possibly None) as input, evaluates the query and 
@@ -127,6 +138,7 @@ class Query:
                 self.plot_properties['xlabel'] = 'Reachability ('+str(u)+'~'+str(v)+')'
                 self.plot_properties['ylabel'] = 'Prob.'
                 for x, G in enumerate(self.p_graph.enumerate_worlds()):
+                    # print(G)
                     start_tm = time()
                     nx_G = nx.Graph()
                     nx_G.add_edges_from(G[0])

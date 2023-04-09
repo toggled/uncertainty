@@ -13,7 +13,8 @@ class UGraph:
         self.Edges = [] # Edge list of the uncertain graph
         self.edict = {} # Edge -> Prob mapping of the uncertain graph.
         self.notedict = {} # Edge -> (1-Prob) mapping of the uncertain graph. Mostly to assist faster computation.
-        self.sample_time_list = [] # exec. time to generate individual possible worlds
+        # self.sample_time_list = [] # exec. time to generate individual possible worlds
+        self.total_sample_tm = 0
         self.weights = {}
 
     def add_edge(self,u,v,prob,weight = 1.0):
@@ -58,7 +59,7 @@ class UGraph:
             self.edict1 = deepcopy(self.edict)
             self.edict1[(u,v,id)] = 1 # Cleaned to 1
             return ([self.edict0,self.edict1])
-            
+    @profile        
     def enumerate_worlds(self):
         """
         Explicitely enumerates all possible worlds.
@@ -69,18 +70,63 @@ class UGraph:
         bit_vec = range(m)
         for _len in range(0, m+1):
             for sub_bitvec in itertools.combinations(bit_vec,_len):
+                sub_bitvec_s = set(sub_bitvec)
                 poss_world = []
                 poss_world_prob = 1
                 # start_execution_time = time()
                 for i,e in enumerate(self.Edges):
-                    if i in sub_bitvec:
+                    if i in sub_bitvec_s:
                         poss_world.append(e)
-                        poss_world_prob = poss_world_prob * self.edict[e]
+                        poss_world_prob *= self.edict[e]
                     else:
-                        poss_world_prob = poss_world_prob * self.notedict[e]
+                        poss_world_prob *= self.notedict[e]
+                # [(e,[self.notedict[e],self.edict[e]][i in sub_bitvec]) for i,e in enumerate(self.Edges)] 
                 # self.sample_time_list.append(time()-start_execution_time)
                 yield (poss_world, poss_world_prob)
         # self.sample_time_list.append(time()-start_execution_time)
+    
+    # def enumerate_worlds(self):
+    #     """
+    #     O(N) space solution using backtracking
+    #     Explicitely enumerates all possible worlds.
+    #     Returns G, Pr(G)
+    #     """
+    #     # print('enumerate worlds: ')
+    #     m = len(self.Edges)
+    #     def backtrack(k, first = 0, curr = []):
+    #         # if the combination is done
+    #         if len(curr) == k:  
+    #             yield curr[:]
+            
+    #         for i in range(first, m):
+    #             # add nums[i] into the current combination
+    #             curr.append(i)
+    #             # use next integers to complete the combination
+    #             yield from backtrack(k,i + 1, curr)
+    #             # backtrack
+    #             curr.pop()
+    #     master_set = set(range(0,m))
+    #     for k in range(0, m+1):
+    #         # print(k)
+    #         for G in backtrack(k):
+    #             # print('G = ',G)
+    #             set_G = set(G)
+    #             Gprime = master_set - set_G
+    #             poss_world = []
+    #             poss_world_prob = 1
+    #             # for i,e in enumerate(self.Edges):
+    #             #     if i in G:
+    #             #         poss_world.append(e)
+    #             #         poss_world_prob = poss_world_prob * self.edict[e]
+    #             #     else:
+    #             #         poss_world_prob = poss_world_prob * self.notedict[e]
+    #             for i in set_G:
+    #                 # poss_world.append(self.Edges[i])
+    #                 poss_world_prob *= self.edict[self.Edges[i]]
+    #             for i in Gprime:
+    #                 poss_world_prob *= self.notedict[self.Edges[i]]
+    #             yield (poss_world, poss_world_prob)
+    #     # self.sample_time_list.append(time()-start_execution_time)
     
     def enumerate_worlds2(self):
         """
@@ -193,7 +239,8 @@ class UGraph:
             print(poss_world)
             print(poss_world_prob)
         sample_tm = time() - start_execution_time
-        self.sample_time_list.append(sample_tm)
+        # self.sample_time_list.append(sample_tm)
+        self.total_sample_tm += sample_tm
         return (poss_world,poss_world_prob) 
 
     def get_Ksample(self, K, seed = None):

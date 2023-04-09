@@ -151,3 +151,6 @@ RelComp/RelComp
 RelComp/*.vcxproj*
 RelComp/Flickr_1_subg/
 baselinepapers/
+*.png
+*.dat
+Ehsan_shared/

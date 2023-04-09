@@ -5,13 +5,13 @@ from src.query import Query
 from time import time 
 import math 
 from math import log2
-import tracemalloc
 
 class Algorithm:
     """ A generic Algorithm class that implmenets all the Exact algorithms in the paper."""
     def __init__(self, g, query) -> None:
         self.algostat = {} 
-        self.G = deepcopy(g)
+        # self.G = deepcopy(g)
+        self.G = g #
         assert isinstance(self.G, Graph)
         assert isinstance(query, Query)
         self.Query = query
@@ -26,21 +26,17 @@ class Algorithm:
         """ 
         Measures entropy exactly by sampling all possible worlds. 
         """
-        memory_consumption_exact = []
-        tracemalloc.start()
         start_execution_time = time()
         self.Query.eval(dontenumerateworlds = True)
         tm2 = time()
         H = self.Query.compute_entropy()
-        current_mem_exact, peak_mem_exact = tracemalloc.get_traced_memory()
-        memory_consumption_exact.append(peak_mem_exact)
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['algorithm'] = 'exact'
         self.algostat['H'] = H 
         self.algostat['support'] =  str(list(self.Query.get_support()))
         self.algostat['query_eval_tm'] = sum(self.Query.evaluation_times) # time spent on query evlauation
         self.algostat['total_sample_tm'] = (tm2-start_execution_time) - self.algostat['query_eval_tm'] # Time spend on possible world sampling
-        self.algostat['peak_memB'] = max(memory_consumption_exact)
+        self.Query.clear()
         return H
          
 
@@ -391,8 +387,6 @@ class ApproximateAlgorithm:
         """
         Alg 2 
         """
-        memory_consumption_appr = []
-        tracemalloc.start()
         start_execution_time = time()
         query_evaluation_times = []
         hat_H_list = []
@@ -401,8 +395,6 @@ class ApproximateAlgorithm:
         for i in range(N):
             hat_Pr = {}
             for g in self.G.get_Ksample(T,seed=i):
-                # if i==0:
-                # print(g[0])
                 start_tm = time()
                 omega = self.Query.evalG(g[0])
                 query_evaluation_times.append(time()-start_tm)
@@ -412,15 +404,12 @@ class ApproximateAlgorithm:
             hat_H_list.append(hat_H)
             sum_H += hat_H 
         mean_H =  sum_H /N
-        current_mem_appr, peak_mem_appr = tracemalloc.get_traced_memory()
-        memory_consumption_appr.append(peak_mem_appr)
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['algorithm'] = 'appr'
         self.algostat['H'] = mean_H
         self.algostat['support'] =  str(list(support_observed))
-        self.algostat['total_sample_tm'] = sum(self.G.sample_time_list)
+        self.algostat['total_sample_tm'] = self.G.total_sample_tm
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
-        self.algostat['peak_memB'] = max(memory_consumption_appr)
         return mean_H 
 
     def algorithm3(self,  k, update_type = 'o1',verbose = False):

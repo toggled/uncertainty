@@ -106,7 +106,7 @@ def get_decompGraph(dataset, source, target, dataset_path = None):
             print("Wrong dataset name provided.")
             raise e
         return G 
-
+# @profile
 def get_dataset(dataset):
     """
     Load the graph datasets into memory as UGraph(). // The dataset is assumed to be simple Graph.
