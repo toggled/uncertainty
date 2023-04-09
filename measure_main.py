@@ -47,8 +47,8 @@ def singleRun(G,Query, save = True):
     # save_dict(a.algostat, result_fname)
     output = {}
     if args.property == 'tri':
-        output['source'] = None
-        output['target'] = None
+        output['source'] = str(None)
+        output['target'] = str(None)
     else:
         output['source'] = str(Query.u)
         output['target'] = str(Query.v)
@@ -96,10 +96,6 @@ else:
         else:
             Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
 
-if args.property == 'tri':
-    print('#Triangles')
-    Query = Query(G,'tri')
-
 if debug: # Run algorithm for single query (Debugging purposes)
     singleRun(G,Query)
 else: # Run algorithms for all the queries
@@ -117,12 +113,14 @@ else: # Run algorithms for all the queries
                     Query = multiGraphwQuery(G,'sp',{'u':s,'v':t}) # only SP requires weighted multigraph query
                 else:
                     Query = multiGraphQuery(G,'sp',{'u':s,'v':t})
-
             if args.property == 'tri':
                 Query = multiGraphQuery(G,'tri')
             singleRun(G, Query)
             Query.clear()
     else:
+        if args.property == 'tri':
+            print('#Triangles')
+            Querylist = [Query(G,'tri')]
         for Query in Querylist:
             singleRun(G, Query)
             Query.clear()
