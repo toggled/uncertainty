@@ -134,11 +134,11 @@ if debug:
     Query = Query(G,args.property,{'u':args.source,'v':args.target})
 else:
     if args.algo != 'eappr':
-        Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
+        if args.property == 'sp':
+            Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
+        if args.property == 'reach':
+            Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
 
-if args.property == 'tri':
-    print('#Triangles')
-    Query = Query(G,'tri')
 # Query = Query(G,'reach',{'u':'a','v':'c'})
 # Query.eval()
 # print(Query.get_distribution())
@@ -171,6 +171,9 @@ else: # Run algorithms for all the queries
             # print('peakMem: ',mem-cur_mem_usage)
             Query.clear()
     else:
+        if args.property == 'tri':
+            print('#Triangles')
+            Querylist = [Query(G,'tri')]
         for Query in Querylist:
             singleRun(G, Query)
             Query.clear()

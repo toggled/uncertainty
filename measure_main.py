@@ -91,9 +91,9 @@ if debug:
     Query = Query(G,args.property,{'u':args.source,'v':args.target})
 else:
     if args.algo != 'eappr':
-        if args.property =='sp':
+        if args.property == 'sp':
             Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
-        else:
+        if args.property == 'reach':
             Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
 
 if debug: # Run algorithm for single query (Debugging purposes)
