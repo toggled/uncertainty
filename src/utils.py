@@ -112,6 +112,7 @@ def get_dataset(dataset):
     Load the graph datasets into memory as UGraph(). // The dataset is assumed to be simple Graph.
     """
     has_weight = is_weightedGraph(dataset)
+    print('weighted graph? => ',has_weight)
     G = UGraph()
     try:
         with open(dataset_to_filename[dataset]) as f:

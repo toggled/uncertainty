@@ -91,7 +91,10 @@ if debug:
     Query = Query(G,args.property,{'u':args.source,'v':args.target})
 else:
     if args.algo != 'eappr':
-        Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
+        if args.property =='sp':
+            Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
+        else:
+            Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
 
 if args.property == 'tri':
     print('#Triangles')
