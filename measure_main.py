@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dataset", type=str, default="ER_15_22")
 parser.add_argument("-a", "--algo", type=str, default="appr", help = "exact/appr/eappr") 
 parser.add_argument("-N",'--N',type = int, default = 1, help = '#of batches')
-parser.add_argument("-T",'--T',type = int, default = 1000, help= '#of Possible worlds in a batch')
+parser.add_argument("-T",'--T',type = int, default = 5, help= '#of Possible worlds in a batch')
 parser.add_argument("-v", "--verbose", action='store_true')
 parser.add_argument('-s','--source',type = str, default = None)
 parser.add_argument('-t','--target',type = str, default = None)
@@ -46,7 +46,7 @@ def singleRun(G,Query, save = True):
     # result_fname = 'output/'+args.dataset +'_'+args.algo+"_"+args.utype+'.pkl'
     # save_dict(a.algostat, result_fname)
     output = {}
-    if args.pr == 'tri':
+    if args.property == 'tri':
         output['source'] = None
         output['target'] = None
     else:
@@ -100,6 +100,7 @@ if args.property == 'tri':
 if debug: # Run algorithm for single query (Debugging purposes)
     singleRun(G,Query)
 else: # Run algorithms for all the queries
+    # print(args.algo)
     if args.algo == 'eappr':
         for subpath,q in zip(rsubgraphpaths,queries):
             if (not os.path.isfile(subpath)):
@@ -117,8 +118,8 @@ else: # Run algorithms for all the queries
             if args.property == 'tri':
                 Query = multiGraphQuery(G,'tri')
             singleRun(G, Query)
+            Query.clear()
     else:
-        print(args.algo)
         for Query in Querylist:
             singleRun(G, Query)
             Query.clear()

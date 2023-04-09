@@ -59,7 +59,7 @@ class UGraph:
             self.edict1 = deepcopy(self.edict)
             self.edict1[(u,v,id)] = 1 # Cleaned to 1
             return ([self.edict0,self.edict1])
-    @profile        
+      
     def enumerate_worlds(self):
         """
         Explicitely enumerates all possible worlds.

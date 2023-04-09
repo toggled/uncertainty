@@ -20,7 +20,7 @@ class Algorithm:
         self.algostat['k'] = 0
         self.algostat['algorithm'] = ''
         self.algostat['support'] = []
-        self.algostat['peak_memB'] = []
+        # self.algostat['peak_memB'] = []
 
     def measure_uncertainty(self):
         """ 
@@ -381,7 +381,7 @@ class ApproximateAlgorithm:
         self.algostat['k'] = 0
         self.algostat['support'] = [] # Since all sup values may not be observed in the sample, it is good to record those observed.
         self.algostat['algorithm'] = ''
-        self.algostat['peak_memB'] = []
+        # self.algostat['peak_memB'] = []
     
     def measure_uncertainty(self, N=1, T=10):
         """
