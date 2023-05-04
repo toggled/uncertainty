@@ -5,6 +5,19 @@ from src.query import Query
 from time import time 
 import math 
 from math import log2
+import os,pickle
+
+
+def save_pickle(ob, fname):
+    with open (fname, 'wb') as f:
+        #Use the dump function to convert Python objects into binary object files
+        pickle.dump(ob, f)
+
+def load_pickle(fname):
+    with open (fname, 'rb') as f:
+        #Convert binary object to Python object
+        ob = pickle.load(f)
+        return ob
 
 class Algorithm:
     """ A generic Algorithm class that implmenets all the Exact algorithms in the paper."""
@@ -22,7 +35,7 @@ class Algorithm:
         self.algostat['support'] = []
         # self.algostat['peak_memB'] = []
 
-    def measure_uncertainty(self):
+    def measure_uncertainty(self,use_precomputed = 0):
         """ 
         Measures entropy exactly by sampling all possible worlds. 
         """
@@ -387,27 +400,65 @@ class ApproximateAlgorithm:
         """
         Alg 2 
         """
+        precomp = {}
+        if os.environ['precomp']:
+            previous_omega_files = [f for f in os.listdir(os.environ['precomp']) if f.endswith('.pre')]
+            # print(previous_omega_files)
+            if len(previous_omega_files):
+                for f in previous_omega_files:
+                    # print('f = ',f)
+                    n,t = f.split('.pre')[0].split('_')
+                    n,t = int(n),int(t)
+                    if n not in precomp:
+                        precomp[n] = {}
+                    if t not in precomp[n]:
+                        precomp[n][t] = f
+                maximum_T = max(precomp[0].keys())+1
+                maximum_N = max(precomp.keys())+1
+                # print(maximum_N,maximum_T, N, T)
+                assert N <= maximum_N, "precomputed possible worlds are insufficient"
+                assert T <= maximum_T, "precomputed possible worlds are insufficient"
         start_execution_time = time()
         query_evaluation_times = []
         hat_H_list = []
-        support_observed = set()
+        support_observed = []
         sum_H = 0
-        for i in range(N):
-            hat_Pr = {}
-            for g in self.G.get_Ksample(T,seed=i):
-                start_tm = time()
-                omega = self.Query.evalG(g[0])
-                query_evaluation_times.append(time()-start_tm)
-                hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
-                support_observed.add(omega)
-            hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
-            hat_H_list.append(hat_H)
-            sum_H += hat_H 
+        if len(precomp)==0:
+            for i in range(N):
+                hat_Pr = {}
+                j = 0
+                for g in self.G.get_Ksample(T,seed=i):
+                    start_tm = time()
+                    omega = self.Query.evalG(g[0])
+                    query_evaluation_times.append(time()-start_tm)
+                    hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                    support_observed.append(omega)
+                    if os.environ['precomp']:
+                        save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
+                        j+=1
+                hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+                hat_H_list.append(hat_H)
+                sum_H += hat_H 
+        else:
+            for i in range(N):
+                hat_Pr = {}
+                
+                # for g in self.G.get_Ksample(T,seed=i):
+                for j in range(T):
+                    start_tm = time()
+                    precomputed_omega_file = os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre")
+                    omega = load_pickle(precomputed_omega_file)
+                    query_evaluation_times.append(time()-start_tm)
+                    hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                    support_observed.append(omega)
+                hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+                hat_H_list.append(hat_H)
+                sum_H += hat_H 
         mean_H =  sum_H /N
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['algorithm'] = 'appr'
         self.algostat['H'] = mean_H
-        self.algostat['support'] =  str(list(support_observed))
+        self.algostat['support'] =  str(support_observed)
         self.algostat['total_sample_tm'] = self.G.total_sample_tm
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
         return mean_H 

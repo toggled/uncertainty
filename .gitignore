@@ -154,3 +154,5 @@ baselinepapers/
 *.png
 *.dat
 Ehsan_shared/
+pre/
+plot.ipynb

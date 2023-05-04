@@ -17,13 +17,19 @@ parser.add_argument('-t','--target',type = str, default = None)
 parser.add_argument('-q','--queryf', type=str,help='query file',default = 'data/queries/ER/ER_15_22_2.queries')
 parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
 parser.add_argument('-pr','--property',type = str, default = 'sp', help = "either tri/sp/reach")
-
+parser.add_argument('-pre','--precomputed',type = int, help='Use pre-computed possible world support value or not', default = 0)
 # Demo usages:
 # Reachability query from x to u in default dataset using sampling: N = 10, T = 10
 # python measure_main.py -d default -a appr -pr reach -s x -t u -N 10 -T 10
 
-
 args = parser.parse_args()
+# if 'precomp' in os.environ:
+#     os.environ['precomp'] = ''
+if args.precomputed:
+    os.environ['precomp'] = "pre/"+args.dataset+"_"+args.queryf.split("/")[-1].split('.')[0]
+    old = os.environ['precomp']
+else:
+    os.environ['precomp'] = ''
 debug = (args.source is not None) and (args.target is not None)
 
 def singleRun(G,Query, save = True):
@@ -85,6 +91,7 @@ if args.algo == 'eappr': # Efficient variant of algorithm 2 requires pre-compute
                      for s,t in queries]
 else: # Exact and normal variant of algorithm 2 requires original uncertain graph
     G = get_dataset(args.dataset)
+    G.name = args.dataset
 
 if debug: print(args.property,' (',args.source,',',args.target,')')
 if debug:
@@ -122,5 +129,14 @@ else: # Run algorithms for all the queries
             print('#Triangles')
             Querylist = [Query(G,'tri')]
         for Query in Querylist:
+            if args.precomputed:
+                os.environ['precomp'] = old
+                if args.property != 'tri':
+                    os.environ['precomp'] += ("_"+str(Query.u)+"_"+str(Query.v))
+                else:
+                    os.environ['precomp']+='_tri'
+                os.system('mkdir -p '+os.environ["precomp"])
+                print('precomputed support value location: ',os.environ['precomp'])  
             singleRun(G, Query)
+
             Query.clear()

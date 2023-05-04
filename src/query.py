@@ -689,7 +689,7 @@ class multiGraphQuery(Query):
             
             return diam 
             
-        if self.qtype == 'tri':
+        if self.qtype == 'tri': # Bug here
             g = nx.MultiGraph()
             g.add_edges_from(G)
             num_triangles = sum(nx.triangles(g).values()) / 3
