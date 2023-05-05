@@ -122,6 +122,14 @@ else: # Run algorithms for all the queries
                     Query = multiGraphQuery(G,'sp',{'u':s,'v':t})
             if args.property == 'tri':
                 Query = multiGraphQuery(G,'tri')
+            if args.precomputed:
+                os.environ['precomp'] = old
+                if args.property != 'tri':
+                    os.environ['precomp'] += ("_eappr_"+str(args.property)+"_"+str(Query.u)+"_"+str(Query.v))
+                else:
+                    os.environ['precomp']+='_eappr_tri'
+                os.system('mkdir -p '+os.environ["precomp"])
+                print('precomputed support value location: ',os.environ['precomp'])  
             singleRun(G, Query)
             Query.clear()
     else:
@@ -132,9 +140,9 @@ else: # Run algorithms for all the queries
             if args.precomputed:
                 os.environ['precomp'] = old
                 if args.property != 'tri':
-                    os.environ['precomp'] += ("_"+str(Query.u)+"_"+str(Query.v))
+                    os.environ['precomp'] += ("_appr_"+str(args.property)+"_"+str(Query.u)+"_"+str(Query.v))
                 else:
-                    os.environ['precomp']+='_tri'
+                    os.environ['precomp']+='_appr_tri'
                 os.system('mkdir -p '+os.environ["precomp"])
                 print('precomputed support value location: ',os.environ['precomp'])  
             singleRun(G, Query)

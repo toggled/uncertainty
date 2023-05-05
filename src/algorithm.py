@@ -35,7 +35,7 @@ class Algorithm:
         self.algostat['support'] = []
         # self.algostat['peak_memB'] = []
 
-    def measure_uncertainty(self,use_precomputed = 0):
+    def measure_uncertainty(self):
         """ 
         Measures entropy exactly by sampling all possible worlds. 
         """
