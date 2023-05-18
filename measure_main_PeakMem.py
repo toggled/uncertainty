@@ -92,7 +92,7 @@ def singleRun(G,Query, save = True):
     # print(output)
     if (not args.verbose):
         # csv_name = 'output/measure_'+args.dataset+'.csv'
-        csv_name = 'output/PeakMem_measure_' + args.dataset +"_"+ args.algo +"_"+ args.property + '.csv'
+        csv_name = 'output/PeakMem_measure_' + args.dataset + "_" + args.algo + "_" + args.property + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
         if os.path.exists(csv_name):
             result_df = pd.read_csv(csv_name)
         else:
