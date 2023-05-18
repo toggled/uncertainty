@@ -462,7 +462,142 @@ class ApproximateAlgorithm:
         self.algostat['total_sample_tm'] = self.G.total_sample_tm
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
         return mean_H 
+    
+    def measure_uncertainty_bfs(self, N=1, T=10):
+        """
+        MC + BFS 
+        """
+        precomp = {}
+        source,target = self.Query.u, self.Query.v
+        if os.environ['precomp']:
+            previous_omega_files = [f for f in os.listdir(os.environ['precomp']) if f.endswith('.pre')]
+            # print(previous_omega_files)
+            if len(previous_omega_files):
+                for f in previous_omega_files:
+                    # print('f = ',f)
+                    n,t = f.split('.pre')[0].split('_')
+                    n,t = int(n),int(t)
+                    if n not in precomp:
+                        precomp[n] = {}
+                    if t not in precomp[n]:
+                        precomp[n][t] = f
+                maximum_T = max(precomp[0].keys())+1
+                maximum_N = max(precomp.keys())+1
+                # print(maximum_N,maximum_T, N, T)
+                assert N <= maximum_N, "precomputed possible worlds are insufficient"
+                assert T <= maximum_T, "precomputed possible worlds are insufficient"
+        start_execution_time = time()
+        query_evaluation_times = []
+        hat_H_list = []
+        support_observed = []
+        sum_H = 0
+        if len(precomp)==0:
+            for i in range(N):
+                hat_Pr = {}
+                j = 0
+                for _, _,omega in self.G.get_Ksample_bfs(T,seed=i,source=source,target = target):
+                    start_tm = time()
+                    # omega = self.Query.evalG(g[0])
+                    query_evaluation_times.append(time()-start_tm)
+                    hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                    support_observed.append(omega)
+                    if os.environ['precomp']:
+                        save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
+                        j+=1
+                hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+                hat_H_list.append(hat_H)
+                sum_H += hat_H 
+        else:
+            for i in range(N):
+                hat_Pr = {}
+                
+                # for g in self.G.get_Ksample(T,seed=i):
+                for j in range(T):
+                    start_tm = time()
+                    precomputed_omega_file = os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre")
+                    omega = load_pickle(precomputed_omega_file)
+                    query_evaluation_times.append(time()-start_tm)
+                    hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                    support_observed.append(omega)
+                hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+                hat_H_list.append(hat_H)
+                sum_H += hat_H 
+        mean_H =  sum_H /N
+        self.algostat['execution_time'] = time() - start_execution_time
+        self.algostat['algorithm'] = 'appr'
+        self.algostat['H'] = mean_H
+        self.algostat['support'] =  str(support_observed)
+        self.algostat['total_sample_tm'] = self.G.total_sample_tm
+        self.algostat['query_eval_tm'] = sum(query_evaluation_times)
+        return mean_H 
 
+    def measure_uncertainty_dij(self, N=1, T=10):
+        """
+        MC + Dijkstra
+        """
+        precomp = {}
+        source,target = self.Query.u, self.Query.v
+        if os.environ['precomp']:
+            previous_omega_files = [f for f in os.listdir(os.environ['precomp']) if f.endswith('.pre')]
+            # print(previous_omega_files)
+            if len(previous_omega_files):
+                for f in previous_omega_files:
+                    # print('f = ',f)
+                    n,t = f.split('.pre')[0].split('_')
+                    n,t = int(n),int(t)
+                    if n not in precomp:
+                        precomp[n] = {}
+                    if t not in precomp[n]:
+                        precomp[n][t] = f
+                maximum_T = max(precomp[0].keys())+1
+                maximum_N = max(precomp.keys())+1
+                # print(maximum_N,maximum_T, N, T)
+                assert N <= maximum_N, "precomputed possible worlds are insufficient"
+                assert T <= maximum_T, "precomputed possible worlds are insufficient"
+        start_execution_time = time()
+        query_evaluation_times = []
+        hat_H_list = []
+        support_observed = []
+        sum_H = 0
+        if len(precomp)==0:
+            for i in range(N):
+                hat_Pr = {}
+                j = 0
+                for _, _,omega in self.G.get_Ksample_dij(T,seed=i,source=source,target = target):
+                    start_tm = time()
+                    # omega = self.Query.evalG(g[0])
+                    query_evaluation_times.append(time()-start_tm)
+                    hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                    support_observed.append(omega)
+                    if os.environ['precomp']:
+                        save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
+                        j+=1
+                hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+                hat_H_list.append(hat_H)
+                sum_H += hat_H 
+        else:
+            for i in range(N):
+                hat_Pr = {}
+                
+                # for g in self.G.get_Ksample(T,seed=i):
+                for j in range(T):
+                    start_tm = time()
+                    precomputed_omega_file = os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre")
+                    omega = load_pickle(precomputed_omega_file)
+                    query_evaluation_times.append(time()-start_tm)
+                    hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                    support_observed.append(omega)
+                hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+                hat_H_list.append(hat_H)
+                sum_H += hat_H 
+        mean_H =  sum_H /N
+        self.algostat['execution_time'] = time() - start_execution_time
+        self.algostat['algorithm'] = 'appr'
+        self.algostat['H'] = mean_H
+        self.algostat['support'] =  str(support_observed)
+        self.algostat['total_sample_tm'] = self.G.total_sample_tm
+        self.algostat['query_eval_tm'] = sum(query_evaluation_times)
+        return mean_H 
     def algorithm3(self,  k, update_type = 'o1',verbose = False):
         """ Variant of Algorithm 3 where entropy is approximated via sampling, not exactly computed """
         # TODO: Sampler code: Ugraph().get_Ksample().

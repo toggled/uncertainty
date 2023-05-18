@@ -707,7 +707,7 @@ class multiGraphwQuery(multiGraphQuery):
         super().__init__(prob_graph,qtype,args)
 
     def evalG(self,G):
-        """ Function to evaluate a given possible world G (weighted multigraph)"""
+        """ Function to evaluate a given possible world G (weighted multigraph): P(G) """
         # print('Multigraph eval.')
         assert isinstance(G,list)
         if self.qtype == 'reach': # Reachability

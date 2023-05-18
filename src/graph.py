@@ -4,6 +4,8 @@ from matplotlib import pyplot as plt
 import random 
 from time import time 
 from copy import deepcopy
+from heapq import heappush, heappop
+from networkx.algorithms.bipartite.matching import INFINITY
 class UGraph:
     """
     A generic class for Uncertain Graph data structure and for various operations on it. 
@@ -16,6 +18,96 @@ class UGraph:
         # self.sample_time_list = [] # exec. time to generate individual possible worlds
         self.total_sample_tm = 0
         self.weights = {}
+    def construct_nbrs(self):
+        nbrs = {}
+        for e in self.Edges:
+            _tmp = nbrs.get(e[0],[])
+            _tmp.append(e[1])
+            nbrs[e[0]] = _tmp 
+            _tmp = nbrs.get(e[1],[])
+            _tmp.append(e[0])
+            nbrs[e[1]] = _tmp 
+        return nbrs 
+    
+    def bfs_sample(self,source,target, seed = 1):
+        """ For Reachability query. """
+        # print(self.Edges)
+        nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
+        queue = [source]
+        reached_target = 0
+        sample = []
+        prob_sample = 1.0
+        random.seed(seed)
+        visited = {source: True}
+        while len(queue) and reached_target == 0: # MC+BFS loop
+            u = queue.pop(0)
+            # visited[u] = True
+            if u == target:
+                reached_target = 1
+                break
+            for v in nbrs.get(u,[]):
+                (uu,vv) = (min(u,v),max(u,v))
+                p = self.edict.get((uu,vv),-1)
+                if p == -1: #
+                    # print(sample,'\n',(uu,vv),' ',u) 
+                    continue 
+                if random.random() < p:
+                    if (not visited.get(v,False)):
+                        visited[v] = True
+                        sample.append((uu,vv))
+                        prob_sample *= p 
+                        queue.append(v)
+                        if v == target:
+                            reached_target = 1
+                            break 
+                else:
+                    prob_sample *= (1-p)
+        support_value = reached_target
+        # print(source,target,sample,support_value)
+        return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
+    
+    def dijkstra_sample(self,source,target, seed = 1):
+        """ For SP query (unweighted graph). """
+        # print(self.Edges)
+        nbrs = self.construct_nbrs() # Constructs node => [Nbr nodes list] incidence dictionary. 
+        reached_target = 0
+        sample = []
+        prob_sample = 1.0
+        random.seed(seed)
+        seen = {source:0}
+        dists = {}
+        heap = []
+        heappush(heap,(0,source))
+        while len(heap) and reached_target == 0: # MC+BFS loop
+            dist_u, u = heappop(heap)
+            if u in dists:
+                continue 
+            dists[u] = dist_u
+            if u == target:
+                reached_target = 1
+                break
+            for v in nbrs.get(u,[]):
+                (uu,vv) = (min(u,v),max(u,v))
+                dist_uv = dists[u] + self.weights[(uu,vv)]
+                p = self.edict.get((uu,vv),-1)
+                if p == -1: # unexpected edge.
+                    # print(sample,'\n',(uu,vv),' ',u) 
+                    continue 
+                if random.random() < p:
+                    if (v not in seen) or (dist_uv < seen[v]):
+                        seen[v] = dist_uv
+                        sample.append((uu,vv))
+                        prob_sample *= p 
+                        heappush(heap,(dist_uv,v))
+                        if v == target:
+                            reached_target = 1
+                            dists[v] = dist_uv
+                            break 
+                else:
+                    prob_sample *= (1-p)
+        support_value = dists.get(target,INFINITY)
+        # print(source,target,sample,support_value,dists)
+        return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
 
     def add_edge(self,u,v,prob,weight = 1.0):
         """ Add edge e = (u,v) along with p(e) """
@@ -251,6 +343,24 @@ class UGraph:
             else:
                 yield self.get_sample(seed = i,verbose = False)
 
+    def get_Ksample_bfs(self, K=1, seed = None,source = None, target = None):
+        """ Returns a sample of K possible worlds """
+        assert (source is not None and target is not None)
+        for i in range(K):
+            if seed:
+                yield self.bfs_sample(seed = seed+i,source = source, target = target)
+            else:
+                yield self.bfs_sample(seed = i,source = source, target = target)
+
+    def get_Ksample_dij(self, K=1, seed = None,source = None, target = None):
+        """ Returns a sample of K possible worlds """
+        assert (source is not None and target is not None)
+        for i in range(K):
+            if seed:
+                yield self.dijkstra_sample(seed = seed+i,source = source, target = target)
+            else:
+                yield self.dijkstra_sample(seed = i,source = source, target = target)
+
     def get_unweighted_graph_rep(self):
         """ 
         Returns the unweighted graph representation of the uncertain graph. 
@@ -337,3 +447,101 @@ class UMultiGraph(UGraph):
 
     def plot_possible_world_distr(self, saveplot = False):
         pass
+    
+    def construct_nbrs(self):
+        nbrs = {} # key = vertex id, value = [list of edge ids]
+        for e in self.Edges:
+            u,v,_id = e
+            _tmp = nbrs.get(u,[])
+            _tmp.append((v,_id))
+            nbrs[u] = _tmp 
+            _tmp = nbrs.get(v,[])
+            _tmp.append((u,_id))
+            nbrs[v] = _tmp 
+        return nbrs 
+    
+    def bfs_sample(self,source,target, seed = 1):
+        """ For Reachability query. """
+        # print('bfs_sample multigraph')
+        # print(self.Edges)
+        nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
+        queue = [source]
+        reached_target = 0
+        sample = []
+        prob_sample = 1.0
+        random.seed(seed)
+        visited = {}
+        while len(queue) and reached_target == 0: # MC+BFS loop
+            u = queue.pop(0)
+            # print('pop: ',u)
+            # visited[u] = True
+            if u == target:
+                reached_target = 1
+                break
+            for v, eid in nbrs.get(u,[]):
+                # print('traversing ',v,' via ',eid)
+                (uu,vv) = (min(u,v),max(u,v))
+                p = self.edict.get((uu,vv,eid),-1)
+                if p == -1: #
+                    # print(sample,'\n',(uu,vv),' ',u) 
+                    continue 
+                if random.random() < p:
+                    if (not visited.get(eid,False)):
+                        visited[eid] = True
+                        sample.append((uu,vv))
+                        # print('added ',(uu,vv),' into poss world')
+                        prob_sample *= p 
+                        queue.append(v)
+                        if v == target:
+                            reached_target = 1
+                            break 
+                else:
+                    prob_sample *= (1-p)
+                # print(visited)
+        support_value = reached_target
+        # print(source,target,sample,support_value)
+        return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
+
+    def dijkstra_sample(self,source,target, seed = 1):
+        """ For SP query (unweighted graph). """
+        # print(self.Edges)
+        nbrs = self.construct_nbrs() # Constructs node => [Nbr nodes list] incidence dictionary. 
+        reached_target = 0
+        sample = []
+        prob_sample = 1.0
+        random.seed(seed)
+        seen = {source:0}
+        dists = {}
+        heap = []
+        heappush(heap,(0,source))
+        while len(heap) and reached_target == 0: # MC+BFS loop
+            dist_u, u = heappop(heap)
+            if u in dists:
+                continue 
+            dists[u] = dist_u
+            # visited[u] = True
+            if u == target:
+                reached_target = 1
+                break
+            for v,eid in nbrs.get(u,[]):
+                (uu,vv) = (min(u,v),max(u,v))
+                dist_uv = dists[u] + self.weights[(uu,vv,eid)]
+                p = self.edict.get((uu,vv,eid),-1)
+                if p == -1: # unexpected edge.
+                    # print(sample,'\n',(uu,vv),' ',u) 
+                    continue 
+                if random.random() < p:
+                    if (v not in seen) or (dist_uv < seen[v]):
+                        seen[v] = dist_uv
+                        sample.append((uu,vv))
+                        prob_sample *= p 
+                        heappush(heap,(dist_uv,v))
+                        if v == target:
+                            reached_target = 1
+                            dists[v] = dist_uv
+                            break 
+                else:
+                    prob_sample *= (1-p)
+        support_value = dists.get(target,INFINITY)
+        # print(source,target,sample,support_value,dists)
+        return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not

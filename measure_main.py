@@ -8,7 +8,9 @@ import pandas as pd
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-d", "--dataset", type=str, default="ER_15_22")
-parser.add_argument("-a", "--algo", type=str, default="appr", help = "exact/appr/eappr") 
+parser.add_argument("-a", "--algo", type=str, default="appr", help = "exact/appr/eappr/mcbfs/pTmcbfs/mcdij/pTmcdij/rss/pTrss") 
+# appr = MC, eappr = ProbTree+MC, mcbfs = MC+BFS, pTmcbfs = ProbTree+MC+BFS, 
+# mcdij = MC+dijkstra, pTmcdij = ProbTree+ MC+dijkstra
 parser.add_argument("-N",'--N',type = int, default = 1, help = '#of batches')
 parser.add_argument("-T",'--T',type = int, default = 5, help= '#of Possible worlds in a batch')
 parser.add_argument("-v", "--verbose", action='store_true')
@@ -31,7 +33,7 @@ if args.precomputed:
 else:
     os.environ['precomp'] = ''
 debug = (args.source is not None) and (args.target is not None)
-
+runProbTree = (args.algo == 'eappr' or args.algo.startswith('pT')) # True if load precomputed ProbTree subgraph
 def singleRun(G,Query, save = True):
     if args.algo == 'exact':
         a = Algorithm(G,Query)
@@ -40,6 +42,17 @@ def singleRun(G,Query, save = True):
     elif args.algo == 'appr':
         a = ApproximateAlgorithm(G,Query)
         a.measure_uncertainty(N=args.N, T = args.T)
+    elif (args.algo == 'mcbfs' or args.algo == 'pTmcbfs'):
+        a = ApproximateAlgorithm(G,Query)
+        assert (args.property == 'reach')
+        a.measure_uncertainty_bfs(N=args.N, T = args.T)
+        a.algostat['algorithm'] = ['MC+BFS','PT+MC+BFS'][args.algo=='pTmcbfs']
+
+    elif (args.algo == 'mcdij' or args.algo == 'pTmcdij'):
+        a = ApproximateAlgorithm(G,Query)
+        assert (args.property == 'sp')
+        a.measure_uncertainty_dij(N=args.N, T = args.T)
+        a.algostat['algorithm'] = ['MC+DIJ','PT+MC+DIJ'][args.algo=='pTmcdij']
     else:
         a = ApproximateAlgorithm(G,Query)
         a.measure_uncertainty(N=args.N, T = args.T)
@@ -60,7 +73,8 @@ def singleRun(G,Query, save = True):
         output['target'] = str(Query.v)
     output['dataset'] = args.dataset
     output['P'] = args.property
-    output['N'],output['T'] = [("None","None"),(args.N,args.T)][args.algo.endswith('appr')]
+    output['N'],output['T'] = args.N,args.T
+    # output['N'],output['T'] = [("None","None"),(args.N,args.T)][args.property.endswith('appr')]
 
     for k in a.algostat.keys():
         if k!='result' and k!='k': 
@@ -85,7 +99,7 @@ if not debug:
     queries = get_queries(queryfile = args.queryf, maxQ = args.maxquery) 
 
 # Depending on the algorithm to run get the uncertain graph
-if args.algo == 'eappr': # Efficient variant of algorithm 2 requires pre-computed representative subgraphs
+if runProbTree: # Efficient variant of algorithm 2 requires pre-computed representative subgraphs
     whichquery = args.queryf.split('.')[0].split('_')[-1]
     rsubgraphpaths = [ 'data/maniu/'+args.dataset+'_'+whichquery+'_subg/'+dataset_to_filename[args.dataset].split('/')[-1]+'_query_subgraph_'+s+'_'+t+'.txt' \
                      for s,t in queries]
@@ -97,21 +111,22 @@ if debug: print(args.property,' (',args.source,',',args.target,')')
 if debug:
     Query = Query(G,args.property,{'u':args.source,'v':args.target})
 else:
-    if args.algo != 'eappr':
+    if not runProbTree:
         if args.property == 'sp':
             Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
-        if args.property == 'reach':
+        if args.property == 'reach': # For reachability query, we ignore edge weights.  
             Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
 
 if debug: # Run algorithm for single query (Debugging purposes)
     singleRun(G,Query)
 else: # Run algorithms for all the queries
     # print(args.algo)
-    if args.algo == 'eappr':
+    if runProbTree:
         for subpath,q in zip(rsubgraphpaths,queries):
             if (not os.path.isfile(subpath)):
                 raise Exception('representative subgraph: ',subpath,' missing!')
             G = get_decompGraph(args.dataset,None,None,subpath)
+            # print('decomp graph: ',G)
             s,t = q
             if args.property == 'reach':
                 Query = multiGraphQuery(G,'reach',{'u':s,'v':t})
@@ -125,9 +140,9 @@ else: # Run algorithms for all the queries
             if args.precomputed:
                 os.environ['precomp'] = old
                 if args.property != 'tri':
-                    os.environ['precomp'] += ("_eappr_"+str(args.property)+"_"+str(Query.u)+"_"+str(Query.v))
+                    os.environ['precomp'] += ("_"+args.algo+"_"+str(args.property)+"_"+str(Query.u)+"_"+str(Query.v))
                 else:
-                    os.environ['precomp']+='_eappr_tri'
+                    os.environ['precomp']+='_'+args.algo+'_tri'
                 os.system('mkdir -p '+os.environ["precomp"])
                 print('precomputed support value location: ',os.environ['precomp'])  
             singleRun(G, Query)
@@ -140,9 +155,10 @@ else: # Run algorithms for all the queries
             if args.precomputed:
                 os.environ['precomp'] = old
                 if args.property != 'tri':
-                    os.environ['precomp'] += ("_appr_"+str(args.property)+"_"+str(Query.u)+"_"+str(Query.v))
+                    os.environ['precomp'] += ("_"+args.algo+"_"+str(args.property)+"_"+str(Query.u)+"_"+str(Query.v))
                 else:
-                    os.environ['precomp']+='_appr_tri'
+                    os.environ['precomp']+=('_'+args.algo+'_tri')
+                # print('--- ',os.environ['precomp'])
                 os.system('mkdir -p '+os.environ["precomp"])
                 print('precomputed support value location: ',os.environ['precomp'])  
             singleRun(G, Query)
