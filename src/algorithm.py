@@ -463,7 +463,7 @@ class ApproximateAlgorithm:
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
         return mean_H 
     
-    def measure_uncertainty_bfs(self, N=1, T=10):
+    def measure_uncertainty_bfs(self, N=1, T=10, optimise = False):
         """
         MC + BFS 
         """
@@ -495,7 +495,15 @@ class ApproximateAlgorithm:
             for i in range(N):
                 hat_Pr = {}
                 j = 0
-                for _, _,omega in self.G.get_Ksample_bfs(T,seed=i,source=source,target = target):
+                precomputed_nbrs_path = os.path.join(os.environ['precomp']+"_nbr.pre")
+                if optimise and os.path.isfile(precomputed_nbrs_path):
+                    print('loading precomputed nbrs file..')
+                    loaded_nbrs = load_pickle(precomputed_nbrs_path)
+                    func_obj = self.G.get_Ksample_bfs(T,seed=i,source=source,target = target, optimiseargs = \
+                                                      {'nbrs':loaded_nbrs,'doopt': True})
+                else:
+                    func_obj = self.G.get_Ksample_bfs(T,seed=i,source=source,target = target, optimiseargs = None)
+                for nbrs,_, _,omega in func_obj:
                     start_tm = time()
                     # omega = self.Query.evalG(g[0])
                     query_evaluation_times.append(time()-start_tm)
@@ -503,6 +511,10 @@ class ApproximateAlgorithm:
                     support_observed.append(omega)
                     if os.environ['precomp']:
                         save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
+                        # precomputed_nbrs_path = os.path.join(os.environ['precomp']+"_nbr.pre")
+                        if not os.path.isfile(precomputed_nbrs_path):
+                            print('saving nbrs file for the 1st time.')
+                            save_pickle(nbrs,precomputed_nbrs_path)
                         j+=1
                 hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
                 hat_H_list.append(hat_H)

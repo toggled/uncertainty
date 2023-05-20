@@ -29,10 +29,16 @@ class UGraph:
             nbrs[e[1]] = _tmp 
         return nbrs 
     
-    def bfs_sample(self,source,target, seed = 1):
+    def bfs_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
         """ For Reachability query. """
         # print(self.Edges)
-        nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
+        if optimiseargs is not None:
+            if optimiseargs['nbrs'] is None:
+                nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
+            else:
+                nbrs = optimiseargs['nbrs']
+        else:
+            nbrs = self.construct_nbrs()
         queue = [source]
         reached_target = 0
         sample = []
@@ -64,7 +70,8 @@ class UGraph:
                     prob_sample *= (1-p)
         support_value = reached_target
         # print(source,target,sample,support_value)
-        return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
+        return nbrs, sample, prob_sample,support_value 
+        # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
     
     def dijkstra_sample(self,source,target, seed = 1):
         """ For SP query (unweighted graph). """
@@ -343,14 +350,15 @@ class UGraph:
             else:
                 yield self.get_sample(seed = i,verbose = False)
 
-    def get_Ksample_bfs(self, K=1, seed = None,source = None, target = None):
+    def get_Ksample_bfs(self, K=1, seed = None,source = None, target = None,\
+                        optimiseargs = {'nbrs':None, 'doopt': False}):
         """ Returns a sample of K possible worlds """
         assert (source is not None and target is not None)
         for i in range(K):
             if seed:
-                yield self.bfs_sample(seed = seed+i,source = source, target = target)
+                yield self.bfs_sample(seed = seed+i,source = source, target = target, optimiseargs=optimiseargs)
             else:
-                yield self.bfs_sample(seed = i,source = source, target = target)
+                yield self.bfs_sample(seed = i,source = source, target = target,optimiseargs=optimiseargs)
 
     def get_Ksample_dij(self, K=1, seed = None,source = None, target = None):
         """ Returns a sample of K possible worlds """

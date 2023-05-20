@@ -45,7 +45,7 @@ def singleRun(G,Query, save = True):
     elif (args.algo == 'mcbfs' or args.algo == 'pTmcbfs'):
         a = ApproximateAlgorithm(G,Query)
         assert (args.property == 'reach')
-        a.measure_uncertainty_bfs(N=args.N, T = args.T)
+        a.measure_uncertainty_bfs(N=args.N, T = args.T, optimise = args.precomputed)
         a.algostat['algorithm'] = ['MC+BFS','PT+MC+BFS'][args.algo=='pTmcbfs']
 
     elif (args.algo == 'mcdij' or args.algo == 'pTmcdij'):
