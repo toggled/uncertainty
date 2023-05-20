@@ -495,7 +495,7 @@ class ApproximateAlgorithm:
             for i in range(N):
                 hat_Pr = {}
                 j = 0
-                precomputed_nbrs_path = os.path.join(os.environ['precomp']+"_nbr.pre")
+                precomputed_nbrs_path = os.path.join('_'.join(os.environ['precomp'].split('_')[:-2])+"_nbr.pre")
                 if optimise and os.path.isfile(precomputed_nbrs_path):
                     print('loading precomputed nbrs file..')
                     loaded_nbrs = load_pickle(precomputed_nbrs_path)
