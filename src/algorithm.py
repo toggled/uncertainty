@@ -543,7 +543,7 @@ class ApproximateAlgorithm:
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
         return mean_H 
 
-    def measure_uncertainty_dij(self, N=1, T=10):
+    def measure_uncertainty_dij(self, N=1, T=10, optimise = False):
         """
         MC + Dijkstra
         """
@@ -575,13 +575,24 @@ class ApproximateAlgorithm:
             for i in range(N):
                 hat_Pr = {}
                 j = 0
-                for _, _,omega in self.G.get_Ksample_dij(T,seed=i,source=source,target = target):
+                precomputed_nbrs_path = os.path.join('_'.join(os.environ['precomp'].split('_')[:-2])+"_nbr.pre")
+                if optimise and os.path.isfile(precomputed_nbrs_path):
+                    # print('loading precomputed nbrs file..')
+                    loaded_nbrs = load_pickle(precomputed_nbrs_path)
+                    func_obj = self.G.get_Ksample_dij(T,seed=i,source=source,target = target, optimiseargs = \
+                                                      {'nbrs':loaded_nbrs,'doopt': True})
+                else:
+                    func_obj = self.G.get_Ksample_dij(T,seed=i,source=source,target = target, optimiseargs = None)
+                for nbrs,_, _,omega in func_obj:
                     start_tm = time()
                     # omega = self.Query.evalG(g[0])
                     query_evaluation_times.append(time()-start_tm)
                     hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
                     support_observed.append(omega)
                     if os.environ['precomp']:
+                        if not os.path.isfile(precomputed_nbrs_path):
+                            print('saving nbrs file for the 1st time.')
+                            save_pickle(nbrs,precomputed_nbrs_path)
                         save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
                         j+=1
                 hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])

@@ -73,10 +73,16 @@ class UGraph:
         return nbrs, sample, prob_sample,support_value 
         # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
     
-    def dijkstra_sample(self,source,target, seed = 1):
+    def dijkstra_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
-        nbrs = self.construct_nbrs() # Constructs node => [Nbr nodes list] incidence dictionary. 
+        if optimiseargs is not None:
+            if optimiseargs['nbrs'] is None:
+                nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
+            else:
+                nbrs = optimiseargs['nbrs']
+        else:
+            nbrs = self.construct_nbrs()
         reached_target = 0
         sample = []
         prob_sample = 1.0
@@ -114,8 +120,9 @@ class UGraph:
                     prob_sample *= (1-p)
         support_value = dists.get(target,INFINITY)
         # print(source,target,sample,support_value,dists)
-        return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
-
+        # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
+        return nbrs, sample, prob_sample,support_value 
+    
     def add_edge(self,u,v,prob,weight = 1.0):
         """ Add edge e = (u,v) along with p(e) """
         (u,v) = (min(u,v),max(u,v))
@@ -360,14 +367,17 @@ class UGraph:
             else:
                 yield self.bfs_sample(seed = i,source = source, target = target,optimiseargs=optimiseargs)
 
-    def get_Ksample_dij(self, K=1, seed = None,source = None, target = None):
+    def get_Ksample_dij(self, K=1, seed = None,source = None, target = None,\
+                        optimiseargs = {'nbrs':None, 'doopt': False}):
         """ Returns a sample of K possible worlds """
         assert (source is not None and target is not None)
         for i in range(K):
             if seed:
-                yield self.dijkstra_sample(seed = seed+i,source = source, target = target)
+                yield self.dijkstra_sample(seed = seed+i,source = source, target = target,\
+                                           optimiseargs=optimiseargs)
             else:
-                yield self.dijkstra_sample(seed = i,source = source, target = target)
+                yield self.dijkstra_sample(seed = i,source = source, target = target,\
+                                           optimiseargs=optimiseargs)
 
     def get_unweighted_graph_rep(self):
         """ 
