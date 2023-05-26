@@ -8,9 +8,10 @@ import pandas as pd
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-d", "--dataset", type=str, default="ER_15_22")
-parser.add_argument("-a", "--algo", type=str, default="appr", help = "exact/appr/eappr/mcbfs/pTmcbfs/mcdij/pTmcdij/rss/pTrss") 
+parser.add_argument("-a", "--algo", type=str, default="appr", help = "exact/appr/eappr/mcbfs/pTmcbfs/mcdij/pTmcdij/rss/pTrss/mcapproxtri") 
 # appr = MC, eappr = ProbTree+MC, mcbfs = MC+BFS, pTmcbfs = ProbTree+MC+BFS, 
 # mcdij = MC+dijkstra, pTmcdij = ProbTree+ MC+dijkstra
+# mcapproxtri = triangle approximation
 parser.add_argument("-N",'--N',type = int, default = 1, help = '#of batches')
 parser.add_argument("-T",'--T',type = int, default = 5, help= '#of Possible worlds in a batch')
 parser.add_argument("-v", "--verbose", action='store_true')
@@ -53,6 +54,18 @@ def singleRun(G,Query, save = True):
         assert (args.property == 'sp')
         a.measure_uncertainty_dij(N=args.N, T = args.T)
         a.algostat['algorithm'] = ['MC+DIJ','PT+MC+DIJ'][args.algo=='pTmcdij']
+
+    elif (args.algo == 'mcapproxtri'):
+        a = ApproximateAlgorithm(G,Query)
+        assert (args.property == 'tri')
+        # n = num_nodes()
+        # nu = 100 # 1000 # prob of having good estimate is at least 99%
+        # eps = 1/sqrt(n) # +-sqrt(n) error will be incurred during tri counting , but with prob at most 1 - ((nu -1)/nu)
+        # k = ceil(ln(2*nu)/(2*eps**2))
+        # print('approximate triangle counting: nu = ',nu,' eps = ',eps,' n = ',n, ' k = ',k)
+        a.measure_uncertainty_mctri(N=args.N, T = args.T)
+        a.algostat['algorithm'] = args.algo
+
     else:
         a = ApproximateAlgorithm(G,Query)
         a.measure_uncertainty(N=args.N, T = args.T)

@@ -6,6 +6,8 @@ from time import time
 from copy import deepcopy
 from heapq import heappush, heappop
 from networkx.algorithms.bipartite.matching import INFINITY
+from math import sqrt,ceil,floor,log
+
 class UGraph:
     """
     A generic class for Uncertain Graph data structure and for various operations on it. 
@@ -18,6 +20,16 @@ class UGraph:
         # self.sample_time_list = [] # exec. time to generate individual possible worlds
         self.total_sample_tm = 0
         self.weights = {}
+
+    def count_nodes(self):
+        d = set()
+        for e in self.Edges:
+            if e[0] not in d:
+                d.add(e[0])
+            if e[1] not in d:
+                d.add(e[1])
+        return len(d)
+    
     def construct_nbrs(self):
         nbrs = {}
         for e in self.Edges:
@@ -29,6 +41,49 @@ class UGraph:
             nbrs[e[1]] = _tmp 
         return nbrs 
     
+    def count_tri_approx(self, sample_edges):
+        num_nodes = 0 # total number of nodes in the possible worlds
+        nodeset = set() # set of nodes with deg >=2
+        nbrs = {} # #nbrs for all the nodes.
+        # This loop computes (1) #nbrs for all nodes (2) constructs nodeset and (3) count num nodes
+        for e in sample_edges: 
+            # print(e)
+            _tmp = nbrs.get(e[0],[])
+            if (len(_tmp)==0):
+                num_nodes += 1 # If first time inserted into dic nbrs. count it.
+            else:
+                if (len(_tmp)+1)>=2:
+                    nodeset.add(e[0])
+            _tmp.append(e[1])
+            nbrs[e[0]] = _tmp 
+
+            _tmp = nbrs.get(e[1],[])
+            if (len(_tmp)==0):
+                num_nodes += 1 # If first time inserted into dic nbrs. count it.
+            else:
+                if (len(_tmp)+1)>=2:
+                    nodeset.add(e[1])
+            _tmp.append(e[0])
+            nbrs[e[1]] = _tmp 
+        
+        # Construct parameter value for approximation algorithm 
+        nu = 100 # 1000 # prob of having good estimate is at least 99%
+        eps = 1/sqrt(num_nodes) # +-sqrt(n) error will be incurred during tri counting , but with prob at most 1 - ((nu -1)/nu)
+        k = ceil(log(2*nu)/(2*eps**2))
+        # print('approximate triangle counting: nu = ',nu,' eps = ',eps,' n = ',num_nodes, ' k = ',k)
+
+        V = list(nodeset) # set of nodes whose deg >=2
+        absV = len(V)
+        # approximate counting
+        num_tri = 0
+        for i in range(k):
+            j = random.randint(0,absV-1)
+            nbrs_u = nbrs[V[j]]
+            v,w = random.sample(nbrs_u,k=2)
+            if w in nbrs[v]:
+                num_tri += 1
+        return floor(absV * (num_tri/k))
+
     def bfs_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
         """ For Reachability query. """
         # print(self.Edges)

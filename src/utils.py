@@ -3,7 +3,10 @@ import networkx as nx
 from matplotlib import pyplot as plt
 import pickle
 
-
+# num_nodes = {'ER_15_22': ,\
+#              'flickr': ,\
+#             'biomine':,\
+#             'rome':  }
 datasets_wgraph = ['maniu_demow','brain_a1','brain_h1','rome','brno','porto','sanfrancisco']
 datasets_unwgraph = ['maniu_demo','flickr','biomine', 'ER_15_22']
 
