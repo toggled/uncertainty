@@ -42,7 +42,10 @@ class Algorithm:
         start_execution_time = time()
         self.Query.eval(dontenumerateworlds = True)
         tm2 = time()
-        H = self.Query.compute_entropy()
+        if self.Query.bucketing:
+            H = self.Query.compute_bucketed_entropy() # Entropy under uniform bucketing strategy
+        else: # un-bucketted entropy
+            H = self.Query.compute_entropy()
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['algorithm'] = 'exact'
         self.algostat['H'] = H 
@@ -423,34 +426,94 @@ class ApproximateAlgorithm:
         hat_H_list = []
         support_observed = []
         sum_H = 0
-        if len(precomp)==0:
+        if len(precomp)==0: # no pre
             for i in range(N):
-                hat_Pr = {}
-                j = 0
-                for g in self.G.get_Ksample(T,seed=i):
-                    start_tm = time()
-                    omega = self.Query.evalG(g[0])
-                    query_evaluation_times.append(time()-start_tm)
-                    hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
-                    support_observed.append(omega)
-                    if os.environ['precomp']:
-                        save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
-                        j+=1
+                if self.Query.bucketing: # buckeing & no-pre
+                    hat_Pr = {}
+                    j = 0
+                    for g in self.G.get_Ksample(T,seed=i):
+                        start_tm = time()
+                        omega = self.Query.evalG(g[0])
+                        query_evaluation_times.append(time()-start_tm)
+                        support_observed.append(omega)
+                        if os.environ['precomp']:
+                            save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
+                            j+=1
+                    #bucketing 
+                    S = support_observed
+                    _min,_max = min(S),max(S)
+                    if _min == _max:
+                        index_ub = 1
+                        self.buckets = [(_min,_max)]
+                    else:
+                        delta = math.floor(math.sqrt(T))
+                        index_ub = math.ceil((_max-_min)/delta)
+                        self.buckets = [(_min+i*delta, _min+(i+1)*delta) for i in range(index_ub)]
+                        # print(self.buckets)
+                        bucket_distr = {i: 0 for i in range(index_ub)}
+                    for s in S:
+                        omega_i = (1.0/T)
+                        _index = math.floor((s - _min)/delta)
+                        bucket_distr[_index] += omega_i
+                    hat_Pr = bucket_distr
+                    # print([(self.buckets[_index],bucket_distr[_index]) for _index in bucket_distr])
+                else: # non-bucketing & no-pre
+                    hat_Pr = {}
+                    j = 0
+                    for g in self.G.get_Ksample(T,seed=i):
+                        start_tm = time()
+                        omega = self.Query.evalG(g[0])
+                        query_evaluation_times.append(time()-start_tm)
+                        hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                        support_observed.append(omega)
+                        if os.environ['precomp']:
+                            save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
+                            j+=1
                 hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
         else:
             for i in range(N):
-                hat_Pr = {}
-                
-                # for g in self.G.get_Ksample(T,seed=i):
-                for j in range(T):
-                    start_tm = time()
-                    precomputed_omega_file = os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre")
-                    omega = load_pickle(precomputed_omega_file)
-                    query_evaluation_times.append(time()-start_tm)
-                    hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
-                    support_observed.append(omega)
+                if self.Query.bucketing: #bucketing & pre
+                    hat_Pr = {}
+                    for j in range(T):
+                        start_tm = time()
+                        precomputed_omega_file = os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre")
+                        omega = load_pickle(precomputed_omega_file)
+                        query_evaluation_times.append(time()-start_tm)
+                        # hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                        support_observed.append(omega)
+                    #bucketing 
+                    print(support_observed)
+                    S = support_observed
+                    _min,_max = min(S),max(S)
+                    if _min == _max:
+                        index_ub = 1
+                        self.buckets = [(_min,_max)]
+                    else:
+                        delta = math.floor(math.sqrt(T))
+                        index_ub = math.ceil((_max-_min)/delta)
+                        self.buckets = [(_min+i*delta, _min+(i+1)*delta) for i in range(index_ub)]
+                    # print(self.buckets)
+                    bucket_distr = {i: 0 for i in range(index_ub)}
+                    for s in S:
+                        omega_i = (1.0/T)
+                        if _min < _max:
+                            _index = math.floor((s - _min)/delta)
+                            bucket_distr[_index] += omega_i
+                        else:
+                            bucket_distr[0] += omega_i
+                    hat_Pr = bucket_distr
+                else: #non-bucketing & pre
+                    hat_Pr = {}
+                    # for g in self.G.get_Ksample(T,seed=i):
+                    for j in range(T):
+                        start_tm = time()
+                        precomputed_omega_file = os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre")
+                        omega = load_pickle(precomputed_omega_file)
+                        query_evaluation_times.append(time()-start_tm)
+                        hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                        support_observed.append(omega)
                 hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
@@ -641,7 +704,6 @@ class ApproximateAlgorithm:
                 # print(maximum_N,maximum_T, N, T)
                 assert N <= maximum_N, "precomputed possible worlds are insufficient"
                 assert T <= maximum_T, "precomputed possible worlds are insufficient"
-
         start_execution_time = time()
         query_evaluation_times = []
         hat_H_list = []
@@ -649,30 +711,94 @@ class ApproximateAlgorithm:
         sum_H = 0
         if len(precomp)==0:
             for i in range(N):
-                hat_Pr = {}
-                j = 0
-                for g in self.G.get_Ksample(T,seed=i):
-                    start_tm = time()
-                    omega = self.G.count_tri_approx(g[0])
-                    query_evaluation_times.append(time()-start_tm)
-                    hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
-                    support_observed.append(omega)
-                    if os.environ['precomp']:
-                        save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
-                        j+=1
+                if self.Query.bucketing: # buckeing & no-pre
+                    hat_Pr = {}
+                    j = 0
+                    for g in self.G.get_Ksample(T,seed=i):
+                        start_tm = time()
+                        omega = self.G.count_tri_approx(g[0])
+                        query_evaluation_times.append(time()-start_tm)
+                        support_observed.append(omega)
+                        if os.environ['precomp']:
+                            save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
+                            j+=1
+                    #bucketing 
+                    S = support_observed
+                    _min,_max = min(S),max(S)
+                    if _min == _max:
+                        index_ub = 1
+                        self.buckets = [(_min,_max)]
+                    else:
+                        delta = math.floor(math.sqrt(T))
+                        index_ub = math.ceil((_max-_min)/delta)
+                        self.buckets = [(_min+i*delta, _min+(i+1)*delta) for i in range(index_ub)]
+                    # print(self.buckets)
+                    bucket_distr = {x: 0 for x in range(index_ub)}
+                    for s in S:
+                        omega_i = (1.0/T)
+                        if _min < _max:
+                            _index = math.floor((s - _min)/delta)
+                            bucket_distr[_index] += omega_i
+                        else:
+                            bucket_distr[0] += omega_i 
+                    hat_Pr = bucket_distr
+                    print([(self.buckets[_index],bucket_distr[_index]) for _index in bucket_distr])
+                else: # non-bucketing & no-pre
+                    hat_Pr = {}
+                    j = 0
+                    for g in self.G.get_Ksample(T,seed=i):
+                        start_tm = time()
+                        omega = self.G.count_tri_approx(g[0])
+                        query_evaluation_times.append(time()-start_tm)
+                        hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                        support_observed.append(omega)
+                        if os.environ['precomp']:
+                            save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
+                            j+=1
                 hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
         else:
             for i in range(N):
-                hat_Pr = {}
-                for j in range(T):
-                    start_tm = time()
-                    precomputed_omega_file = os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre")
-                    omega = load_pickle(precomputed_omega_file)
-                    query_evaluation_times.append(time()-start_tm)
-                    hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
-                    support_observed.append(omega)
+                if self.Query.bucketing: #bucketing & pre
+                    hat_Pr = {}
+                    for j in range(T):
+                        start_tm = time()
+                        precomputed_omega_file = os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre")
+                        omega = load_pickle(precomputed_omega_file)
+                        query_evaluation_times.append(time()-start_tm)
+                        # hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                        support_observed.append(omega)
+                    #bucketing 
+                    S = support_observed
+                    _min,_max = min(S),max(S)
+                    if _min == _max:
+                        index_ub = 1
+                        self.buckets = [(_min,_max)]
+                    else:
+                        delta = math.floor(math.sqrt(T))
+                        index_ub = math.ceil((_max-_min)/delta)
+                    self.buckets = [(_min+i*delta, _min+(i+1)*delta) for i in range(index_ub)]
+                    # print(self.buckets)
+                    bucket_distr = {x: 0 for x in range(index_ub)}
+                    for s in S:
+                        omega_i = (1.0/T)
+                        if _min < _max:
+                            _index = math.floor((s - _min)/delta)
+                            bucket_distr[_index] += omega_i
+                        else:
+                            bucket_distr[0] += omega_i
+                    hat_Pr = bucket_distr
+                else: #non-bucketing & pre
+                    hat_Pr = {}
+                    # for g in self.G.get_Ksample(T,seed=i):
+                    for j in range(T):
+                        start_tm = time()
+                        precomputed_omega_file = os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre")
+                        omega = load_pickle(precomputed_omega_file)
+                        query_evaluation_times.append(time()-start_tm)
+                        hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                        support_observed.append(omega)
                 hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
@@ -683,6 +809,7 @@ class ApproximateAlgorithm:
         self.algostat['support'] =  str(support_observed)
         self.algostat['total_sample_tm'] = self.G.total_sample_tm
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
+        return mean_H 
 
     def algorithm3(self,  k, update_type = 'o1',verbose = False):
         """ Variant of Algorithm 3 where entropy is approximated via sampling, not exactly computed """

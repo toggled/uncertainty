@@ -34,6 +34,8 @@ class Query:
         self.support_set = set()
         self.confidence = {}
         self.evaluation_times = []
+        self.bucketing = False 
+        self.buckets = []
         if self.qtype == 'reach' or self.qtype == 'sp':
             self.u = args['u']
             self.v = args['v']
@@ -274,6 +276,22 @@ class Query:
         if str(base) == 'e':
             return entropy([j for i,j in self.get_distribution()])
         return entropy([j for i,j in self.get_distribution()], base = base)
+    
+    def compute_bucketed_entropy(self, base = 2):
+        """ Given a base for logarithm, returns the entropy of the Property_value distribution. """
+        S = self.support_set
+        _min,_max = min(S),max(S)
+        delta = math.sqrt(len(self.results)) # sqrt(2^{|E|-1})
+        index_ub = math.ceil((_max-_min)/delta)
+        self.buckets = [(_min+i*delta, _min+(i+1)*delta) for i in range(index_ub)]
+        bucket_distr = {i: 0 for i in range(index_ub)}
+        for s in S:
+            omega_i = self.freq_distr[s]
+            _index = math.floor((s - _min)/delta)
+            bucket_distr[_index] += omega_i
+        if str(base) == 'e':
+            return entropy([j for i,j in bucket_distr.items()])
+        return entropy([j for i,j in bucket_distr.items()], base = base)
     
     def get_distribution(self):
         """

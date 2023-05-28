@@ -87,6 +87,7 @@ class UGraph:
     def bfs_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
         """ For Reachability query. """
         # print(self.Edges)
+        start_execution_time = time()
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
                 nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
@@ -124,6 +125,8 @@ class UGraph:
                 else:
                     prob_sample *= (1-p)
         support_value = reached_target
+        sample_tm = time() - start_execution_time
+        self.total_sample_tm += sample_tm
         # print(source,target,sample,support_value)
         return nbrs, sample, prob_sample,support_value 
         # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
@@ -131,6 +134,7 @@ class UGraph:
     def dijkstra_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
+        start_execution_time = time()
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
                 nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
@@ -176,6 +180,8 @@ class UGraph:
         support_value = dists.get(target,INFINITY)
         # print(source,target,sample,support_value,dists)
         # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
+        sample_tm = time() - start_execution_time
+        self.total_sample_tm += sample_tm
         return nbrs, sample, prob_sample,support_value 
     
     def add_edge(self,u,v,prob,weight = 1.0):

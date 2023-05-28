@@ -20,7 +20,9 @@ parser.add_argument('-t','--target',type = str, default = None)
 parser.add_argument('-q','--queryf', type=str,help='query file',default = 'data/queries/ER/ER_15_22_2.queries')
 parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
 parser.add_argument('-pr','--property',type = str, default = 'sp', help = "either tri/sp/reach")
+parser.add_argument('-b','--bucketing',type = int, help='Whether to compute bucketed entropy or not', default = 0) # only tri query is supported
 parser.add_argument('-pre','--precomputed',type = int, help='Use pre-computed possible world support value or not', default = 0)
+
 # Demo usages:
 # Reachability query from x to u in default dataset using sampling: N = 10, T = 10
 # python measure_main.py -d default -a appr -pr reach -s x -t u -N 10 -T 10
@@ -29,7 +31,10 @@ args = parser.parse_args()
 # if 'precomp' in os.environ:
 #     os.environ['precomp'] = ''
 if args.precomputed:
-    os.environ['precomp'] = "pre/"+args.dataset+"_"+args.queryf.split("/")[-1].split('.')[0]
+    if args.bucketing:
+        os.environ['precomp'] = "pre/"+'bucketing_'+args.dataset+"_"+args.queryf.split("/")[-1].split('.')[0]
+    else:
+        os.environ['precomp'] = "pre/"+args.dataset+"_"+args.queryf.split("/")[-1].split('.')[0]
     old = os.environ['precomp']
 else:
     os.environ['precomp'] = ''
@@ -150,11 +155,12 @@ else: # Run algorithms for all the queries
                     Query = multiGraphQuery(G,'sp',{'u':s,'v':t})
             if args.property == 'tri':
                 Query = multiGraphQuery(G,'tri')
+                Query.bucketing = args.bucketing 
             if args.precomputed:
                 os.environ['precomp'] = old
-                if args.property != 'tri':
+                if args.property == 'sp' or args.property == 'reach':
                     os.environ['precomp'] += ("_"+args.algo+"_"+str(args.property)+"_"+str(Query.u)+"_"+str(Query.v))
-                else:
+                if args.property == 'tri':
                     os.environ['precomp']+='_'+args.algo+'_tri'
                 os.system('mkdir -p '+os.environ["precomp"])
                 print('precomputed support value location: ',os.environ['precomp'])  
@@ -163,13 +169,15 @@ else: # Run algorithms for all the queries
     else:
         if args.property == 'tri':
             print('#Triangles')
-            Querylist = [Query(G,'tri')]
+            Q = Query(G,'tri')
+            Q.bucketing = args.bucketing 
+            Querylist = [Q]
         for Query in Querylist:
             if args.precomputed:
                 os.environ['precomp'] = old
-                if args.property != 'tri':
+                if args.property == 'sp' or args.property == 'reach':
                     os.environ['precomp'] += ("_"+args.algo+"_"+str(args.property)+"_"+str(Query.u)+"_"+str(Query.v))
-                else:
+                if args.property == 'tri':
                     os.environ['precomp']+=('_'+args.algo+'_tri')
                 # print('--- ',os.environ['precomp'])
                 os.system('mkdir -p '+os.environ["precomp"])
