@@ -39,11 +39,13 @@ class Query:
         if self.qtype == 'reach' or self.qtype == 'sp':
             self.u = args['u']
             self.v = args['v']
-        if self.qtype == 'reach_d':
+        elif self.qtype == 'reach_d':
             self.u = args['u']
             self.v = args['v']
             self.d = args['d']
-    
+        else:
+            self.u = None; self.v = None 
+
     def reset(self, prob_graph):
         """ Reset the query with a new uncertain graph """
         self.p_graph = prob_graph
@@ -85,6 +87,7 @@ class Query:
         #                 self.support_set.add(deg)
         # #                 self.confidence[deg] = self.confidence.get(deg, 0) + G[1]
         if self.qtype == 'reach': # Reachability
+                # print('exact reach. query')
                 u = self.u 
                 v = self.v
                 assert (u != None and v != None)
@@ -133,7 +136,7 @@ class Query:
                     self.evaluation_times.append(time()-start_tm)
 
         if self.qtype == 'sp': # length of shortest path
-                print('sp')
+                # print('exact sp query')
                 u = self.u 
                 v = self.v
                 assert (u != None and v != None)
@@ -273,6 +276,7 @@ class Query:
 
     def compute_entropy(self, base = 2):
         """ Given a base for logarithm, returns the entropy of the Property_value distribution. """
+        # print('distr: ',self.get_distribution())
         if str(base) == 'e':
             return entropy([j for i,j in self.get_distribution()])
         return entropy([j for i,j in self.get_distribution()], base = base)
@@ -536,12 +540,22 @@ class Query:
         self.PrG = {} # world i => Pr(G_i) for all possible world G_i
         self.index = {} 
         self.phiInv = {} # property value Omega_i => worlds where omega_i is observed.
+        probG_i = 1.0/K
         if (verbose):
             self.G = {} 
+        # print(self.qtype)
+        if 'time_seed' in os.environ:
+            random.seed()
+            s = random.randint(0,1000000)
+            # s = 511458
+            # print('seed = ', s)
+        else:
+            s = 1
         if self.qtype == 'reach': # Reachability
-            for i,G in enumerate(self.p_graph.get_Ksample(K)):
-                Pr_G = G[1] # Pr(G_i)
-                self.PrG[i] = Pr_G
+            for i,G in enumerate(self.p_graph.get_Ksample(K,seed = s)):
+                # print(G[0])
+                self.PrG[i] = probG_i # G[1]
+                # self.PrG[i] = G[1]
                 self.index[i] = {}
                 for e in G[0]:
                     self.index[i][e] = 1
@@ -559,10 +573,30 @@ class Query:
                     self.phiInv[reachable] = [i]
                 else:
                     self.phiInv[reachable].append(i)
-        if self.qtype == 'diam':
-            for i,G in enumerate(self.p_graph.get_Ksample(K)):
-                Pr_G = G[1] # Pr(G_i)
-                self.PrG[i] = Pr_G
+        elif self.qtype == 'sp': # length of shortest path
+            for i,G in enumerate(self.p_graph.get_Ksample(K,seed = s)):
+                u = self.u 
+                v = self.v
+                assert (u != None and v != None)
+                self.PrG[i] = probG_i # G[1]
+                # self.PrG[i] = G[1]
+                self.index[i] = {}
+                for e in G[0]:
+                    self.index[i][e] = 1
+
+                nx_G = nx.Graph()
+                nx_G.add_edges_from(G[0])
+                sp_len = INFINITY
+                if (u in nx_G) and (v in nx_G):
+                    if (nx.has_path(nx_G,u,v)):
+                        sp_len = nx.shortest_path_length(nx_G, source=u, target=v)
+                if sp_len not in self.phiInv:
+                    self.phiInv[sp_len] = [i]
+                else:
+                    self.phiInv[sp_len].append(i)
+        elif self.qtype == 'diam':
+            for i,G in enumerate(self.p_graph.get_Ksample(K,seed = s)):
+                self.PrG[i] = probG_i # G[1]
                 self.index[i] = {}
                 for e in G[0]:
                     self.index[i][e] = 1
@@ -582,13 +616,12 @@ class Query:
                     else:
                         self.phiInv[diam].append(i)
         
-        if self.qtype == "tri":
+        elif self.qtype == "tri":
             # print('Tri')
-            for i,G in enumerate(self.p_graph.get_Ksample(K)):
+            for i,G in enumerate(self.p_graph.get_Ksample(K,seed = s)):
                 if (verbose):
                     self.G[i] = G[0] 
-                Pr_G = G[1] # Pr(G_i)
-                self.PrG[i] = Pr_G
+                self.PrG[i] = probG_i # G[1]
                 self.index[i] = {}
                 for e in G[0]:
                     self.index[i][e] = 1
@@ -602,16 +635,60 @@ class Query:
                 else:
                     self.phiInv[num_triangles].append(i)
 
+        elif self.qtype == 'reach_d': # Reachability
+                u = self.u 
+                v = self.v
+                d = self.d
+                assert (u != None and v != None)
+                for i,G in enumerate(self.p_graph.get_Ksample(K,seed = s)):
+                    if (verbose):
+                        self.G[i] = G[0] 
+                    self.PrG[i] = probG_i # G[1]
+                    self.index[i] = {}
+                    for e in G[0]:
+                        self.index[i][e] = 1
+                        
+                    nx_G = nx.Graph()
+                    nx_G.add_edges_from(G[0])
+                    reachable = 0
+                    if (u in nx_G) and (v in nx_G):
+                        if (nx.has_path(nx_G,u,v)):
+                            if nx.shortest_path_length(nx_G, source=u, target=v) <= d:
+                                reachable = 1 
+                
+                    if reachable not in self.phiInv:
+                        self.phiInv[reachable] = [i]
+                    else:
+                        self.phiInv[reachable].append(i)
+        else:
+            raise Exception('unknown query type')
     def updateTables(self, ej, op='o1'):
         """ 
         Updates C, DeltaC and phi Inverse after probability update
         """
+        from copy import deepcopy
         p_up_e = self.p_graph.get_next_prob(ej[0],ej[1],op)
+        # print('Pr: ',self.PrG)
+        # print('p_up_e: ',p_up_e)
+        # PrG = deepcopy(self.PrG)
+        # _sumPrG = 0
         for i in self.index:
+            # print(i,'-- ',self.index[i])
             if ej in self.index[i]:
+                # print('e_j in ', i)
+                # print(PrG[i], self.p_graph.edict[ej])
                 self.PrG[i] = self.PrG[i] * p_up_e / self.p_graph.edict[ej]
             else:
-                self.PrG[i] = self.PrG[i] * (1-p_up_e) / (1-self.p_graph.edict[ej])
+                # print('e_j not in ',i)
+                # PrG[i] = self.PrG[i] * (1-p_up_e) / (1-self.p_graph.edict[ej])
+                self.PrG[i] = 0
+                # pass
+            # print('PrG[i]: ',PrG[i])
+            # _sumPrG += PrG[i]
+        # print('Pr: ',self.PrG)
+        # print("Pr' = ",self.PrG)
+        # self.PrG = PrG
+        # self.PrG = {i: p/_sumPrG for i,p in PrG.items()}
 
 class wQuery(Query):
     """

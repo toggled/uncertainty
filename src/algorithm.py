@@ -6,7 +6,8 @@ from time import time
 import math 
 from math import log2
 import os,pickle
-
+from scipy.stats import entropy
+from datetime import datetime
 
 def save_pickle(ob, fname):
     with open (fname, 'wb') as f:
@@ -21,7 +22,8 @@ def load_pickle(fname):
 
 class Algorithm:
     """ A generic Algorithm class that implmenets all the Exact algorithms in the paper."""
-    def __init__(self, g, query) -> None:
+    def __init__(self, g, query, debug = False) -> None:
+        self.debug = debug
         self.algostat = {} 
         # self.G = deepcopy(g)
         self.G = g #
@@ -63,7 +65,7 @@ class Algorithm:
         Returns selected edgeset, entropy value after selection, and entropy-reduction amount (DeltaH)
         """
         assert k>=1
-        self.algostat['algorithm'] = 'Bruteforce'
+        self.algostat['algorithm'] = 'exact'
         self.algostat['k'] = k
         start_execution_time = time()
         self.Global_maxima = None  
@@ -80,8 +82,7 @@ class Algorithm:
             self.Query.reset(g_copy)
             self.Query.eval()
             Hi = self.Query.compute_entropy()
-
-            if self.Global_maxima:
+            if self.Global_maxima is not None:
                 if H0 -  Hi > H0 - self.Global_maxima[1]:
                     self.Global_maxima = (edge_set, Hi)
                     if (verbose):
@@ -90,76 +91,16 @@ class Algorithm:
                 self.Global_maxima = (edge_set, Hi)
                 if (verbose):
                     print('Initial maxima: ',self.Global_maxima)
+            # print('e: ',edge_set,' \Delta H = ', H0-Hi, ' H0:', H0, ' H_next: ',Hi)
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['result']['edges'] = self.Global_maxima[0]
         self.algostat['result']['H*'] = self.Global_maxima[1]
         self.algostat['support'] = ''
+        self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+        self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+        self.algostat['history_deltaH'] = [] # history is empty because it considers all possible choices of k-edges at once.
         return self.Global_maxima[0], self.Global_maxima[1],  H0 - self.Global_maxima[1]
         
-    # Greedy k-edge selection: Algorithm 3
-    def algorithm3(self,  k, update_type = 'o1',verbose = False):
-        """
-        Exact version of Algorithm 3
-        Returns selected edgeset, entropy value after selection, and entropy-reduction amount (DeltaH)
-        """
-        assert k>=1
-        self.algostat['algorithm'] = 'Alg3'
-        self.algostat['k'] = k
-        start_execution_time = time()
-        Estar = copy(self.G.edict)
-        self.Query.eval()
-        H0 = self.Query.compute_entropy() # Initial entropy
-        self.algostat['result']['H0'] = H0
-        E = []
-        if (verbose):
-            print('H0: ',H0)
-            print('p(e): ',self.G.edict)
-            print('Pr[Omega]: ', self.Query.freq_distr)
-            # print('results: ',self.Query.results)
-        for i in range(k):
-            local_maxima = None 
-            if (verbose):
-                print('Selecting edge#: ',i+1)
-            for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest reduction in Entropy
-                g_copy = deepcopy(self.G)
-                # if (verbose):
-                #     print('g_copy: ',g_copy.edict)
-                g_copy.edge_update(e[0],e[1], type= update_type)
-                self.Query.reset(g_copy)
-                self.Query.eval()
-                if (verbose):
-                    print('considering e= ',e)
-                    print('p(e): ',g_copy.edict)
-                    print('Pr[Omega]: ', self.Query.freq_distr)
-                    print('results: ',self.Query.results)
-                Hi = self.Query.compute_entropy()
-                if local_maxima:
-                    if H0 -  Hi > H0 - local_maxima[1]:
-                        local_maxima = (e, Hi)
-                        if (verbose):
-                            print('new maxima: ',local_maxima)
-                else:
-                    local_maxima = (e, Hi)
-                    if (verbose):
-                        print('initial maxima: ',local_maxima)
-            estar = local_maxima[0] # assign e*
-            H0 = local_maxima[1] # Assign H0 for the next iteration.
-            E.append(estar)
-            if (verbose):
-                print('e* = ',estar)
-            del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
-            self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
-            self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
-
-            if (verbose):
-                self.Query.eval()
-                print('Entropy of Updated UGraph: ',self.Query.compute_entropy())
-
-        self.algostat['execution_time'] = time() - start_execution_time
-        self.algostat['result']['edges'] = E
-        self.algostat['result']['H*'] = H0
-        self.algostat['support'] = ''
-        return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
 
     # def algorithm5(self, k, update_type = 'o1',verbose = False):
     #     """ 
@@ -297,7 +238,7 @@ class Algorithm:
         Algorithm 5 (with Exact memoization)
         Returns selected edgeset, entropy value after selection, and entropy-reduction amount (DeltaH)
         """
-        self.algostat['algorithm'] = 'Alg5'
+        self.algostat['algorithm'] = 'greedy+mem(exact)'
         self.algostat['k'] = k
         self.Query.eval()
         self.algostat['result']['H0'] =  self.Query.compute_entropy() # Initial entropy. Kept outside of time() because H0 is not needed in contr table and computed only for logging.
@@ -321,10 +262,11 @@ class Algorithm:
             Pr_Omega = {}
             for omega in self.Query.phiInv:
                 Pr_Omega[omega] = sum([self.Query.PrG[i] for i in self.Query.phiInv[omega]])
-
+            if self.debug: print('Pr[Omega]: ',Pr_Omega)
             # Calculate Pr_up^{e_j}(G_i) for all i,j
             self.compute_Pr_up(update_type,verbose = verbose)
-            
+            if self.debug:   M = deepcopy(self.Pr_up)
+            if self.debug:  print("M before update: \n\r",self.Pr_up)
             if (verbose):
                 self.Query.eval()
                 H0 = self.Query.compute_entropy()
@@ -342,12 +284,12 @@ class Algorithm:
                 for omega in self.Query.phiInv:
                     if (Pr_Omega[omega] != 0):
                         if (self.Pr_up[omega][e] != 0):
-                            DeltaHe2 += (log2(self.Pr_up[omega][e],2)*self.Pr_up[omega][e] - log2(Pr_Omega[omega],2)*Pr_Omega[omega])
+                            DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - log2(Pr_Omega[omega])*Pr_Omega[omega])
                         else:
-                            DeltaHe2 += (0 - log2(Pr_Omega[omega],2)*Pr_Omega[omega])
+                            DeltaHe2 += (0 - log2(Pr_Omega[omega])*Pr_Omega[omega])
                     else:
                         if (self.Pr_up[omega][e] != 0):
-                            DeltaHe2 += (log2(self.Pr_up[omega][e],2)*self.Pr_up[omega][e] - 0)
+                            DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - 0)
                         else:
                             DeltaHe2 += 0
 
@@ -369,7 +311,10 @@ class Algorithm:
             self.Query.updateTables(estar, update_type)
             self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
-            
+            if self.debug:  
+                self.compute_Pr_up(update_type, verbose = verbose)
+                print('-----')
+                print(self.Pr_up)
             if (verbose):
                 print('After p(e) update: ')
                 # print('C = ',self.Query.C)
@@ -382,11 +327,15 @@ class Algorithm:
         # self.algostat['support'] = ','.join([str(i) for i in self.Query.phiInv.keys()])
         # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
         self.algostat['support'] = ''
+        self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+        self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+        if self.debug: self.algostat['M'] = M
         return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
 
 class ApproximateAlgorithm:
     """ Implements Algorithm 2 and Approximate variants of Algorithms 3, and 5"""
-    def __init__(self, g, query) -> None:
+    def __init__(self, g, query, debug = False) -> None:
+        self.debug = debug
         self.algostat = {} 
         self.G = g 
         assert isinstance(self.G, Graph)
@@ -431,7 +380,13 @@ class ApproximateAlgorithm:
                 if self.Query.bucketing: # buckeing & no-pre
                     hat_Pr = {}
                     j = 0
-                    for g in self.G.get_Ksample(T,seed=i):
+                    if 'time_seed' in os.environ:
+                        random.seed()
+                        s = random.randint(0,1000000)
+                    else:
+                        s = i
+                    # print('seed: ',s)
+                    for g in self.G.get_Ksample(T,seed=s):
                         start_tm = time()
                         omega = self.Query.evalG(g[0])
                         query_evaluation_times.append(time()-start_tm)
@@ -460,7 +415,12 @@ class ApproximateAlgorithm:
                 else: # non-bucketing & no-pre
                     hat_Pr = {}
                     j = 0
-                    for g in self.G.get_Ksample(T,seed=i):
+                    if 'time_seed' in os.environ:
+                        random.seed()
+                        s = random.randint(0,1000000)
+                    else:
+                        s = i
+                    for g in self.G.get_Ksample(T,seed=s):
                         start_tm = time()
                         omega = self.Query.evalG(g[0])
                         query_evaluation_times.append(time()-start_tm)
@@ -525,7 +485,51 @@ class ApproximateAlgorithm:
         self.algostat['total_sample_tm'] = self.G.total_sample_tm
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
         return mean_H 
-    
+
+    def measure_uncertainty_rss(self, N=1, T=10, optimise = False):
+        source,target = self.Query.u, self.Query.v
+        start_execution_time = time()
+        query_evaluation_times = []
+        hat_H_list = []
+        support_observed = []
+        sum_H = 0
+        if optimise:
+            precomputed_nbrs_path = os.path.join('_'.join(os.environ['precomp'].split('_')[:-2])+"_nbr.pre")
+        for i in range(N):
+            hat_Pr = {}
+            start_tm = time()
+            if 'time_seed' in os.environ:
+                random.seed()
+                s = random.randint(0,1000000)
+            else:
+                s = i
+            if optimise and os.path.isfile(precomputed_nbrs_path):
+                # print('loading precomputed nbrs file..')
+                loaded_nbrs = load_pickle(precomputed_nbrs_path)
+                prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = \
+                                                   {'nbrs':loaded_nbrs,'doopt': True})  
+            else:
+                prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = None)                    
+            query_evaluation_times.append(time()-start_tm)
+            
+            hat_Pr[1] =  prOmega
+            hat_Pr[0] =  (1-prOmega)
+            if os.environ['precomp']:
+                if not os.path.isfile(precomputed_nbrs_path):
+                    # print('saving nbrs file for the 1st time.')
+                    save_pickle(nbrs,precomputed_nbrs_path)
+            # print(entropy([hat_Pr[1] ,hat_Pr[0]]))
+            hat_H = entropy([hat_Pr[1] ,hat_Pr[0]])
+            hat_H_list.append(hat_H)
+            sum_H += hat_H 
+        mean_H =  sum_H /N
+        self.algostat['execution_time'] = time() - start_execution_time
+        self.algostat['algorithm'] = 'rss'
+        self.algostat['H'] = mean_H
+        self.algostat['support'] =  str(support_observed)
+        self.algostat['total_sample_tm'] = self.G.total_sample_tm
+        self.algostat['query_eval_tm'] = sum(query_evaluation_times)
+
     def measure_uncertainty_bfs(self, N=1, T=10, optimise = False):
         """
         MC + BFS 
@@ -558,14 +562,19 @@ class ApproximateAlgorithm:
             for i in range(N):
                 hat_Pr = {}
                 j = 0
+                if 'time_seed' in os.environ:
+                    random.seed()
+                    s = random.randint(0,1000000)
+                else:
+                    s = i
                 precomputed_nbrs_path = os.path.join('_'.join(os.environ['precomp'].split('_')[:-2])+"_nbr.pre")
                 if optimise and os.path.isfile(precomputed_nbrs_path):
                     print('loading precomputed nbrs file..')
                     loaded_nbrs = load_pickle(precomputed_nbrs_path)
-                    func_obj = self.G.get_Ksample_bfs(T,seed=i,source=source,target = target, optimiseargs = \
+                    func_obj = self.G.get_Ksample_bfs(T,seed=s,source=source,target = target, optimiseargs = \
                                                       {'nbrs':loaded_nbrs,'doopt': True})
                 else:
-                    func_obj = self.G.get_Ksample_bfs(T,seed=i,source=source,target = target, optimiseargs = None)
+                    func_obj = self.G.get_Ksample_bfs(T,seed=s,source=source,target = target, optimiseargs = None)
                 for nbrs,_, _,omega in func_obj:
                     start_tm = time()
                     # omega = self.Query.evalG(g[0])
@@ -597,6 +606,41 @@ class ApproximateAlgorithm:
                 hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
+        mean_H =  sum_H /N
+        self.algostat['execution_time'] = time() - start_execution_time
+        self.algostat['algorithm'] = 'appr'
+        self.algostat['H'] = mean_H
+        self.algostat['support'] =  str(support_observed)
+        self.algostat['total_sample_tm'] = self.G.total_sample_tm
+        self.algostat['query_eval_tm'] = sum(query_evaluation_times)
+        return mean_H 
+    
+    def measure_uncertainty_dhopbfs(self, d = 1, N=1, T=10):
+        """
+        MC + d-hop BFS 
+        """
+        source,target = self.Query.u, self.Query.v
+        start_execution_time = time()
+        query_evaluation_times = []
+        hat_H_list = []
+        support_observed = []
+        sum_H = 0    
+        for i in range(N):
+            if 'time_seed' in os.environ:
+                random.seed()
+                s = random.randint(0,1000000)
+            else:
+                s = i
+            hat_Pr = {}
+            func_obj = self.G.get_Ksample_dhopbfs(K = T,seed=s,\
+                                        source=source,target = target, dhop = d, optimiseargs = None)
+            for _,_, _,omega in func_obj:
+                hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
+                support_observed.append(omega)
+            hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+            hat_H_list.append(hat_H)
+            sum_H += hat_H 
+
         mean_H =  sum_H /N
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['algorithm'] = 'appr'
@@ -818,7 +862,7 @@ class ApproximateAlgorithm:
         self.algostat['k'] = k
         pass 
 
-    def compute_Pr_up(self,op, verbose = False):
+    def compute_Pr_up(self,op, normalise = False, verbose = False):
         """ 
         Calculate 
         Pr_up(G_i,e_j) (Pr_up(G_i) after p(e_j) is updated ) 
@@ -826,6 +870,8 @@ class ApproximateAlgorithm:
         self.Pr_up = {}
         if (verbose):
             self.Gsums = {}
+        if normalise:
+            Msum_omega = {e: 0 for e in self.G.Edges} # keys = e, values = sum_i M(e,\omega_i)
         for omega in self.Query.phiInv:
             self.Pr_up[omega] = {}
             if (verbose):
@@ -855,14 +901,173 @@ class ApproximateAlgorithm:
                                 raise ZeroDivisionError
                                 
                 self.Pr_up[omega][e] = _sumPrG
-
-    def algorithm5(self, k, K, update_type = 'o1',verbose = False):
+                if normalise:
+                    Msum_omega[e] += _sumPrG
+        if normalise:
+            print('msum: ',Msum_omega)
+            for e,sum_omega in Msum_omega.items():
+                for omega in self.Pr_up:
+                    if sum_omega != 0:
+                        self.Pr_up[omega][e] /= sum_omega
+                        
+    def measure_H0(self, property, algorithm, K, N = 1):
+        if algorithm == 'exact':
+            self.Query.eval()
+            H = self.Query.compute_entropy() # Initial entropy. Kept outside of time() because H0 is not needed in contr table and computed only for logging.
+        elif algorithm == 'appr':
+            H = self.measure_uncertainty(N=N, T = K)
+        elif (algorithm == 'mcbfs' or algorithm == 'pTmcbfs'):
+            if property == 'reach':
+                assert (property == 'reach')
+                H = self.measure_uncertainty_bfs(N=N, T = K)
+            else:
+                assert (property == 'reach_d')
+                H = self.measure_uncertainty_dhopbfs(d = self.Query.d, N = N, T = K)
+        elif algorithm == 'mcdij':
+            assert (property == 'sp')
+            H =  self.measure_uncertainty_dij(N=N, T = K)
+        elif algorithm == 'mcapproxtri':
+            assert (property == 'tri')
+            H = self.measure_uncertainty_mctri(N=N, T = K)
+        elif algorithm == 'rss':
+            assert (property == 'reach')
+            H = self.measure_uncertainty_rss(N=N, T = K)
+        else:
+            raise Exception('Undefined algorithm')
+        if 'execution_time' in self.algostat:
+            del self.algostat['execution_time']
+        del self.algostat['algorithm']
+        if 'H' in self.algostat:
+            del self.algostat['H']
+        if 'support' in self.algostat:
+            del self.algostat['support']
+        if 'total_sample_tm' in self.algostat:
+            del self.algostat['total_sample_tm']
+        if 'query_eval_tm' in self.algostat:
+            del self.algostat['query_eval_tm'] 
+        return H 
+    
+    def algorithm5(self, property, algorithm, k, K, update_type = 'o1', verbose = False):
         """ Variant of Algorithm 5 where CT is approximated via sampling"""
-        # TODO: Sampler code: Ugraph().get_Ksample().
-        self.algostat['algorithm'] = 'Alg5-S'
+        assert k>=1
+        history = []
+        start_execution_time = time()
+        if verbose: print('Query eval.')
+        self.algostat['result']['H0'] = self.measure_H0(property,algorithm,K)
+        # Start of Algorithm 5
+        self.Query.constructTables_S(op = update_type, K = K, verbose = verbose) 
+        Estar = copy(self.G.edict)
+        assert k<=len(Estar)
+        E = []
+        if (verbose):
+            print('H0: ',self.algostat['result']['H0'])
+            print('p(e): ',self.G.edict)
+            print('Pr[G]: ',self.Query.PrG)
+            print('G: ',self.Query.G)
+            # print('Pr[Omega]: ', self.Query.freq_distr)
+            # print('results: ',self.Query.results)
+        norm = False
+        for iter in range(k):
+            if (verbose):
+                print("Iteration: ",iter)
+            # Start of Algorithm 4
+            # print('Pr(G_i): ', self.Query.PrG)
+            # Construct Pr[Omega] 
+            Pr_Omega = {}
+            for omega in self.Query.phiInv:
+                Pr_Omega[omega] = sum([self.Query.PrG[i] for i in self.Query.phiInv[omega]])
+            if self.debug: print('Pr[omega]: ',Pr_Omega)
+            # Calculate Pr_up^{e_j}(G_i) for all i,j
+            self.compute_Pr_up(update_type, normalise = norm, verbose = verbose)
+            if self.debug:  print("M before update: \n\r",self.Pr_up)
+            if self.debug:  M = deepcopy(self.Pr_up)#; print(M)
+            if (verbose):
+                # self.Query.eval()
+                H0 = self.measure_H0(property,algorithm,K)
+                # print('H0: ',H0)
+
+            if (verbose):
+                print('Selecting edge#: ',iter+1)
+                # print('Jacobian: ', DelPr_Omega_pe)
+                print('Pr[Omega]: ',Pr_Omega)
+                print("Pr_up[Omega]: ",self.Pr_up)
+                print('Gsums: ',self.Gsums)
+            local_maxima = None 
+            for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
+                DeltaHe2 = 0 # H - H^{e}_{up}
+                H_up = 0
+                for omega in self.Query.phiInv:
+                    if (Pr_Omega[omega] != 0):
+                        if (self.Pr_up[omega][e] != 0):
+                            # print(e,omega,' =>',self.Pr_up[omega][e])
+                            # print(Pr_Omega[omega])
+                            DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - log2(Pr_Omega[omega])*Pr_Omega[omega])
+                            H_up += (-log2(self.Pr_up[omega][e])*self.Pr_up[omega][e])
+                        else:
+                            DeltaHe2 += (0 - log2(Pr_Omega[omega])*Pr_Omega[omega])
+                    else:
+                        if (self.Pr_up[omega][e] != 0):
+                            DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - 0)
+                        else:
+                            DeltaHe2 += 0
+                # if verbose:
+                if self.debug:
+                    print('H_up^e', e,' -> ',H_up)
+                    print('e: ',e,' DeltaH2[e]: ',DeltaHe2)
+                    # print('H_next [',e,']: ', self.algostat['result']['H0'] + DeltaHe2)
+                
+                if local_maxima is not None:
+                    if DeltaHe2 > local_maxima[1]:
+                        local_maxima = (e,DeltaHe2)
+                else:
+                   local_maxima = (e,DeltaHe2)
+            print('e: ',local_maxima[0],' DeltaH2[e]: ',local_maxima[1])
+            estar = local_maxima[0] # assign e*
+            # End of Algorithm 4
+            E.append(estar)
+            if (verbose):
+                print('e* = ',estar)
+            del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
+            if iter < k-1:
+                self.Query.updateTables(estar, update_type)
+            else:
+                if self.debug:
+                    self.Query.updateTables(estar, update_type)
+                    # self.G.edge_update(estar[0], estar[1], type = update_type)
+                    # self.Query.reset(self.G)
+                    self.compute_Pr_up(update_type, normalise = norm, verbose = verbose)
+                    print('-----')
+                    print(self.Pr_up)
+
+            self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
+            # print('-',self.Query.PrG)
+            self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
+            history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,K)) 
+            # print('=',self.Query.PrG)         
+            if (verbose):
+                print('After p(e) update: ')
+                print('Pr(G_i): ', self.Query.PrG)
+                # print('C = ',self.Query.C)
+            if (verbose):
+                print('----------')
+        self.algostat['execution_time'] = time() - start_execution_time
+        self.algostat['algorithm'] = 'greedy+mem'
+        self.algostat['MCalgo'] = algorithm
         self.algostat['k'] = k
-        self.Query.eval()
-        self.algostat['result']['H0'] =  self.Query.compute_entropy() # Initial entropy. Kept outside of time() because H0 is not needed in contr table and computed only for logging.
+        self.algostat['result']['edges'] = E
+        # self.Query.eval()
+        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,K)
+        # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
+        self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+        self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+        self.algostat['history_deltaH'] = history
+        if self.debug: self.algostat['M'] = M
+        return E,self.algostat['result']['H*'], self.algostat['result']['H0']- self.algostat['result']['H*']
+    
+    def algorithm6(self, property, algorithm, k, K, update_type = 'o1',verbose = False):
+        """ Variant of Algorithm 5 where CT is approximated via sampling"""
+        if verbose: print('Query eval.')
+        self.algostat['result']['H0'] = self.measure_H0(property,algorithm,K)
         start_execution_time = time()
         # Start of Algorithm 5
         self.Query.constructTables_S(op = update_type, K = K, verbose = verbose) 
@@ -878,6 +1083,7 @@ class ApproximateAlgorithm:
         for iter in range(k):
             if (verbose):
                 print("Iteration: ",iter)
+                print('Pr[G]: ',self.Query.PrG)
             # Start of Algorithm 4
             
             # Construct Pr[Omega] 
@@ -889,28 +1095,27 @@ class ApproximateAlgorithm:
             self.compute_Pr_up(update_type,verbose = verbose)
             
             if (verbose):
-                self.Query.eval()
-                H0 = self.Query.compute_entropy()
+                # self.Query.eval()
+                H0 = self.measure_H0(property,algorithm,K)
                 # print('H0: ',H0)
 
             if (verbose):
                 print('Selecting edge#: ',iter+1)
-                # print('Jacobian: ', DelPr_Omega_pe)
                 print('Pr[Omega]: ',Pr_Omega)
                 print("Pr_up[Omega]: ",self.Pr_up)
-                print('Gsums: ',self.Gsums)
+                # print('Gsums: ',self.Gsums)
             local_maxima = None 
             for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
                 DeltaHe2 = 0 # H - H^{e}_{up}
                 for omega in self.Query.phiInv:
                     if (Pr_Omega[omega] != 0):
                         if (self.Pr_up[omega][e] != 0):
-                            DeltaHe2 += (log2(self.Pr_up[omega][e],2)*self.Pr_up[omega][e] - log2(Pr_Omega[omega],2)*Pr_Omega[omega])
+                            DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - log2(Pr_Omega[omega])*Pr_Omega[omega])
                         else:
-                            DeltaHe2 += (0 - log2(Pr_Omega[omega],2)*Pr_Omega[omega])
+                            DeltaHe2 += (0 - log2(Pr_Omega[omega])*Pr_Omega[omega])
                     else:
                         if (self.Pr_up[omega][e] != 0):
-                            DeltaHe2 += (log2(self.Pr_up[omega][e],2)*self.Pr_up[omega][e] - 0)
+                            DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - 0)
                         else:
                             DeltaHe2 += 0
 
@@ -923,25 +1128,114 @@ class ApproximateAlgorithm:
                         local_maxima = (e,DeltaHe2)
                 else:
                    local_maxima = (e,DeltaHe2)
+        
             estar = local_maxima[0] # assign e*
+            print('e: ',local_maxima[0],' DeltaH2[e]: ',local_maxima[1])
             # End of Algorithm 4
             E.append(estar)
             if (verbose):
                 print('e* = ',estar)
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
-            self.Query.updateTables(estar, update_type)
             self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
-            
+            # Instead of updateing the table we construct from scratch by re-sampling
+            if iter < k-1:
+                self.Query.constructTables_S(op = update_type, K = K, verbose = verbose) 
+
             if (verbose):
                 print('After p(e) update: ')
                 # print('C = ',self.Query.C)
             if (verbose):
                 print('----------')
-        self.algostat['execution_time'] = time() - start_execution_time
+        self.algostat['algorithm'] = 'greedy+mem+resamp'
+        self.algostat['MCalgo'] = algorithm
+        self.algostat['k'] = k
         self.algostat['result']['edges'] = E
-        self.Query.eval()
-        self.algostat['result']['H*'] = self.Query.compute_entropy()
-        self.algostat['support'] = str(list(self.Query.phiInv.keys()))
+        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,K)
+        self.algostat['execution_time'] = time() - start_execution_time
+        # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
+        self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+        self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+        return E,self.algostat['result']['H*'],self.algostat['result']['H0'] - self.algostat['result']['H*']
+    
+        # Greedy k-edge selection: Algorithm 3
+
+    def greedy(self,  property, algorithm, k, K, update_type = 'o1', verbose = False):
+        """
+        Exact version of Algorithm 3
+        Returns selected edgeset, entropy value after selection, and entropy-reduction amount (DeltaH)
+        """
+        assert k>=1
+        history = []
+        self.algostat['algorithm'] = 'greedy'
+        self.algostat['k'] = k
+        start_execution_time = time()
+        Estar = copy(self.G.edict)
+        assert k<=len(Estar)
+        # Ecand = [('s','u'),('s','y')]
+        # Ecand = [('s','x'),('s','y')]
+        # self.Query.eval()
+        # H0 = self.Query.compute_entropy() # Initial entropy
+        H0 = self.measure_H0(property,algorithm,K)
+        self.algostat['result']['H0'] = H0
+        E = []
+        if (verbose):
+            print('H0: ',H0)
+            print('p(e): ',self.G.edict)
+            print('Pr[Omega]: ', self.Query.freq_distr)
+            # print('results: ',self.Query.results)
+        for i in range(k):
+            # print('iteration: ',i)
+            local_maxima = None 
+            if (verbose):
+                print('Selecting edge#: ',i+1)
+            # Estar= [Ecand[i]]
+            for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest reduction in Entropy
+                g_copy = deepcopy(self.G)
+                # if (verbose):
+                #     print('g_copy: ',g_copy.edict)
+                g_copy.edge_update(e[0],e[1], type= update_type)
+                # if i==0:
+                #     g_copy.update_edge_prob(e[0],e[1], 0)
+                # else:
+                #     g_copy.update_edge_prob(e[0],e[1], 1)
+                self.Query.reset(g_copy)
+                self.Query.eval()
+                if (verbose):
+                    print('considering e= ',e)
+                    # print('p(e): ',g_copy.edict)
+                    print('Pr[Omega]: ', self.Query.freq_distr)
+                    # print('results: ',self.Query.results)
+                Hi = self.Query.compute_entropy()
+                if local_maxima:
+                    if H0 -  Hi > H0 - local_maxima[1]:
+                        local_maxima = (e, Hi)
+                        if (verbose):
+                            print('new maxima: ',local_maxima)
+                else:
+                    local_maxima = (e, Hi)
+                    if (verbose):
+                        print('initial maxima: ',local_maxima)
+                # print('e: ',e,' \Delta H = ', H0-Hi, ' H0:', H0, ' H_next: ',Hi)
+            estar = local_maxima[0] # assign e*
+            H0 = local_maxima[1] # Assign H0 for the next iteration.
+            E.append(estar)
+            if (verbose):
+                print('e* = ',estar)
+            del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
+            self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
+            self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
+            history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,K))
+            if (verbose):
+                self.Query.eval()
+                print('Entropy of Updated UGraph: ',self.Query.compute_entropy())
+
+        self.algostat['execution_time'] = time() - start_execution_time
+        self.algostat['MCalgo'] = algorithm
+        self.algostat['result']['edges'] = E
+        self.algostat['result']['H*'] = H0
+        self.algostat['support'] = ''
+        self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+        self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+        self.algostat['history_deltaH'] = history
         return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
- 

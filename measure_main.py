@@ -28,6 +28,7 @@ parser.add_argument('-pre','--precomputed',type = int, help='Use pre-computed po
 # python measure_main.py -d default -a appr -pr reach -s x -t u -N 10 -T 10
 
 args = parser.parse_args()
+# print(args)
 # if 'precomp' in os.environ:
 #     os.environ['precomp'] = ''
 if args.precomputed:
@@ -45,20 +46,21 @@ def singleRun(G,Query, save = True):
         a = Algorithm(G,Query)
         a.measure_uncertainty()
     
-    elif args.algo == 'appr':
+    elif (args.algo == 'appr' or args.algo=='eappr'):
         a = ApproximateAlgorithm(G,Query)
         a.measure_uncertainty(N=args.N, T = args.T)
+
     elif (args.algo == 'mcbfs' or args.algo == 'pTmcbfs'):
         a = ApproximateAlgorithm(G,Query)
         assert (args.property == 'reach')
         a.measure_uncertainty_bfs(N=args.N, T = args.T, optimise = args.precomputed)
-        a.algostat['algorithm'] = ['MC+BFS','PT+MC+BFS'][args.algo=='pTmcbfs']
+        a.algostat['algorithm'] = ['MC+BFS','PT-MC+BFS'][args.algo=='pTmcbfs']
 
     elif (args.algo == 'mcdij' or args.algo == 'pTmcdij'):
         a = ApproximateAlgorithm(G,Query)
         assert (args.property == 'sp')
-        a.measure_uncertainty_dij(N=args.N, T = args.T)
-        a.algostat['algorithm'] = ['MC+DIJ','PT+MC+DIJ'][args.algo=='pTmcdij']
+        a.measure_uncertainty_dij(N=args.N, T = args.T, optimise = args.precomputed)
+        a.algostat['algorithm'] = ['MC+DIJ','PT-MC+DIJ'][args.algo=='pTmcdij']
 
     elif (args.algo == 'mcapproxtri'):
         a = ApproximateAlgorithm(G,Query)
@@ -70,7 +72,11 @@ def singleRun(G,Query, save = True):
         # print('approximate triangle counting: nu = ',nu,' eps = ',eps,' n = ',n, ' k = ',k)
         a.measure_uncertainty_mctri(N=args.N, T = args.T)
         a.algostat['algorithm'] = args.algo
-
+    elif (args.algo == 'rss' or args.algo == 'pTrss'):
+        a = ApproximateAlgorithm(G,Query)
+        assert (args.property == 'reach')
+        a.measure_uncertainty_rss(N=args.N, T = args.T, optimise = args.precomputed)
+        a.algostat['algorithm'] = ['RSS','PT-RSS'][args.algo=='pTrss']
     else:
         a = ApproximateAlgorithm(G,Query)
         a.measure_uncertainty(N=args.N, T = args.T)

@@ -1,11 +1,14 @@
 import networkx as nx
 import math
+from time import time
 from src.query import Query
 from src.graph import UGraph
 from src.utils import *
 from matplotlib import pyplot as plt
-import argparse 
+import argparse , os
 from copy import deepcopy
+import pandas as pd
+from src.algorithm import ApproximateAlgorithm
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-d", "--dataset", type=str, default="default")
@@ -18,6 +21,7 @@ parser.add_argument("-b", "--budget", type=int, default=1)
 
 
 args = parser.parse_args()
+print(args)
 s = args.source
 t = args.target
 d = args.maxhop
@@ -140,9 +144,16 @@ if __name__=='__main__':
     if args.dataset == 'test':
         G=nx.read_edgelist("test_graph_TKDE.txt", delimiter=" ", create_using=nx.Graph(), nodetype=int, data=(("weight", float), ("prob", float)))
         s,t = int(s),int(t)
+        Edgelist = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True)]
+        probGraph = UGraph()
+        for (u,v,w,p) in Edgelist:
+            probGraph.add_edge(u,v,float(p),weight=float(w))
     else:
         probGraph = get_dataset(args.dataset)
         G = probGraph.get_weighted_graph_rep()
+        # print(len(G.nodes), ' ',len(G.edges))
+        # import sys
+        # sys.exit(1)
     # print(G.edges)
 
     # e_clean=[(3, 0, 1.0, 0.5),
@@ -160,7 +171,7 @@ if __name__=='__main__':
     # budget=2
     if args.verbose: print('input: source = ',s,' target = ',t,' #hops <= ',d,' budget: ',budget)
     # print(G.nodes())
-
+    start_execution_time = time()
     #pruning strategy
     #pruning by reverse shortest path
     for v in G.nodes():
@@ -179,6 +190,40 @@ if __name__=='__main__':
         print("Execution completed e*: (",e_star[0],", ",e_star[1], ")")
         nx.draw(G,with_labels = True)
         plt.savefig('graph_TKDE.png')
-    print('Uncertainty before cleaning: ',compute_uncertainty(probGraph,s,t,d))
-    print('Uncertainty after cleaning: ',compute_uncertainty(probGraph,s,t,d,aftercleaning=True,estar=e_star))
+    if args.verbose:
+        print('Uncertainty before cleaning: ',compute_uncertainty(probGraph,s,t,d))
+        print('Uncertainty after cleaning: ',compute_uncertainty(probGraph,s,t,d,aftercleaning=True,estar=e_star))
+    
+    a = ApproximateAlgorithm(probGraph,Query(probGraph, qtype='reach_d',args = {'u':s,'v':t, 'd':d}))
+    a.algostat['execution_time'] = 0
+    a.algostat['result'] = {}
+    a.algostat['k'] = budget
+    a.algostat['algorithm'] = 'TKDE17'
+    a.algostat['result']['H0'] = compute_uncertainty(probGraph,s,t,d)
+    a.algostat['result']['edges'] = e_star
+    a.algostat['result']['H*'] = compute_uncertainty(probGraph,s,t,d,aftercleaning=True,estar=e_star)
+    a.algostat['execution_time'] = time() - start_execution_time
+    a.algostat['DeltaH'] = a.algostat['result']['H0'] - a.algostat['result']['H*']
+    a.algostat['|DeltaH|'] = abs(a.algostat['result']['H0'] - a.algostat['result']['H*'])
+    del a.algostat['support']
+    output = {}
+    for k in a.algostat['result']:
+        if k == 'edges':
+            output[k] = str(a.algostat['result'][k])
+        else:
+            output[k] = a.algostat['result'][k]
+    for k in a.algostat.keys():
+        if k!='result':
+            output[k] = a.algostat[k]
+    csv_name = 'CRureduct/TKDE_' + args.dataset + "_" + str(budget)+"_maxd_"+str(d)+'.csv'
+    # csv_name = 'output/measure_' + args.dataset + "_" + args.algo + "_" + args.property + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
+    if os.path.exists(csv_name):
+        result_df = pd.read_csv(csv_name)
+    else:
+        os.system('mkdir -p CRureduct/')
+        result_df = pd.DataFrame()
+    print(output)
+    result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
+    print(result)
+    # result.to_csv(csv_name, header=True, index=False)
 # python AlgoTKDE17.py -d test -s 2 -t 3 -maxd 3 -b 2
