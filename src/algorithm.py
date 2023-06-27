@@ -991,7 +991,7 @@ class ApproximateAlgorithm:
                 H_up = 0
                 for omega in self.Query.phiInv:
                     if (Pr_Omega[omega] != 0):
-                        if (self.Pr_up[omega][e] != 0):
+                        if (self.Pr_up[omega].get(e,0) != 0):
                             # print(e,omega,' =>',self.Pr_up[omega][e])
                             # print(Pr_Omega[omega])
                             DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - log2(Pr_Omega[omega])*Pr_Omega[omega])
@@ -999,7 +999,7 @@ class ApproximateAlgorithm:
                         else:
                             DeltaHe2 += (0 - log2(Pr_Omega[omega])*Pr_Omega[omega])
                     else:
-                        if (self.Pr_up[omega][e] != 0):
+                        if (self.Pr_up[omega].get(e,0) != 0):
                             DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - 0)
                         else:
                             DeltaHe2 += 0
