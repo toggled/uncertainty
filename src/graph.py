@@ -421,17 +421,17 @@ class UGraph:
         """ 
         Updates the probability of an edge to a given value
         """
-        if type(prob) is not list:
-            (u,v) = (min(u,v),max(u,v))
-            assert ((u,v) in self.edict and (u,v) in self.notedict)
-            self.edict[(u,v)] = prob  
-            self.notedict[(u,v)] = 1 - prob
-        else: # stochastic update
-            self.edict0 = deepcopy(self.edict)
-            self.edict0[(u,v,id)]  = 0 # Cleaned to 0
-            self.edict1 = deepcopy(self.edict)
-            self.edict1[(u,v,id)] = 1 # Cleaned to 1
-            return ([self.edict0,self.edict1])
+        # if type(prob) is not list:
+        (u,v) = (min(u,v),max(u,v))
+        assert ((u,v) in self.edict and (u,v) in self.notedict)
+        self.edict[(u,v)] = prob  
+        self.notedict[(u,v)] = 1 - prob
+        # else: # stochastic update
+        #     self.edict0 = deepcopy(self.edict)
+        #     self.edict0[(u,v,id)]  = 0 # Cleaned to 0
+        #     self.edict1 = deepcopy(self.edict)
+        #     self.edict1[(u,v,id)] = 1 # Cleaned to 1
+        #     return ([self.edict0,self.edict1])
       
     def enumerate_worlds(self):
         """

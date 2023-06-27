@@ -24,8 +24,23 @@ parser.add_argument('-q','--queryf', type=str,help='query file',default = None) 
 parser.add_argument('-b','--bucketing',type = int, help='Whether to compute bucketed entropy or not', default = 0) # only tri query is supported
 parser.add_argument("-dh",'--hop',type = int, default = -1) # <d-hop reach
 parser.add_argument("-db",'--debug', action = 'store_true')
+parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
+
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
 
+opt_N_dict = {
+    'ER_15_22': 
+        {'reach': 11, 'sp': 26, 'tri': 6},
+    'biomine': {'reach': None},
+    'flickr': {'tri': 76},
+    'rome': {'sp': 96}
+}
+opt_T_dict = {
+    'ER_15_22': {'reach': 85, 'sp': 165, 'tri': 100},
+    'biomine': {'reach': 10},
+    'flickr': {'tri': 51},
+    'rome': {'sp': 11}
+}
 # Demo usages:
 # Reachability query from x to u in default dataset using sampling: N = 10, T = 10
 # python measure_main.py -d default -a appr -pr reach -s x -t u -N 10 -T 10
@@ -82,12 +97,14 @@ def singleQuery_singleRun(G,Query):
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         print("Greedy algorithm (w/o mem.): ")
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
-        a.greedy(property = Query.qtype, algorithm = args.est_algo, \
-                     k = args.k, K = args.K, update_type=args.utype, verbose = args.verbose)
+        a.greedy(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
+                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     update_type=args.utype, verbose = args.verbose)
     elif args.algo == 'greedymem': #
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
-        a.algorithm5(property = Query.qtype, algorithm = args.est_algo, \
-                     k = args.k, K = args.K, update_type=args.utype, verbose = args.verbose)
+        a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 
+                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                    update_type=args.utype, verbose = args.verbose)
     # elif args.algo == 'greedymem_re':
     #     raise ValueError("do not use this option.")
     #     a = ApproximateAlgorithm(G,Query)
@@ -214,7 +231,7 @@ if __name__== '__main__':
     else: # querySet mode
         assert (args.queryf is not None)
         assert (os.path.isfile(args.queryf))
-        queries = get_queries(queryfile = args.queryf) 
+        queries = get_queries(queryfile = args.queryf, maxQ = args.maxquery)
         args.queryf
         if runProbTree: # Efficient variant of algorithm 2 requires pre-computed Prob Tree subgraph.
             whichquery = args.queryf.split('.')[0].split('_')[-1]

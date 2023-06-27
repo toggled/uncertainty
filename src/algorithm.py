@@ -195,142 +195,142 @@ class Algorithm:
                                 
     #             self.Jacobian[omega][e] = _sum 
 
-    def compute_Pr_up(self,op, verbose = False):
-        """ 
-        Calculate 
-        Pr_up(G_i,e_j) (Pr_up(G_i) after p(e_j) is updated ) 
-        """
-        self.Pr_up = {}
-        if (verbose):
-            self.Gsums = {}
-        for omega in self.Query.phiInv:
-            self.Pr_up[omega] = {}
-            if (verbose):
-                self.Gsums[omega] = {}
-            for e in self.G.Edges:
-                p_e = self.G.edict[e] # p(e)
-                p_up_e = self.G.get_next_prob(e[0],e[1],op) # p_up(e)
-                _sumPrG = 0
-                if (verbose):
-                    self.Gsums[omega][e] = []
-                for i in self.Query.phiInv[omega]:
-                    if e in self.Query.index[i]: # if edge e is in G_i where omega is observed
-                        if p_e != p_up_e:
-                            G_up = self.Query.PrG[i] * p_up_e / p_e  # Pr_up(G_i) = Pr(G) * p_up(e) / p(e)
-                            _sumPrG += G_up 
-                            if (verbose):
-                                self.Gsums[omega][e].append((i,1))
-                    else: #  edge e not in G_i where omega is observed
-                        if p_e != p_up_e:
-                            try:
-                                G_up = self.Query.PrG[i] * (1-p_up_e) / (1-p_e)  # Pr_up(G_i) = Pr(G_i) * (1- p_up(e)) / (1- p(e))
-                                _sumPrG += G_up 
-                                if (verbose):
-                                    self.Gsums[omega][e].append((i,0))
-                            except ZeroDivisionError:
-                                print(p_e,p_up_e,self.Query.PrG[i])
-                                raise ZeroDivisionError
+    # def compute_Pr_up(self,op, verbose = False):
+    #     """ 
+    #     Calculate 
+    #     Pr_up(G_i,e_j) (Pr_up(G_i) after p(e_j) is updated ) 
+    #     """
+    #     self.Pr_up = {}
+    #     if (verbose):
+    #         self.Gsums = {}
+    #     for omega in self.Query.phiInv:
+    #         self.Pr_up[omega] = {}
+    #         if (verbose):
+    #             self.Gsums[omega] = {}
+    #         for e in self.G.Edges:
+    #             p_e = self.G.edict[e] # p(e)
+    #             p_up_e = self.G.get_next_prob(e[0],e[1],op) # p_up(e)
+    #             _sumPrG = 0
+    #             if (verbose):
+    #                 self.Gsums[omega][e] = []
+    #             for i in self.Query.phiInv[omega]:
+    #                 if e in self.Query.index[i]: # if edge e is in G_i where omega is observed
+    #                     if p_e != p_up_e:
+    #                         G_up = self.Query.PrG[i] * p_up_e / p_e  # Pr_up(G_i) = Pr(G) * p_up(e) / p(e)
+    #                         _sumPrG += G_up 
+    #                         if (verbose):
+    #                             self.Gsums[omega][e].append((i,1))
+    #                 else: #  edge e not in G_i where omega is observed
+    #                     if p_e != p_up_e:
+    #                         try:
+    #                             G_up = self.Query.PrG[i] * (1-p_up_e) / (1-p_e)  # Pr_up(G_i) = Pr(G_i) * (1- p_up(e)) / (1- p(e))
+    #                             _sumPrG += G_up 
+    #                             if (verbose):
+    #                                 self.Gsums[omega][e].append((i,0))
+    #                         except ZeroDivisionError:
+    #                             print(p_e,p_up_e,self.Query.PrG[i])
+    #                             raise ZeroDivisionError
                                 
-                self.Pr_up[omega][e] = _sumPrG
+    #             self.Pr_up[omega][e] = _sumPrG
 
-    def algorithm5(self, k, update_type = 'o1',verbose = False):
-        """ 
-        Algorithm 5 (with Exact memoization)
-        Returns selected edgeset, entropy value after selection, and entropy-reduction amount (DeltaH)
-        """
-        self.algostat['algorithm'] = 'greedy+mem(exact)'
-        self.algostat['k'] = k
-        self.Query.eval()
-        self.algostat['result']['H0'] =  self.Query.compute_entropy() # Initial entropy. Kept outside of time() because H0 is not needed in contr table and computed only for logging.
-        start_execution_time = time()
-        self.Query.constructTables(op = update_type,verbose = verbose) 
-        Estar = copy(self.G.edict)
-        E = []
-        if (verbose):
-            print('H0: ',self.algostat['result']['H0'])
-            print('p(e): ',self.G.edict)
-            print('Pr[G]: ',self.Query.PrG)
-            print('G: ',self.Query.G)
-            # print('Pr[Omega]: ', self.Query.freq_distr)
-            # print('results: ',self.Query.results)
-        for iter in range(k):
-            if (verbose):
-                print("Iteration: ",iter)
-            # Start of Algorithm 4
+    # def algorithm5(self, k, update_type = 'o1',verbose = False):
+    #     """ 
+    #     Algorithm 5 (with Exact memoization)
+    #     Returns selected edgeset, entropy value after selection, and entropy-reduction amount (DeltaH)
+    #     """
+    #     self.algostat['algorithm'] = 'greedy+mem(exact)'
+    #     self.algostat['k'] = k
+    #     self.Query.eval()
+    #     self.algostat['result']['H0'] =  self.Query.compute_entropy() # Initial entropy. Kept outside of time() because H0 is not needed in contr table and computed only for logging.
+    #     start_execution_time = time()
+    #     self.Query.constructTables(op = update_type,verbose = verbose) 
+    #     Estar = copy(self.G.edict)
+    #     E = []
+    #     if (verbose):
+    #         print('H0: ',self.algostat['result']['H0'])
+    #         print('p(e): ',self.G.edict)
+    #         print('Pr[G]: ',self.Query.PrG)
+    #         print('G: ',self.Query.G)
+    #         # print('Pr[Omega]: ', self.Query.freq_distr)
+    #         # print('results: ',self.Query.results)
+    #     # Calculate Pr_up^{e_j}(G_i) for all i,j
+    #     self.compute_Pr_up(update_type,verbose = verbose)
+    #     for iter in range(k):
+    #         if (verbose):
+    #             print("Iteration: ",iter)
+    #         # Start of Algorithm 4
             
-            # Construct Pr[Omega] 
-            Pr_Omega = {}
-            for omega in self.Query.phiInv:
-                Pr_Omega[omega] = sum([self.Query.PrG[i] for i in self.Query.phiInv[omega]])
-            if self.debug: print('Pr[Omega]: ',Pr_Omega)
-            # Calculate Pr_up^{e_j}(G_i) for all i,j
-            self.compute_Pr_up(update_type,verbose = verbose)
-            if self.debug:   M = deepcopy(self.Pr_up)
-            if self.debug:  print("M before update: \n\r",self.Pr_up)
-            if (verbose):
-                self.Query.eval()
-                H0 = self.Query.compute_entropy()
-                # print('H0: ',H0)
+    #         # Construct Pr[Omega] 
+    #         Pr_Omega = {}
+    #         for omega in self.Query.phiInv:
+    #             Pr_Omega[omega] = sum([self.Query.PrG[i] for i in self.Query.phiInv[omega]])
+    #         if self.debug: print('Pr[Omega]: ',Pr_Omega)
+    #         if self.debug:   M = deepcopy(self.Pr_up)
+    #         if self.debug:  print("M before update: \n\r",self.Pr_up)
+    #         if (verbose):
+    #             self.Query.eval()
+    #             H0 = self.Query.compute_entropy()
+    #             # print('H0: ',H0)
 
-            if (verbose):
-                print('Selecting edge#: ',iter+1)
-                # print('Jacobian: ', DelPr_Omega_pe)
-                print('Pr[Omega]: ',Pr_Omega)
-                print("Pr_up[Omega]: ",self.Pr_up)
-                print('Gsums: ',self.Gsums)
-            local_maxima = None 
-            for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
-                DeltaHe2 = 0 # H - H^{e}_{up}
-                for omega in self.Query.phiInv:
-                    if (Pr_Omega[omega] != 0):
-                        if (self.Pr_up[omega][e] != 0):
-                            DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - log2(Pr_Omega[omega])*Pr_Omega[omega])
-                        else:
-                            DeltaHe2 += (0 - log2(Pr_Omega[omega])*Pr_Omega[omega])
-                    else:
-                        if (self.Pr_up[omega][e] != 0):
-                            DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - 0)
-                        else:
-                            DeltaHe2 += 0
+    #         if (verbose):
+    #             print('Selecting edge#: ',iter+1)
+    #             # print('Jacobian: ', DelPr_Omega_pe)
+    #             print('Pr[Omega]: ',Pr_Omega)
+    #             print("Pr_up[Omega]: ",self.Pr_up)
+    #             print('Gsums: ',self.Gsums)
+    #         local_maxima = None 
+    #         for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
+    #             DeltaHe2 = 0 # H - H^{e}_{up}
+    #             for omega in self.Query.phiInv:
+    #                 if (Pr_Omega[omega] != 0):
+    #                     if (self.Pr_up[omega][e] != 0):
+    #                         DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - log2(Pr_Omega[omega])*Pr_Omega[omega])
+    #                     else:
+    #                         DeltaHe2 += (0 - log2(Pr_Omega[omega])*Pr_Omega[omega])
+    #                 else:
+    #                     if (self.Pr_up[omega][e] != 0):
+    #                         DeltaHe2 += (log2(self.Pr_up[omega][e])*self.Pr_up[omega][e] - 0)
+    #                     else:
+    #                         DeltaHe2 += 0
 
-                if verbose:
-                    print('e: ',e,' DeltaH2[e]: ',DeltaHe2)
-                    print('H_next [',e,']: ', H0 + DeltaHe2)
+    #             if verbose:
+    #                 print('e: ',e,' DeltaH2[e]: ',DeltaHe2)
+    #                 print('H_next [',e,']: ', H0 + DeltaHe2)
                 
-                if local_maxima is not None:
-                    if DeltaHe2 > local_maxima[1]:
-                        local_maxima = (e,DeltaHe2)
-                else:
-                   local_maxima = (e,DeltaHe2)
-            estar = local_maxima[0] # assign e*
-            # End of Algorithm 4
-            E.append(estar)
-            if (verbose):
-                print('e* = ',estar)
-            del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
-            self.Query.updateTables(estar, update_type)
-            self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
-            self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
-            if self.debug:  
-                self.compute_Pr_up(update_type, verbose = verbose)
-                print('-----')
-                print(self.Pr_up)
-            if (verbose):
-                print('After p(e) update: ')
-                # print('C = ',self.Query.C)
-            if (verbose):
-                print('----------')
-        self.algostat['execution_time'] = time() - start_execution_time
-        self.algostat['result']['edges'] = E
-        self.Query.eval()
-        self.algostat['result']['H*'] = self.Query.compute_entropy()
-        # self.algostat['support'] = ','.join([str(i) for i in self.Query.phiInv.keys()])
-        # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
-        self.algostat['support'] = ''
-        self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
-        self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
-        if self.debug: self.algostat['M'] = M
-        return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
+    #             if local_maxima is not None:
+    #                 if DeltaHe2 > local_maxima[1]:
+    #                     local_maxima = (e,DeltaHe2)
+    #             else:
+    #                local_maxima = (e,DeltaHe2)
+    #         estar = local_maxima[0] # assign e*
+    #         # End of Algorithm 4
+    #         E.append(estar)
+    #         if (verbose):
+    #             print('e* = ',estar)
+    #         del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
+    #         self.Query.updateTables(estar, update_type, self.Pr_up)
+    #         self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
+    #         self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
+    #         if self.debug:  
+    #             self.compute_Pr_up(update_type, verbose = verbose)
+    #             print('-----')
+    #             print(self.Pr_up)
+    #         if (verbose):
+    #             print('After p(e) update: ')
+    #             # print('C = ',self.Query.C)
+    #         if (verbose):
+    #             print('----------')
+    #     self.algostat['execution_time'] = time() - start_execution_time
+    #     self.algostat['result']['edges'] = E
+    #     self.Query.eval()
+    #     self.algostat['result']['H*'] = self.Query.compute_entropy()
+    #     # self.algostat['support'] = ','.join([str(i) for i in self.Query.phiInv.keys()])
+    #     # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
+    #     self.algostat['support'] = ''
+    #     self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+    #     self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+    #     if self.debug: self.algostat['M'] = M
+    #     return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
 
 class ApproximateAlgorithm:
     """ Implements Algorithm 2 and Approximate variants of Algorithms 3, and 5"""
@@ -862,53 +862,45 @@ class ApproximateAlgorithm:
         self.algostat['k'] = k
         pass 
 
-    def compute_Pr_up(self,op, normalise = False, verbose = False):
+    def compute_Pr_up(self,verbose = False):
         """ 
         Calculate 
         Pr_up(G_i,e_j) (Pr_up(G_i) after p(e_j) is updated ) 
         """
+        # assert op == 'o1'
         self.Pr_up = {}
         if (verbose):
             self.Gsums = {}
-        if normalise:
-            Msum_omega = {e: 0 for e in self.G.Edges} # keys = e, values = sum_i M(e,\omega_i)
         for omega in self.Query.phiInv:
             self.Pr_up[omega] = {}
             if (verbose):
                 self.Gsums[omega] = {}
-            for e in self.G.Edges:
-                p_e = self.G.edict[e] # p(e)
-                p_up_e = self.G.get_next_prob(e[0],e[1],op) # p_up(e)
+            for e in self.Query.p_graph.edict:
+                # p_e = self.G.edict[e] # p(e)
                 _sumPrG = 0
                 if (verbose):
                     self.Gsums[omega][e] = []
                 for i in self.Query.phiInv[omega]:
                     if e in self.Query.index[i]: # if edge e is in G_i where omega is observed
-                        if p_e != p_up_e:
-                            G_up = self.Query.PrG[i] * p_up_e / p_e  # Pr_up(G_i) = Pr(G) * p_up(e) / p(e)
-                            _sumPrG += G_up 
-                            if (verbose):
-                                self.Gsums[omega][e].append((i,1))
-                    else: #  edge e not in G_i where omega is observed
-                        if p_e != p_up_e:
-                            try:
-                                G_up = self.Query.PrG[i] * (1-p_up_e) / (1-p_e)  # Pr_up(G_i) = Pr(G_i) * (1- p_up(e)) / (1- p(e))
-                                _sumPrG += G_up 
-                                if (verbose):
-                                    self.Gsums[omega][e].append((i,0))
-                            except ZeroDivisionError:
-                                print(p_e,p_up_e,self.Query.PrG[i])
-                                raise ZeroDivisionError
+                        p_e = self.Query.hatp[e] # using \hat{p}(e) instead of p(e) before update
+                        # p_up_e = 1
+                        # p_up_e = self.Query.p_graph.get_next_prob(e[0],e[1],op) # p_up(e)
+                        G_up = self.Query.PrG[i]  / p_e  # Pr_up(G_i) = Pr(G) * p_up(e) / p(e)
+                        _sumPrG += G_up 
+                        if (verbose):
+                            self.Gsums[omega][e].append((i,1))
+                    # else: #  edge e not in G_i where omega is observed
+                    #     # if p_e != p_up_e:
+                    #     try:
+                    #         G_up = self.Query.PrG[i] * (1-p_up_e) / (1-p_e)  # Pr_up(G_i) = Pr(G_i) * (1- p_up(e)) / (1- p(e))
+                    #         _sumPrG += G_up 
+                    #         if (verbose):
+                    #             self.Gsums[omega][e].append((i,0))
+                    #     except ZeroDivisionError:
+                    #         print(p_e,p_up_e,self.Query.PrG[i])
+                    #         raise ZeroDivisionError
                                 
                 self.Pr_up[omega][e] = _sumPrG
-                if normalise:
-                    Msum_omega[e] += _sumPrG
-        if normalise:
-            print('msum: ',Msum_omega)
-            for e,sum_omega in Msum_omega.items():
-                for omega in self.Pr_up:
-                    if sum_omega != 0:
-                        self.Pr_up[omega][e] /= sum_omega
                         
     def measure_H0(self, property, algorithm, K, N = 1):
         if algorithm == 'exact':
@@ -936,7 +928,8 @@ class ApproximateAlgorithm:
             raise Exception('Undefined algorithm')
         if 'execution_time' in self.algostat:
             del self.algostat['execution_time']
-        del self.algostat['algorithm']
+        if 'algorithm' in self.algostat:
+            del self.algostat['algorithm']
         if 'H' in self.algostat:
             del self.algostat['H']
         if 'support' in self.algostat:
@@ -947,26 +940,28 @@ class ApproximateAlgorithm:
             del self.algostat['query_eval_tm'] 
         return H 
     
-    def algorithm5(self, property, algorithm, k, K, update_type = 'o1', verbose = False):
+    def algorithm5(self, property, algorithm, k, K, N=1,T=1, update_type = 'o1', verbose = False):
         """ Variant of Algorithm 5 where CT is approximated via sampling"""
         assert k>=1
         history = []
         start_execution_time = time()
         if verbose: print('Query eval.')
-        self.algostat['result']['H0'] = self.measure_H0(property,algorithm,K)
+        self.algostat['result']['H0'] = self.measure_H0(property,algorithm,T,N)
         # Start of Algorithm 5
-        self.Query.constructTables_S(op = update_type, K = K, verbose = verbose) 
+        self.Query.constructTables_S(K = K, verbose = verbose) 
         Estar = copy(self.G.edict)
         assert k<=len(Estar)
         E = []
         if (verbose):
             print('H0: ',self.algostat['result']['H0'])
             print('p(e): ',self.G.edict)
+            print('\hatp(e): ',self.Query.hatp)
             print('Pr[G]: ',self.Query.PrG)
             print('G: ',self.Query.G)
             # print('Pr[Omega]: ', self.Query.freq_distr)
             # print('results: ',self.Query.results)
-        norm = False
+        # Calculate Pr_up^{e_j}(G_i) for all i,j
+        self.compute_Pr_up(verbose = verbose)
         for iter in range(k):
             if (verbose):
                 print("Iteration: ",iter)
@@ -977,13 +972,11 @@ class ApproximateAlgorithm:
             for omega in self.Query.phiInv:
                 Pr_Omega[omega] = sum([self.Query.PrG[i] for i in self.Query.phiInv[omega]])
             if self.debug: print('Pr[omega]: ',Pr_Omega)
-            # Calculate Pr_up^{e_j}(G_i) for all i,j
-            self.compute_Pr_up(update_type, normalise = norm, verbose = verbose)
             if self.debug:  print("M before update: \n\r",self.Pr_up)
             if self.debug:  M = deepcopy(self.Pr_up)#; print(M)
             if (verbose):
                 # self.Query.eval()
-                H0 = self.measure_H0(property,algorithm,K)
+                H0 = self.measure_H0(property,algorithm,T,N)
                 # print('H0: ',H0)
 
             if (verbose):
@@ -1021,42 +1014,42 @@ class ApproximateAlgorithm:
                         local_maxima = (e,DeltaHe2)
                 else:
                    local_maxima = (e,DeltaHe2)
-            print('e: ',local_maxima[0],' DeltaH2[e]: ',local_maxima[1])
+            if verbose: print('e*: ',local_maxima[0],' DeltaH2[e]: ',local_maxima[1])
             estar = local_maxima[0] # assign e*
             # End of Algorithm 4
             E.append(estar)
-            if (verbose):
-                print('e* = ',estar)
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
             if iter < k-1:
-                self.Query.updateTables(estar, update_type)
+                self.Query.updateTables(estar, self.Pr_up)
             else:
                 if self.debug:
-                    self.Query.updateTables(estar, update_type)
+                    self.Query.updateTables(estar, self.Pr_up)
                     # self.G.edge_update(estar[0], estar[1], type = update_type)
                     # self.Query.reset(self.G)
-                    self.compute_Pr_up(update_type, normalise = norm, verbose = verbose)
+                    # self.compute_Pr_up(update_type, verbose = verbose)
                     print('-----')
-                    print(self.Pr_up)
+                    print('M after update: ',self.Pr_up)
 
             self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
             # print('-',self.Query.PrG)
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
-            history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,K)) 
+            history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N)) 
             # print('=',self.Query.PrG)         
             if (verbose):
                 print('After p(e) update: ')
                 print('Pr(G_i): ', self.Query.PrG)
+                print('\hatp(e): ',self.Query.hatp)
                 # print('C = ',self.Query.C)
             if (verbose):
                 print('----------')
-        self.algostat['execution_time'] = time() - start_execution_time
+        e_tm = time() - start_execution_time
         self.algostat['algorithm'] = 'greedy+mem'
         self.algostat['MCalgo'] = algorithm
         self.algostat['k'] = k
         self.algostat['result']['edges'] = E
         # self.Query.eval()
-        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,K)
+        self.algostat['result']['H*'] = self.algostat['result']['H0']-history[-1]
+        self.algostat['execution_time'] = e_tm
         # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
         self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
@@ -1070,7 +1063,7 @@ class ApproximateAlgorithm:
         self.algostat['result']['H0'] = self.measure_H0(property,algorithm,K)
         start_execution_time = time()
         # Start of Algorithm 5
-        self.Query.constructTables_S(op = update_type, K = K, verbose = verbose) 
+        self.Query.constructTables_S(K = K, verbose = verbose) 
         Estar = copy(self.G.edict)
         E = []
         if (verbose):
@@ -1084,6 +1077,7 @@ class ApproximateAlgorithm:
             if (verbose):
                 print("Iteration: ",iter)
                 print('Pr[G]: ',self.Query.PrG)
+                
             # Start of Algorithm 4
             
             # Construct Pr[Omega] 
@@ -1092,7 +1086,7 @@ class ApproximateAlgorithm:
                 Pr_Omega[omega] = sum([self.Query.PrG[i] for i in self.Query.phiInv[omega]])
 
             # Calculate Pr_up^{e_j}(G_i) for all i,j
-            self.compute_Pr_up(update_type,verbose = verbose)
+            self.compute_Pr_up(verbose = verbose)
             
             if (verbose):
                 # self.Query.eval()
@@ -1140,7 +1134,7 @@ class ApproximateAlgorithm:
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
             # Instead of updateing the table we construct from scratch by re-sampling
             if iter < k-1:
-                self.Query.constructTables_S(op = update_type, K = K, verbose = verbose) 
+                self.Query.constructTables_S(K = K, verbose = verbose) 
 
             if (verbose):
                 print('After p(e) update: ')
@@ -1160,7 +1154,7 @@ class ApproximateAlgorithm:
     
         # Greedy k-edge selection: Algorithm 3
 
-    def greedy(self,  property, algorithm, k, K, update_type = 'o1', verbose = False):
+    def greedy(self,  property, algorithm, k,  N = 1, T = 1, update_type = 'o1', verbose = False):
         """
         Exact version of Algorithm 3
         Returns selected edgeset, entropy value after selection, and entropy-reduction amount (DeltaH)
@@ -1176,7 +1170,7 @@ class ApproximateAlgorithm:
         # Ecand = [('s','x'),('s','y')]
         # self.Query.eval()
         # H0 = self.Query.compute_entropy() # Initial entropy
-        H0 = self.measure_H0(property,algorithm,K)
+        H0 = self.measure_H0(property,algorithm,T, N)
         self.algostat['result']['H0'] = H0
         E = []
         if (verbose):
@@ -1225,7 +1219,7 @@ class ApproximateAlgorithm:
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
             self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
-            history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,K))
+            history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
             if (verbose):
                 self.Query.eval()
                 print('Entropy of Updated UGraph: ',self.Query.compute_entropy())
@@ -1239,3 +1233,146 @@ class ApproximateAlgorithm:
         self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
         self.algostat['history_deltaH'] = history
         return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
+
+    def compute_Pr_up_zero(self):
+        self.Pr_up_0 = {}
+        for omega in self.Query.phiInv:
+            self.Pr_up_0[omega] = {}
+            for e in self.Query.p_graph.edict:
+                # p_e = self.G.edict[e] # p(e)
+                _sumPrG = 0
+                for i in self.Query.phiInv[omega]:
+                    if e in self.Query.index[i]: # if edge e is in G_i where omega is observed
+                        pass
+                        # p_e = self.Query.hatp[e] # using \hat{p}(e) instead of p(e) before update
+                        # p_up_e = 1 # p_up(e)
+                        # G_up = self.Query.PrG[i] * p_up_e / p_e  # Pr_up(G_i) = Pr(G) * p_up(e) / p(e)
+                        # _sumPrG += G_up 
+                    else: #  edge e not in G_i where omega is observed
+                        # if p_e != p_up_e:
+                        try:
+                            p_e = self.Query.hatp[e]
+                            G_up = self.Query.PrG[i] / (1-p_e)  # Pr_up(G_i) = Pr(G_i) * (1- p_up(e)) / (1- p(e))
+                            _sumPrG += G_up 
+                        except ZeroDivisionError:
+                            print(p_e,self.Query.PrG[i])
+                            raise ZeroDivisionError
+                                
+                self.Pr_up_0[omega][e] = _sumPrG
+
+    def crowd_kbest(self, property, algorithm, k, K, update_dict, N=1,T=1, update_type = 'c1', verbose = False):
+        """ Variant of Algorithm 5 where CT is approximated via sampling"""
+        print(['adaptive','non-adaptive'][update_type == 'c1'], ' setting')
+        assert k>=1
+        history = []
+        start_execution_time = time()
+        if verbose: print('Query eval.')
+        self.algostat['result']['H0'] = self.measure_H0(property,algorithm,T,N)
+        # Start of Algorithm 5
+        self.Query.constructTables_S(K = K, verbose = verbose)
+        Estar = copy(self.G.edict)
+        assert k<=len(Estar)
+        E = []
+        if (verbose):
+            print('H0: ',self.algostat['result']['H0'])
+            print('p(e): ',self.G.edict)
+            print('\hatp(e): ',self.Query.hatp)
+            print('Pr[G]: ',self.Query.PrG)
+            print('G: ',self.Query.G)
+            # print('Pr[Omega]: ', self.Query.freq_distr)
+            # print('results: ',self.Query.results)
+        # Calculate Pr_up^{e_j}(G_i) for all i,j
+        self.compute_Pr_up(verbose = verbose)
+        self.compute_Pr_up_zero()
+        for iter in range(k):
+            if (verbose):
+                print("Iteration: ",iter)
+            # Start of Algorithm 4
+            # print('Pr(G_i): ', self.Query.PrG)
+            # Construct Pr[Omega] 
+            Pr_Omega = {}
+            for omega in self.Query.phiInv:
+                Pr_Omega[omega] = sum([self.Query.PrG[i] for i in self.Query.phiInv[omega]])
+            if self.debug: print('Pr[omega]: ',Pr_Omega)
+            if self.debug:  print("M before update: \n\r",self.Pr_up)
+            if self.debug:  M = deepcopy(self.Pr_up)#; print(M)
+            if (verbose):
+                # self.Query.eval()
+                H0 = self.measure_H0(property,algorithm,T,N)
+                # print('H0: ',H0)
+
+            if (verbose):
+                print('Selecting edge#: ',iter+1)
+                # print('Jacobian: ', DelPr_Omega_pe)
+                print('Pr[Omega]: ',Pr_Omega)
+                print("Pr_up[Omega]: ",self.Pr_up)
+                print('Gsums: ',self.Gsums)
+            local_maxima = None 
+            for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
+                DeltaHe2 = 0 # H - H^{e}_{up}
+                H_up = 0
+                p_e = self.G.edict[e]
+                for omega in self.Query.phiInv:
+                    if Pr_Omega[omega] == 0:
+                        h0 = 0
+                    else:
+                        h0 = log2(Pr_Omega[omega])*Pr_Omega[omega]
+
+                    if self.Pr_up[omega].get(e,0) == 0:
+                        h1 = 0
+                    else:
+                        h1 = p_e*log2(self.Pr_up[omega][e])*self.Pr_up[omega][e]
+                    if self.Pr_up_0[omega].get(e,0) == 0:
+                        h2 = 0
+                    else:
+                        h2 = (1-p_e)*log2(self.Pr_up_0[omega][e])*self.Pr_up_0[omega][e]
+                    expected_entropy = h1 + h2
+                    DeltaHe2 += (expected_entropy - h0)
+                    H_up += -expected_entropy
+                    
+                # if verbose:
+                if self.debug:
+                    print('H_up^e', e,' -> ',H_up)
+                    print('e: ',e,' DeltaH2[e]: ',DeltaHe2)
+                    # print('H_next [',e,']: ', self.algostat['result']['H0'] + DeltaHe2)
+                
+                if local_maxima is not None:
+                    if DeltaHe2 > local_maxima[1]:
+                        local_maxima = (e,DeltaHe2)
+                else:
+                   local_maxima = (e,DeltaHe2)
+            if verbose: print('e*: ',local_maxima[0],' DeltaH2[e]: ',local_maxima[1])
+            estar = local_maxima[0] # assign e*
+            # End of Algorithm 4
+            E.append(estar)
+            del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
+            if update_type == 'c2':
+                if iter < k-1:
+                    self.Query.adaptiveUpdateTables(estar,update_dict[estar], self.Pr_up,self.Pr_up_0)
+                self.G.update_edge_prob(estar[0],estar[1],update_dict[estar])
+                # print('-',self.Query.PrG)
+                self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
+                history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N)) 
+            
+            if (verbose):
+                print('----------')
+        if update_type == 'c1':
+            for e in E:
+                self.G.update_edge_prob(estar[0],estar[1],update_dict[estar])
+                self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
+                history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
+
+        e_tm = time() - start_execution_time
+        self.algostat['algorithm'] = 'greedy+mem'
+        self.algostat['MCalgo'] = algorithm
+        self.algostat['k'] = k
+        self.algostat['result']['edges'] = E
+        # self.Query.eval()
+        self.algostat['result']['H*'] = self.algostat['result']['H0']-history[-1]
+        self.algostat['execution_time'] = e_tm
+        # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
+        self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+        self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+        self.algostat['history_deltaH'] = history
+        if self.debug: self.algostat['M'] = M
+        return E,self.algostat['result']['H*'], self.algostat['result']['H0']- self.algostat['result']['H*']

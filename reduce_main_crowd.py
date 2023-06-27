@@ -9,28 +9,52 @@ from datetime import datetime
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-d", "--dataset", type=str, default="default")
-parser.add_argument("-a", "--algo", type=str, default="exact") # exact/greedy/greedymem 
-parser.add_argument("-u",'--utype',type = str, default = 'o1')
+parser.add_argument("-d", "--dataset", type=str, default="papers")
+parser.add_argument("-a", "--algo", type=str, default="greedymem") # exact/greedy/greedymem 
+parser.add_argument("-u",'--utype',type = str, default = 'c1') # c = crowdsourced update, c1=non-adaptive, c2 = adaptive
 parser.add_argument("-k",'--k',type = int, default = 1)
 parser.add_argument("-v", "--verbose", action='store_true')
 parser.add_argument('-s','--source',type = str, default = None)
 parser.add_argument('-t','--target',type = str, default = None)
-parser.add_argument('-pr','--property',type = str, default = 'tri', help = "either tri/diam/reach")
+parser.add_argument('-pr','--property',type = str, default = 'reach', help = "either tri/diam/reach")
 # parser.add_argument('-va','--variant',type = str, default = 'exact',help = 'Either exact/appr')
 parser.add_argument("-K",'--K',type = int, default = 10, help='#of Possible world samples')
-parser.add_argument("-ea", "--est_algo", type=str, default="exact/appr/eappr/mcbfs/pTmcbfs/mcdij/pTmcdij/rss/pTrss/mcapproxtri") 
-parser.add_argument('-q','--queryf', type=str,help='query file',default = None) # 'data/queries/ER/ER_15_22_2.queries'
+parser.add_argument("-ea", "--est_algo", type=str, default="appr") # exact/appr/eappr/mcbfs/pTmcbfs/mcdij/pTmcdij/rss/pTrss/mcapproxtri 
+parser.add_argument('-q','--queryf', type=str,help='query file',default = 'data/queries/papers/papers_2.queries') # 'data/queries/ER/ER_15_22_2.queries'
 parser.add_argument('-b','--bucketing',type = int, help='Whether to compute bucketed entropy or not', default = 0) # only tri query is supported
-
+parser.add_argument("-dh",'--hop',type = int, default = 2) # <d-hop reach
+parser.add_argument("-db",'--debug', action = 'store_true')
+parser.add_argument('-cr','--cr', type = str, default = 'data/large/crowd/paper_pair.true')
+parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
 
+opt_N_dict = {
+    'ER_15_22': 
+        {'reach': 11, 'sp': 26, 'tri': 6},
+    'biomine': {'reach': None},
+    'flickr': {'tri': 76},
+    'rome': {'sp': 96},
+    'papers': {'reach': 50},
+    'products': {'reach': 50},
+    'restaurants': {'reach': 50}
+}
+opt_T_dict = {
+    'ER_15_22': {'reach': 85, 'sp': 165, 'tri': 100},
+    'biomine': {'reach': 10},
+    'flickr': {'tri': 51},
+    'rome': {'sp': 11},
+    'papers': {'reach':50},
+    'products': {"reach": 30},
+    'restaurants': {'reach': 30}
+}
+cr_dict = {}
 # Demo usages:
 # Reachability query from x to u in default dataset using sampling: N = 10, T = 10
 # python measure_main.py -d default -a appr -pr reach -s x -t u -N 10 -T 10
 args = parser.parse_args()
 os.environ['precomp'] = ''
-os.environ['time_seed'] = 'True'
+os.environ['time_seed'] = 'True' # If we set this, each run will generate a different sequence of possible worlds from the previous run.
+dhopreach = [False,True][args.hop>0] 
 runProbTree = (args.algo == 'eappr' or args.algo.startswith('pT')) # True if load precomputed ProbTree subgraph
 print(args)
 # G = get_dataset(args.dataset)
@@ -68,19 +92,35 @@ print(args)
 #         a.algorithm6(k = args.k, K = args.K, update_type=args.utype, verbose = args.verbose)
     # print(a.algostat)
 def singleQuery_singleRun(G,Query):
-    if args.algo == 'exact':
+    if args.algo == 'exact': #
         a = Algorithm(G,Query)
         print("Exact algorithm:")
         a.Bruteforce(k = args.k, update_type=args.utype, verbose = args.verbose)
-    elif args.algo == 'greedy':
-        a = Algorithm(G,Query)
+    # elif args.algo == 'greedy+mem(exact)':
+    #     a = Algorithm(G,Query, debug = args.debug)
+    #     print("Greedy algorithm (w/ exact mem.): ")
+        # a.algorithm5(k = args.k, update_type=args.utype, verbose = args.verbose)
+    elif args.algo == 'greedy': #
+        a = ApproximateAlgorithm(G,Query, debug = args.debug)
         print("Greedy algorithm (w/o mem.): ")
-        a.algorithm3(k = args.k, update_type=args.utype, verbose = args.verbose)
-    elif args.algo == 'greedymem':
-        a = ApproximateAlgorithm(G,Query)
-        a.algorithm5(property = args.property, algorithm = args.est_algo, \
-                     k = args.k, K = args.K, update_type=args.utype, verbose = args.verbose)
-        # a.algorithm6(property = args.property, algorithm = args.est_algo, \
+        # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
+        a.greedy(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
+                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     update_type=args.utype, verbose = args.verbose)
+    elif args.algo == 'greedymem': #
+        a = ApproximateAlgorithm(G,Query, debug = args.debug)
+        assert len(cr_dict) != 0
+        # a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 
+        #              N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+        #             update_type=args.utype, verbose = args.verbose)
+        a.crowd_kbest(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, \
+                      update_dict = cr_dict,\
+                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                    update_type=args.utype, verbose = args.verbose)
+    # elif args.algo == 'greedymem_re':
+    #     raise ValueError("do not use this option.")
+    #     a = ApproximateAlgorithm(G,Query)
+        # a.algorithm6(property = Query.qtype, algorithm = args.est_algo, \
         #              k = args.k, K = args.K, update_type=args.utype, verbose = args.verbose)
     else:
         raise Exception("Invalid algorithm (-a) option.")
@@ -98,9 +138,10 @@ def singleQuery_singleRun(G,Query):
         output['source'] = str(Query.u)
         output['target'] = str(Query.v)
     output['dataset'] = args.dataset
-    output['P'] = args.property
-    # output['variant'] = args.variant 
-    output['K'] = ["None",args.K][args.algo == 'greedy' or args.algo == 'greedymem']
+    output['P'] = Query.qtype
+    output['algorithm'] = args.algo
+    output['setting'] = ['adaptive','non-adaptive'][args.utype == 'c1']
+    output['K'] = ["None",args.K][args.algo == 'greedy' or args.algo.startswith('greedymem')]
 
     for k in a.algostat['result']:
         if k == 'edges':
@@ -108,14 +149,22 @@ def singleQuery_singleRun(G,Query):
         else:
             output[k] = a.algostat['result'][k]
     for k in a.algostat.keys():
-        if k!='result':
+        if k== 'history_deltaH':
+            # output[k] = ' '.join([str(i) for i in a.algostat['history_deltaH']])
+             output[k] = str(a.algostat['history_deltaH'])
+        elif k =='result':
+            pass
+        else:
             output[k] = a.algostat[k]
     if 'support' in output:
         del output['support']
     print(output)
-    if (not args.verbose):
+    if (not args.verbose and not args.debug):
         # csv_name = 'ureduct/res_k'+str(args.k)+'.csv'
-        csv_name = 'CRureduct/reduce_k_'+str(args.k)+"_K_"+str(args.K)+"_" + args.dataset + "_" + args.algo + "_" + args.property + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
+        if args.queryf:
+            csv_name = 'CRureduct/reduce_k_'+str(args.k)+"_K_"+str(args.K)+"_" + args.dataset + "_" + args.algo + "_" + Query.qtype + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
+        else:
+            csv_name = 'CRureduct/res_k'+str(args.k)+'.csv'
         if os.path.exists(csv_name):
             result_df = pd.read_csv(csv_name)
         else:
@@ -124,14 +173,23 @@ def singleQuery_singleRun(G,Query):
         # print(pd.DataFrame(output,index = [0]).head())
         result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
         result.to_csv(csv_name, header=True, index=False)
-        print(result.head())
+        print(result.head(10))
+    # if args.debug:
+    #     print(output['M'])
+
 
 if __name__== '__main__':
     if args.queryf is None: # single query mode
         G = get_dataset(args.dataset)
+        
         if args.property == 'reach':
-            print('Reachability(',args.source,',',args.target,')')
-            Query = Query(G,'reach',{'u':args.source,'v':args.target})
+            if dhopreach:
+                print('#<d-hop reachability (',args.source,',',args.target,')')
+                Query = Query(G, 'reach_d',args = {'u':args.source,'v':args.target, 'd':args.hop})
+            else:
+                print('Reachability(',args.source,',',args.target,')')
+                Query = Query(G,'reach',{'u':args.source,'v':args.target})
+
         if args.property == 'sp':
             print('Shortest path')
             Query = wQuery(G,'sp',{'u':args.source,'v':args.target})
@@ -147,7 +205,7 @@ if __name__== '__main__':
     else: # querySet mode
         assert (args.queryf is not None)
         assert (os.path.isfile(args.queryf))
-        queries = get_queries(queryfile = args.queryf) 
+        queries = get_queries(queryfile = args.queryf,maxQ = args.maxquery)
         args.queryf
         if runProbTree: # Efficient variant of algorithm 2 requires pre-computed Prob Tree subgraph.
             whichquery = args.queryf.split('.')[0].split('_')[-1]
@@ -160,7 +218,11 @@ if __name__== '__main__':
                 # print('decomp graph: ',G)
                 s,t = q
                 if args.property == 'reach':
-                    Query = multiGraphQuery(G,'reach',{'u':s,'v':t})
+                    if dhopreach:
+                        print('#<d-hop reach')
+                        Query = multiGraphQuery(G, qtype='reach_d',args = {'u':s,'v':t, 'd':args.hop})
+                    else: # normal reachability query
+                        Query = multiGraphQuery(G,'reach',{'u':s,'v':t})
                 if args.property == 'sp':
                     if is_weightedGraph(args.dataset):
                         Query = multiGraphwQuery(G,'sp',{'u':s,'v':t}) # only SP requires weighted multigraph query
@@ -182,10 +244,17 @@ if __name__== '__main__':
         else: # Exact and normal variant of algorithm 2 requires original uncertain graph
             G = get_dataset(args.dataset)
             G.name = args.dataset
+            with open(args.cr,'r') as f:
+                for i,line in enumerate(f.readlines()):
+                    cr_value = int(line.strip())
+                    cr_dict[G.Edges[i]] = cr_value 
             if args.property == 'sp':
                 Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
             elif args.property == 'reach': # For reachability query, we ignore edge weights.  
-                Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
+                if dhopreach:
+                    Querylist = [Query(G,args.property,{'u':s,'v':t,'d':args.hop}) for s,t in queries]
+                else:     
+                    Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
             elif args.property == 'tri':
                 Q = Query(G,'tri')
                 Q.bucketing = args.bucketing 
@@ -194,3 +263,11 @@ if __name__== '__main__':
                 raise Exception("Invalid graph property (-pr) ")  
             for Query in Querylist:
                 singleQuery_singleRun(G, Query)
+
+
+# python reduce_main_crowd.py -dh 2 -k 1 -K 1024 -mq 2
+# python reduce_main_crowd.py -dh 2 -k 2 -K 128 -ea mcbfs -mq 2 -u c2
+
+# python reduce_main_crowd.py -dh 2 -k 1 -K 1024 -mq 2 -q data/queries/papers/papers_4.queries
+
+# python reduce_main_crowd.py -dh 3 -k 1 -K 1024 -mq 2 -d products -q data/queries/products/products_4.queries -cr data/large/crowd/product_pair.true

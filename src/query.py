@@ -8,6 +8,7 @@ from networkx.algorithms.bipartite.matching import INFINITY
 from scipy.stats import entropy
 import math 
 from time import time 
+from copy import deepcopy
 pdf_path = 'figs/'
 font_dict = {'family': 'serif',
         'color':  'darkred',
@@ -535,30 +536,37 @@ class Query:
                 else:
                     self.phiInv[num_triangles].append(i)
 
-    def constructTables_S(self, op = 'o1', K = 100, verbose = False):
+    def constructTables_S(self, K = 100, verbose = False):
         """ Sampling variant of the auxiliary data structure construction """
+        self.R = K
         self.PrG = {} # world i => Pr(G_i) for all possible world G_i
         self.index = {} 
         self.phiInv = {} # property value Omega_i => worlds where omega_i is observed.
+        self.hatp = {}
         probG_i = 1.0/K
+        
         if (verbose):
             self.G = {} 
         # print(self.qtype)
         if 'time_seed' in os.environ:
-            random.seed()
+            # random.seed()
             s = random.randint(0,1000000)
             # s = 511458
-            # print('seed = ', s)
+            # s = 482040
+            print('seed = ', s)
         else:
             s = 1
+        for e in self.p_graph.Edges:
+            self.hatp[e] = 0
         if self.qtype == 'reach': # Reachability
             for i,G in enumerate(self.p_graph.get_Ksample(K,seed = s)):
-                # print(G[0])
+                if verbose: print(G[0])
                 self.PrG[i] = probG_i # G[1]
                 # self.PrG[i] = G[1]
                 self.index[i] = {}
                 for e in G[0]:
                     self.index[i][e] = 1
+                    self.hatp[e] += 1.0/K
                 # Construct phiInv
                 u = self.u 
                 v = self.v
@@ -583,6 +591,7 @@ class Query:
                 self.index[i] = {}
                 for e in G[0]:
                     self.index[i][e] = 1
+                    self.hatp[e] += 1.0/K
 
                 nx_G = nx.Graph()
                 nx_G.add_edges_from(G[0])
@@ -600,7 +609,7 @@ class Query:
                 self.index[i] = {}
                 for e in G[0]:
                     self.index[i][e] = 1
-                
+                    self.hatp[e] += 1.0/K
                 # Construct phiInv
                 if (len(G[0])) == 0:
                     diam = 0 
@@ -625,6 +634,7 @@ class Query:
                 self.index[i] = {}
                 for e in G[0]:
                     self.index[i][e] = 1
+                    self.hatp[e] += 1.0/K
                 
                 # Construct phiInv
                 nx_G = nx.Graph()
@@ -647,6 +657,7 @@ class Query:
                     self.index[i] = {}
                     for e in G[0]:
                         self.index[i][e] = 1
+                        self.hatp[e] += 1.0/K
                         
                     nx_G = nx.Graph()
                     nx_G.add_edges_from(G[0])
@@ -662,23 +673,28 @@ class Query:
                         self.phiInv[reachable].append(i)
         else:
             raise Exception('unknown query type')
-    def updateTables(self, ej, op='o1'):
+        self.flags = [True]*len(self.index)
+
+    def updateTables(self, ej, M):
         """ 
         Updates C, DeltaC and phi Inverse after probability update
         """
-        from copy import deepcopy
-        p_up_e = self.p_graph.get_next_prob(ej[0],ej[1],op)
+        # print('update table')
+        # p_up_e = self.p_graph.get_next_prob(ej[0],ej[1],op)
         # print('Pr: ',self.PrG)
         # print('p_up_e: ',p_up_e)
         # PrG = deepcopy(self.PrG)
         # _sumPrG = 0
+        # Re-indexing
+        
         for i in self.index:
             # print(i,'-- ',self.index[i])
             if ej in self.index[i]:
                 # print('e_j in ', i)
                 # print(PrG[i], self.p_graph.edict[ej])
-                self.PrG[i] = self.PrG[i] * p_up_e / self.p_graph.edict[ej]
+                self.PrG[i] /= self.hatp[ej]
             else:
+                self.flags[i] = False
                 # print('e_j not in ',i)
                 # PrG[i] = self.PrG[i] * (1-p_up_e) / (1-self.p_graph.edict[ej])
                 self.PrG[i] = 0
@@ -689,6 +705,99 @@ class Query:
         # print("Pr' = ",self.PrG)
         # self.PrG = PrG
         # self.PrG = {i: p/_sumPrG for i,p in PrG.items()}
+        R = sum(self.flags) # # of possible worlds where e exists
+        print('# remaining non-zero worlds: ',R)
+        # update \hat{p}(e)
+        for e in self.hatp:
+            count_e = 0
+            for i in self.index:
+                if self.flags[i]:
+                    if e in self.index[i]:
+                        count_e += 1
+            self.hatp[e] = count_e/R # fraction of existing world containing e
+        # #updated Pr[G_i]
+        # for i in self.index:
+        #     # print(i,'-- ',self.index[i])
+        #     if ej in self.index[i]:
+        #         self.PrG[i] /= self.hatp[ej]
+        # compute M
+        for omega in self.phiInv:
+            M[omega] = {}
+            for i in self.phiInv[omega]:
+                if self.flags[i]:
+                    for e in self.hatp:
+                        if e in self.index[i]:
+                            M[omega][e] = M[omega].get(e,0) + (self.PrG[i]/self.hatp[e])
+                        else:
+                            M[omega][e] = M[omega].get(e,0) + 0
+
+
+    def adaptiveUpdateTables(self, ej, p_up, M1, M0):
+        """ 
+        Adaptive setting requires both M0 and M1 to be updated.
+        """
+        
+        for i in self.index:
+            if self.flags[i]:
+                # print(i,'-- ',self.index[i])
+                if ej in self.index[i]:
+                    # print('e_j in ', i)
+                    # print(PrG[i], self.p_graph.edict[ej])
+                    if p_up == 1:
+                        self.PrG[i] /= self.hatp[ej]
+                    else:
+                        self.PrG[i] = 0
+                else:
+                    self.flags[i] = False
+                    if p_up == 1:
+                        self.PrG[i] = 0
+                    else:
+                        self.PrG[i] /= (1- self.hatp[ej])
+
+        R = sum(self.flags) # # of possible worlds where e exists
+        print('# remaining non-zero worlds: ',R)
+        # update \hat{p}(e)
+        for e in self.hatp:
+            count_e = 0
+            for i in self.index:
+                if self.flags[i]:
+                    if e in self.index[i]:
+                        count_e += 1
+            self.hatp[e] = count_e/R # fraction of existing world containing e
+        # #updated Pr[G_i]
+        # for i in self.index:
+        #     # print(i,'-- ',self.index[i])
+        #     if ej in self.index[i]:
+        #         self.PrG[i] /= self.hatp[ej]
+        # compute M1
+        for omega in self.phiInv:
+            M1[omega] = {}
+            for i in self.phiInv[omega]:
+                if self.flags[i]:
+                    for e in self.hatp:
+                        if e in self.index[i]:
+                            try:
+                                M1[omega][e] = M1[omega].get(e,0) + (self.PrG[i]/self.hatp[e])
+                            except:
+                                M1[omega][e] = M1[omega].get(e,0)
+                                pass 
+                        else:
+                            M1[omega][e] = M1[omega].get(e,0) + 0
+        # Compute M0
+        for omega in self.phiInv:
+            M0[omega] = {}
+            for i in self.phiInv[omega]:
+                if self.flags[i]:
+                    for e in self.hatp:
+                        if e in self.index[i]:
+                            M0[omega][e] = M0[omega].get(e,0) + 0
+                        else:
+                            try:
+                                M0[omega][e] = M0[omega].get(e,0) + (self.PrG[i]/(1-self.hatp[e]))
+                            except:
+                                M0[omega][e] = M0[omega].get(e,0)
+                                pass 
+                                # print(self.hatp[e],' ',self.hatp[e]*R)
 
 class wQuery(Query):
     """
