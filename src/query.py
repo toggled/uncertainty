@@ -692,7 +692,10 @@ class Query:
             if ej in self.index[i]:
                 # print('e_j in ', i)
                 # print(PrG[i], self.p_graph.edict[ej])
-                self.PrG[i] /= self.hatp[ej]
+                try:
+                    self.PrG[i] /= self.hatp[ej]
+                except ZeroDivisionError:
+                    self.PrG[i] = 1.0
             else:
                 self.flags[i] = False
                 # print('e_j not in ',i)

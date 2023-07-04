@@ -350,7 +350,7 @@ class UGraph:
         sample = []
         prob_sample = 1.0
         random.seed(seed)
-        print('seed: ',seed)
+        # print('seed: ',seed)
         seen = {source:0}
         dists = {}
         heap = []
@@ -387,7 +387,7 @@ class UGraph:
         # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
         sample_tm = time() - start_execution_time
         self.total_sample_tm += sample_tm
-        print(sample)
+        # print(sample)
         return nbrs, sample, prob_sample,support_value 
     
     def add_edge(self,u,v,prob,weight = 1.0):
@@ -883,7 +883,7 @@ class UMultiGraph(UGraph):
         reached_target = 0
         sample = []
         prob_sample = 1.0
-        print('seed: ',seed)
+        # print('seed: ',seed)
         random.seed(seed)
         seen = {source:0}
         dists = {}
