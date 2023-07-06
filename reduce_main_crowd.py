@@ -31,21 +31,19 @@ parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, ma
 opt_N_dict = {
     'ER_15_22': 
         {'reach': 11, 'sp': 26, 'tri': 6},
-    'biomine': {'reach': None},
+    'biomine': {'reach': 171},
     'flickr': {'tri': 76},
-    'rome': {'sp': 96},
-    'papers': {'reach': 50},
-    'products': {'reach': 50},
-    'restaurants': {'reach': 50}
+    'papers': {'reach': 71},
+    'products': {'reach': 46},
+    'restaurants': {'reach': 156}
 }
 opt_T_dict = {
-    'ER_15_22': {'reach': 85, 'sp': 165, 'tri': 100},
+    'ER_15_22': {'reach': 6, 'sp': 11, 'tri': 11},
     'biomine': {'reach': 10},
     'flickr': {'tri': 51},
-    'rome': {'sp': 11},
-    'papers': {'reach':50},
-    'products': {"reach": 30},
-    'restaurants': {'reach': 30}
+    'papers': {'reach': 10},
+    'products': {'reach': 4},
+    'restaurants': {'reach': 6}
 }
 cr_dict = {}
 # Demo usages:

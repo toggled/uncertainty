@@ -1353,7 +1353,7 @@ class ApproximateAlgorithm:
                 self.G.update_edge_prob(estar[0],estar[1],update_dict[estar])
                 # print('-',self.Query.PrG)
                 self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
-                history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N)) 
+                # history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N)) 
             
             if (verbose):
                 print('----------')
@@ -1361,7 +1361,7 @@ class ApproximateAlgorithm:
             for e in E:
                 self.G.update_edge_prob(estar[0],estar[1],update_dict[estar])
                 self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
-                history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
+                # history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
 
         e_tm = time() - start_execution_time
         self.algostat['algorithm'] = 'greedy+mem'
@@ -1369,7 +1369,8 @@ class ApproximateAlgorithm:
         self.algostat['k'] = k
         self.algostat['result']['edges'] = E
         # self.Query.eval()
-        self.algostat['result']['H*'] = self.algostat['result']['H0']-history[-1]
+        # self.algostat['result']['H*'] = self.algostat['result']['H0']-history[-1]
+        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N)
         self.algostat['execution_time'] = e_tm
         # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
