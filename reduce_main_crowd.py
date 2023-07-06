@@ -103,10 +103,12 @@ def singleQuery_singleRun(G,Query):
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         # print("Greedy algorithm (w/o mem.): ")
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
-        # a.greedy(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
-        #              N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
-        #              update_type=args.utype, verbose = args.verbose)
-        raise Exception("Greedy w/o mem. is not supported for crowd-source scenario")
+        assert len(cr_dict) != 0
+        a.crowd_kbest_greedy(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
+                    update_dict = cr_dict,\
+                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     update_type=args.utype, verbose = args.verbose)
+        # raise Exception("Greedy w/o mem. is not supported for crowd-source scenario")
     elif args.algo == 'greedymem': #
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         assert len(cr_dict) != 0

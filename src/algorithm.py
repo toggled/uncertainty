@@ -1195,35 +1195,36 @@ class ApproximateAlgorithm:
                 # else:
                 #     g_copy.update_edge_prob(e[0],e[1], 1)
                 self.Query.reset(g_copy)
-                self.Query.eval()
-                if (verbose):
-                    print('considering e= ',e)
-                    # print('p(e): ',g_copy.edict)
-                    print('Pr[Omega]: ', self.Query.freq_distr)
-                    # print('results: ',self.Query.results)
-                Hi = self.Query.compute_entropy()
+                # self.Query.eval()
+                # if (verbose):
+                #     print('considering e= ',e)
+                #     # print('p(e): ',g_copy.edict)
+                #     print('Pr[Omega]: ', self.Query.freq_distr)
+                #     # print('results: ',self.Query.results)
+                # Hi = self.Query.compute_entropy()
+                Hi = self.measure_H0(property, algorithm, T, N)
                 if local_maxima:
                     if H0 -  Hi > H0 - local_maxima[1]:
                         local_maxima = (e, Hi)
-                        if (verbose):
-                            print('new maxima: ',local_maxima)
+                        # if (verbose):
+                        #     print('new maxima: ',local_maxima)
                 else:
                     local_maxima = (e, Hi)
-                    if (verbose):
-                        print('initial maxima: ',local_maxima)
+                    # if (verbose):
+                    #     print('initial maxima: ',local_maxima)
                 # print('e: ',e,' \Delta H = ', H0-Hi, ' H0:', H0, ' H_next: ',Hi)
             estar = local_maxima[0] # assign e*
             H0 = local_maxima[1] # Assign H0 for the next iteration.
             E.append(estar)
-            if (verbose):
-                print('e* = ',estar)
+            # if (verbose):
+            #     print('e* = ',estar)
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
             self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
             # history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
-            if (verbose):
-                self.Query.eval()
-                print('Entropy of Updated UGraph: ',self.Query.compute_entropy())
+            # if (verbose):
+            #     self.Query.eval()
+            #     print('Entropy of Updated UGraph: ',self.Query.compute_entropy())
 
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['MCalgo'] = algorithm
@@ -1261,8 +1262,24 @@ class ApproximateAlgorithm:
                                 
                 self.Pr_up_0[omega][e] = _sumPrG
 
+    def compute_approx_reach(self, s,t,probGraph, numsamples = None):
+        random.seed()
+        sid = random.randint(0,1000000)
+        if numsamples is None:
+            numsamples = N*T
+        # numsamples = T
+        # print('num of samples: ',numsamples)
+        func_obj = probGraph.get_Ksample_dhopbfs(K = numsamples,seed=sid,\
+                                    source=s,target = t, dhop = d, optimiseargs = None)
+        hat_Pr = {}
+        for _,_, _,omega in func_obj:
+            hat_Pr[omega] = hat_Pr.get(omega,0) + (1.0/numsamples)
+        # print(hat_Pr)
+        reachability = hat_Pr.get(1,0)
+        return reachability
+    
     def crowd_kbest(self, property, algorithm, k, K, update_dict, N=1,T=1, update_type = 'c1', verbose = False):
-        """ Variant of Algorithm 5 where CT is approximated via sampling"""
+        """ Greedy with mem. in crowdsourced setting """
         print(['adaptive','non-adaptive'][update_type == 'c1'], ' setting')
         assert k>=1
         history = []
@@ -1359,7 +1376,7 @@ class ApproximateAlgorithm:
                 print('----------')
         if update_type == 'c1':
             for e in E:
-                self.G.update_edge_prob(estar[0],estar[1],update_dict[estar])
+                self.G.update_edge_prob(e[0],e[1],update_dict[e])
                 self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
                 # history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
 
@@ -1377,4 +1394,75 @@ class ApproximateAlgorithm:
         self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
         self.algostat['history_deltaH'] = history
         if self.debug: self.algostat['M'] = M
+        return E,self.algostat['result']['H*'], self.algostat['result']['H0']- self.algostat['result']['H*']
+
+    def crowd_kbest_greedy(self, property, algorithm, k, update_dict, N=1,T=1, update_type = 'c1', verbose = False):
+        """ Greedy without mem. in crowdsourced setting """
+        print(['adaptive','non-adaptive'][update_type == 'c1'], ' setting')
+        assert k>=1
+        history = []
+        self.algostat['algorithm'] = 'greedy'
+        self.algostat['k'] = k
+        start_execution_time = time()
+        Estar = copy(self.G.edict)
+        self.algostat['result']['H0'] = self.measure_H0(property,algorithm,T,N)
+        assert k<=len(Estar)
+        E = []
+        H0 = self.algostat['result']['H0']
+        # Calculate Pr_up^{e_j}(G_i) for all i,j
+        # self.compute_Pr_up(verbose = verbose)
+        # self.compute_Pr_up_zero()
+        for iter in range(k):
+            if (verbose):
+                print("Iteration: ",iter)
+
+            local_maxima = None 
+            for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
+                g_copy = deepcopy(self.G)
+                pe = self.G.edict[e]
+                g_copy.update_edge_prob(u = e[0],v = e[1], prob = 0)
+                self.Query.reset(g_copy)
+                h0 = self.measure_H0(property, algorithm, T, N)
+                g_copy.update_edge_prob(u = e[0],v = e[1], prob = 1)
+                self.Query.reset(g_copy)
+                h1 = self.measure_H0(property, algorithm, T, N)
+                expected_entropy = pe*h0 + (1-pe)*h1
+                if local_maxima is not None:
+                    if H0 - expected_entropy > H0 - local_maxima[1]:
+                        # DeltaHe = H0 - expected_entropy
+                        local_maxima = (e, expected_entropy)
+                else:
+                    local_maxima = (e, expected_entropy)
+            estar = local_maxima[0] # assign e*
+            # H0 = local_maxima[1] # Assign H0 for the next iteration.
+            E.append(estar)
+            del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
+            if update_type == 'c2':
+                self.G.update_edge_prob(estar[0],estar[1],update_dict[estar])
+                self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
+                # history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N)) 
+                if update_dict[estar] == 0:
+                    H0 = h0 # H0 for the edge selection
+                else:
+                    H0 = h1 # H0 for next edge selection
+
+        if update_type == 'c1':
+            for e in E:
+                self.G.update_edge_prob(e[0],e[1],update_dict[e])
+                self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
+                # history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
+
+        e_tm = time() - start_execution_time
+        self.algostat['algorithm'] = 'greedy'
+        self.algostat['MCalgo'] = algorithm
+        self.algostat['k'] = k
+        self.algostat['result']['edges'] = E
+        # self.Query.eval()
+        # self.algostat['result']['H*'] = self.algostat['result']['H0']-history[-1]
+        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N)
+        self.algostat['execution_time'] = e_tm
+        # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
+        self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+        self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+        self.algostat['history_deltaH'] = history
         return E,self.algostat['result']['H*'], self.algostat['result']['H0']- self.algostat['result']['H*']

@@ -142,6 +142,12 @@ else:
             Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
 
 if debug: # Run algorithm for single query (Debugging purposes)
+    if args.precomputed:
+        os.environ['precomp'] = old
+        if args.property == 'sp' or args.property == 'reach':
+            os.environ['precomp'] += ("_"+args.algo+"_"+str(args.property)+"_"+str(Query.u)+"_"+str(Query.v))
+        os.system('mkdir -p '+os.environ["precomp"])
+        print('precomputed support value location: ',os.environ['precomp'])
     singleRun(G,Query)
 else: # Run algorithms for all the queries
     # print(args.algo)
