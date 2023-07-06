@@ -1033,7 +1033,7 @@ class ApproximateAlgorithm:
             self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
             # print('-',self.Query.PrG)
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
-            history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N)) 
+            # history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N)) 
             # print('=',self.Query.PrG)         
             if (verbose):
                 print('After p(e) update: ')
@@ -1048,7 +1048,8 @@ class ApproximateAlgorithm:
         self.algostat['k'] = k
         self.algostat['result']['edges'] = E
         # self.Query.eval()
-        self.algostat['result']['H*'] = self.algostat['result']['H0']-history[-1]
+        # self.algostat['result']['H*'] = self.algostat['result']['H0']-history[-1]
+        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N)
         self.algostat['execution_time'] = e_tm
         # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
@@ -1219,7 +1220,7 @@ class ApproximateAlgorithm:
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
             self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
-            history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
+            # history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
             if (verbose):
                 self.Query.eval()
                 print('Entropy of Updated UGraph: ',self.Query.compute_entropy())
