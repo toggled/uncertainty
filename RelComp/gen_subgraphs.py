@@ -93,7 +93,8 @@ if __name__ == '__main__':
                     break
         for filename in tqdm(os.listdir(directory)):
             uv = filename.split(".")[-2].split("_")[-2:] #("biomine.txt_query_subgraph_1005953_628518.txt")
-            u,v = int(uv[0].strip()), int(uv[1].strip())
+            if not uv[0].startswith('txt'):
+                u,v = int(uv[0].strip()), int(uv[1].strip())
             if u not in queries:
                 print((u,v),' not in top-',maxQ,'queries')
             else:
