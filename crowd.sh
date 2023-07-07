@@ -50,9 +50,9 @@ NT_array=($((NT)) $((NT*2)) $((NT*4)) $((NT*8)) $((NT*16)) $((NT*32)) $((NT*64))
 for k in "${budget_arr[@]}"; do
    # K=$((2**i)); 
    for K in "${NT_array[@]}"; do
-      python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -dh 2 -cr data/large/crowd/paper_pair.true &
+      python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -dh 2 -cr data/large/crowd/paper_pair.true -mq 10 &
       # python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea appr -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -dh 2 -cr data/large/crowd/paper_pair.true &
-      python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -dh 2 -cr data/large/crowd/paper_pair.true -u c2 &
+      python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -dh 2 -cr data/large/crowd/paper_pair.true -u c2 -mq 10 &
       # python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea appr -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -dh 2 -cr data/large/crowd/paper_pair.true -u c2
    done
 done
