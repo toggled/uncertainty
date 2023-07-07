@@ -1396,8 +1396,33 @@ class ApproximateAlgorithm:
         if self.debug: self.algostat['M'] = M
         return E,self.algostat['result']['H*'], self.algostat['result']['H0']- self.algostat['result']['H*']
 
+    def compute_approx_reach(self, s,t,probGraph, numsamples):
+        random.seed()
+        sid = random.randint(0,1000000)
+        func_obj = probGraph.get_Ksample_bfs(K = numsamples,seed=sid,\
+                                    source=s,target = t, optimiseargs = None)
+        hat_Pr = {}
+        for _,_, _,omega in func_obj:
+            hat_Pr[omega] = hat_Pr.get(omega,0) + (1.0/numsamples)
+        # print(hat_Pr)
+        reachability = hat_Pr.get(1,0)
+        return reachability
+    
     def crowd_kbest_greedy(self, property, algorithm, k, update_dict, N=1,T=1, update_type = 'c1', verbose = False):
         """ Greedy without mem. in crowdsourced setting """
+        ZERO = 10**(-13)
+        def h(x):
+            absx = abs(x)
+            if absx <= ZERO:
+                return 0
+            elif (1-absx) <= ZERO:
+                return 0
+            else:
+                try:
+                    p = log2(x)
+                except:
+                    print(x)
+            return -x*log2(x)
         print(['adaptive','non-adaptive'][update_type == 'c1'], ' setting')
         assert k>=1
         history = []
@@ -1420,13 +1445,28 @@ class ApproximateAlgorithm:
             for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
                 g_copy = deepcopy(self.G)
                 pe = self.G.edict[e]
-                g_copy.update_edge_prob(u = e[0],v = e[1], prob = 0)
-                self.Query.reset(g_copy)
-                h0 = self.measure_H0(property, algorithm, T, N)
-                g_copy.update_edge_prob(u = e[0],v = e[1], prob = 1)
-                self.Query.reset(g_copy)
-                h1 = self.measure_H0(property, algorithm, T, N)
-                expected_entropy = pe*h0 + (1-pe)*h1
+                if property != 'reach':
+                    g_copy.update_edge_prob(u = e[0],v = e[1], prob = 0)
+                    self.Query.reset(g_copy)
+                    h0 = self.measure_H0(property, algorithm, T, N)
+                    g_copy.update_edge_prob(u = e[0],v = e[1], prob = 1)
+                    self.Query.reset(g_copy)
+                    h1 = self.measure_H0(property, algorithm, T, N)
+                    expected_entropy = pe*h0 + (1-pe)*h1
+                else: # Reachability query
+                    # Reach = self.compute_approx_reach(self.Query.u,self.Query.v,\
+                    #                                    self.Query.p_graph, N*T)
+                    g_copy.update_edge_prob(u = e[0],v = e[1], prob = 0)
+                    self.Query.reset(g_copy)
+                    PrOmega_1 = self.compute_approx_reach(self.Query.u,self.Query.v,\
+                                                       self.Query.p_graph, N*T)
+                    g_copy.update_edge_prob(u = e[0],v = e[1], prob = 1)
+                    self.Query.reset(g_copy)
+                    PrOmega_0 = self.compute_approx_reach(self.Query.u,self.Query.v,\
+                                                       self.Query.p_graph, N*T)
+                    h1 = h(PrOmega_1) + h(1-PrOmega_1)
+                    h0 = h(PrOmega_0) + h(1-PrOmega_0)
+                    expected_entropy = pe*h0 + (1-pe)*h1
                 if local_maxima is not None:
                     if H0 - expected_entropy > H0 - local_maxima[1]:
                         # DeltaHe = H0 - expected_entropy
@@ -1466,3 +1506,4 @@ class ApproximateAlgorithm:
         self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
         self.algostat['history_deltaH'] = history
         return E,self.algostat['result']['H*'], self.algostat['result']['H0']- self.algostat['result']['H*']
+        # Test: python reduce_main_crowd.py -k 1 -pr reach -a greedy -ea mcbfs -d products -q data/queries/products/products_2.queries -cr data/large/crowd/product_pair.true -mq 1 -dh 0 &

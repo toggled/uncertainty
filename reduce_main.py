@@ -30,7 +30,7 @@ parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, ma
 
 opt_N_dict = {
     'ER_15_22': 
-        {'reach': 11, 'sp': 26, 'tri': 6},
+        {'reach': 161, 'sp': 286, 'tri': 466},
     'biomine': {'reach': 171},
     'flickr': {'tri': 76},
     'papers': {'reach': 71},

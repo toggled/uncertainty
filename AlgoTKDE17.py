@@ -61,11 +61,10 @@ ZERO = 10**(-13)
 # p_min , p_max = 0.2,0.75 # According to the paper
 # h = lambda x: [0,-x*log2(x)][x!=0]
 def h(x):
-    if abs(x) <= ZERO:
+    absx = abs(x)
+    if absx <= ZERO:
         return 0
-    elif x <=0:
-        return 0
-    elif x>=1:
+    elif (1-absx) <= ZERO:
         return 0
     else:
         try:
