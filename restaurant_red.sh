@@ -6,8 +6,8 @@ T=6
 NT=$((N*T))
 NT_array=($((NT/4)) $((NT/2)) $((NT)) $((NT*2)) $((NT*4)) $((NT*8)) $((NT*16)) $((NT*32)))
 low=1
-high=851
-incr=$((85*2))
+high=85
+incr=$((8*2))
 arr=( $(seq $low $incr $high) )
 # for k in {5..50..$end}; do
 for k in "${arr[@]}"; do
@@ -24,7 +24,7 @@ for k in "${arr[@]}"; do
       python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/restaurant_pair.true -u c2 -mq 10 -dh 0 &
    #    #----
    done
-   python reduce_main_crowd.py -k $k  -pr reach  -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/restaurant_pair.true -mq 10 -dh 0 &
-   python reduce_main_crowd.py -k $k  -pr reach  -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/restaurant_pair.true -mq 10 -dh 0 &
+   # python reduce_main_crowd.py -k $k  -pr reach  -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/restaurant_pair.true -mq 10 -dh 0 &
+   # python reduce_main_crowd.py -k $k  -pr reach  -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/restaurant_pair.true -mq 10 -dh 0 &
 done
 #######################
