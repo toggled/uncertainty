@@ -22,7 +22,7 @@ for k in {1..2}; do
    python reduce_main.py -k $k -pr reach -a greedy -ea $ea -d ER_15_22 -q data/queries/ER/ER_15_22_4.queries &
 done
 
-for k in {1..2}; do
-   python reduce_main.py -k $k  -pr reach -a exact -d ER_15_22 -q data/queries/ER/ER_15_22_2.queries &
-   python reduce_main.py -k $k  -pr reach -a exact -d ER_15_22 -q data/queries/ER/ER_15_22_4.queries &
-done
+# for k in {1..2}; do
+#    python reduce_main.py -k $k  -pr reach -a exact -d ER_15_22 -q data/queries/ER/ER_15_22_2.queries &
+#    python reduce_main.py -k $k  -pr reach -a exact -d ER_15_22 -q data/queries/ER/ER_15_22_4.queries &
+# done
