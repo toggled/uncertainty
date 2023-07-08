@@ -11,7 +11,7 @@ for k in {1..2}; do
    for K in "${NT_array[@]}"; do
       python reduce_main.py -k $k  -pr reach  -a greedymem -K $K -ea $ea -d ER_15_22 -q data/queries/ER/ER_15_22_2.queries &
       # python reduce_main.py -k $k  -pr reach  -a greedymem -K $K -ea exact -d ER_15_22 -q data/queries/ER/ER_15_22_2.queries &
-      python reduce_main.py -k $k  -pr reach  -a greedymem -K $K -ea $ea -d ER_15_22 -q data/queries/ER/ER_15_22_4.queries &
+      # python reduce_main.py -k $k  -pr reach  -a greedymem -K $K -ea $ea -d ER_15_22 -q data/queries/ER/ER_15_22_4.queries &
       # python reduce_main.py -k $k  -pr reach  -a greedymem -K $K -ea exact -d ER_15_22 -q data/queries/ER/ER_15_22_4.queries &
       # python reduce_main.py -k $k -K $K -pr reach -a greedy -ea mcbfs -d ER_15_22 -q data/queries/ER/ER_15_22_2.queries &
       # python reduce_main.py -k $k -K $K -pr reach -a greedy -ea exact -d ER_15_22 -q data/queries/ER/ER_15_22_2.queries &
@@ -19,7 +19,7 @@ for k in {1..2}; do
       # python reduce_main.py -k $k -K $K -pr reach -a greedy -ea exact -d ER_15_22 -q data/queries/ER/ER_15_22_4.queries 
    done
    python reduce_main.py -k $k -pr reach -a greedy -ea $ea -d ER_15_22 -q data/queries/ER/ER_15_22_2.queries &
-   python reduce_main.py -k $k -pr reach -a greedy -ea $ea -d ER_15_22 -q data/queries/ER/ER_15_22_4.queries &
+   # python reduce_main.py -k $k -pr reach -a greedy -ea $ea -d ER_15_22 -q data/queries/ER/ER_15_22_4.queries &
 done
 
 # for k in {1..2}; do
