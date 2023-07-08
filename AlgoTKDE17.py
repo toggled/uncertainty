@@ -12,6 +12,7 @@ from src.algorithm import ApproximateAlgorithm
 import random
 from math import log2
 from networkx.exception import NetworkXNoPath
+from itertools import combinations
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dataset", type=str, default="default")
@@ -212,29 +213,34 @@ def doCleanto0(e_star,probGraph):
 def doCleanto1(e_star,probGraph):
     probGraph.update_edge_prob(u = e_star[0],v = e_star[1], prob = 1)
         
-def find_e_adaptive(G, s, t, d, e_clean, probGraph= None): #Algorithm 2 of the paper (Greedy variant)
+# Single edge selection, single query-pair
+def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph= None): #Algorithm 2 of the paper (Greedy variant)
     # Single-edge selection among the candidates e_clean
     Uq = compute_qual_improve_UQ(G,s,t,d,e_clean,probGraph)
     descending_uq = sorted(list(zip(e_clean,Uq)),reverse=True, key=lambda x: x[1])
     eqmax = -10000000
     estar = None
     # print('Uq = ',Uq)
-    for i in range(len(Uq)):
+    for i in range(len(Uq)): # Simulating the loop over heap, 1st element e,second elemnet Upper bound UQ[e]
         # print(i)
-        if descending_uq[i][1]<eqmax:
+        if descending_uq[i][1]<eqmax: 
             return descending_uq[i][0]
         else:
-            Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
-            e = descending_uq[i][0]
-            p_e = probGraph.edict[(e[0],e[1])]
-            pg1 = deepcopy(probGraph)
-            doCleanto1(e,pg1)
-            R_st_d_c1 = compute_approx_reach(s,t,d,probGraph=pg1)
-            doCleanto0(e,pg1)
-            R_st_d_c0 = compute_approx_reach(s,t,d,probGraph=pg1)
-            Q_st_d_c1 = h(R_st_d_c1) + h(1-R_st_d_c1)
-            Q_st_d_c0 = h(R_st_d_c0) + h(1-R_st_d_c0)
-            E_deltaQ_st_d = Q_st_d  - (p_e*Q_st_d_c1 + (1-p_e)*Q_st_d_c0)
+            e = descending_uq[i][0]  # pop from heap
+            e = (e[0],e[1])
+            E_deltaQ_st_d = 0
+            p_e = probGraph.edict[e]
+            for (s,t) in inf_set[e]:
+                Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
+                # e = descending_uq[i][0]
+                pg1 = deepcopy(probGraph)
+                doCleanto1(e,pg1)
+                R_st_d_c1 = compute_approx_reach(s,t,d,probGraph=pg1)
+                doCleanto0(e,pg1)
+                R_st_d_c0 = compute_approx_reach(s,t,d,probGraph=pg1)
+                Q_st_d_c1 = h(R_st_d_c1) + h(1-R_st_d_c1)
+                Q_st_d_c0 = h(R_st_d_c0) + h(1-R_st_d_c0)
+                E_deltaQ_st_d += (Q_st_d  - (p_e*Q_st_d_c1 + (1-p_e)*Q_st_d_c0))
             # print('i = ',i, ' E_deltaQ_st_d = ',E_deltaQ_st_d)
             if E_deltaQ_st_d > eqmax:
                 eqmax = E_deltaQ_st_d
@@ -274,6 +280,7 @@ if __name__=='__main__':
         probGraph = get_dataset(args.dataset)
         G = probGraph.get_weighted_graph_rep()
         queries = get_queries(queryfile = args.queryf,maxQ = args.maxquery)
+        nodes = G.nodes()
         # print(len(G.nodes), ' ',len(G.edges))
         # import sys
         # sys.exit(1)
@@ -286,14 +293,31 @@ if __name__=='__main__':
     # e_clean=[(3, 0, 1.0, 0.5),
     #           (0, 2, 1.0, 0.7),
     #           (1, 3, 1.0, 0.3)] #Edges to clean
-
+    influence_set = {}
+    ecl = []
+    for i,e in enumerate(probGraph.Edges): 
+        ecl.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
+    start_execution_time = time()
     for s,t in queries:
         # e_clean = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True) if e[2]['prob']<= p_max and e[2]['prob']>=p_min]
         # if args.verbose: print("Candidate edges: ", e_clean)
         index = {}
-        e_clean = []
-        for i,e in enumerate(probGraph.Edges): 
-            e_clean.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
+        # e_clean = deepcopy(ecl)
+        e_clean = ecl
+        for e in e_clean:
+            u,v = e[0],e[1]
+            length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
+            length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
+            for s,t in combinations(nodes,2):
+                dv_t = length_v_all[t]
+                dv_s = length_v_all[s]
+                dt_u = length_all_u[t]
+                ds_u = length_all_u[s]
+                uv_weight = e[2]
+                if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight+dt_u <= d):
+                    influence_set[(u,v)] = influence_set.get((u,v),[])
+                    influence_set[(u,v)].append((s,t))
+        print('length of influence set: ',len(influence_set))
         # s=3
         # t=2
         # s = 2
@@ -302,7 +326,6 @@ if __name__=='__main__':
         # budget=2
         if args.verbose: print('input: source = ',s,' target = ',t,' #hops <= ',d,' budget: ',budget)
         # print(G.nodes())
-        start_execution_time = time()
 
         #pruning strategy
         #pruning by reverse shortest path
@@ -336,7 +359,7 @@ if __name__=='__main__':
             # print('ro = ',r0)
             for k in range(args.budget):
                 print('selecting ',k,'-th edge')
-                e=find_e_adaptive(G, s, t, d, e_clean, probGraph=probGraph) 
+                e=find_e_adaptive(G, s, t, d, influence_set, e_clean, probGraph=probGraph) 
                 e = (e[0],e[1])
                 estar.append(e)
                 # print(e)
@@ -347,7 +370,7 @@ if __name__=='__main__':
                     index[edge] = i
                 # print(cr_dict)
                 # print(probGraph.edict)
-                probGraph.update_edge_prob(e[0],e[1],cr_dict[e])
+                probGraph.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
                 # probGraph.edict[e] = cr_dict[e]
                 G.remove_edge(*e)
         r_end = compute_approx_reach(s,t,d,probGraph=probGraph)
