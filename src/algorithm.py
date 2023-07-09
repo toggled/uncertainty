@@ -904,6 +904,7 @@ class ApproximateAlgorithm:
                         
     def measure_H0(self, property, algorithm, K, N = 1):
         if algorithm == 'exact':
+            self.Query.reset(self.G)
             self.Query.eval()
             H = self.Query.compute_entropy() # Initial entropy. Kept outside of time() because H0 is not needed in contr table and computed only for logging.
         elif algorithm == 'appr':

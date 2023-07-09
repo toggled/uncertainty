@@ -69,6 +69,7 @@ class Query:
 
     # @profile
     def eval(self,dontenumerateworlds=True):
+        print(self.qtype)
         """
         Given vertices u,v,w (some possibly None) as input, evaluates the query and 
         computes (world, value_of_the_property, prob) triplet for all possible worlds.

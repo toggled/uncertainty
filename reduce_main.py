@@ -29,6 +29,7 @@ parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, ma
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
 
 opt_N_dict = {
+    'default': {'reach': 10,'sp': 10},
     'ER_15_22': 
         {'reach': 161, 'sp': 286, 'tri': 466},
     'biomine': {'reach': 171},
@@ -38,6 +39,7 @@ opt_N_dict = {
     'restaurants': {'reach': 156}
 }
 opt_T_dict = {
+    'default': {'reach': 5,'sp':5},
     'ER_15_22': {'reach': 6, 'sp': 11, 'tri': 11},
     'biomine': {'reach': 10},
     'flickr': {'tri': 51},
@@ -50,7 +52,7 @@ opt_T_dict = {
 # python measure_main.py -d default -a appr -pr reach -s x -t u -N 10 -T 10
 args = parser.parse_args()
 os.environ['precomp'] = ''
-# os.environ['time_seed'] = 'True' # If we set this, each run will generate a different sequence of possible worlds from the previous run.
+os.environ['time_seed'] = 'True' # If we set this, each run will generate a different sequence of possible worlds from the previous run.
 dhopreach = [False,True][args.hop>0] 
 runProbTree = (args.algo == 'eappr' or args.algo.startswith('pT')) # True if load precomputed ProbTree subgraph
 print(args)
