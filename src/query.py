@@ -111,7 +111,8 @@ class Query:
                     self.possible_world_statistic[reachable] = self.possible_world_statistic.get(reachable,0) + 1
                     self.support_set.add(reachable)
                     self.evaluation_times.append(time()-start_tm)
-
+                print('#worlds: ', len(self.results))
+                print('Pr[omega] = ',self.get_distribution())
         if self.qtype == 'reach_d': # Reachability
                 u = self.u 
                 v = self.v
@@ -549,15 +550,14 @@ class Query:
         if (verbose):
             self.G = {} 
         # print(self.qtype)
-        # if 'time_seed' in os.environ:
-        #     # random.seed()
-        #     s = random.randint(0,1000000)
-        #     # s = 511458
-        #     # s = 482040
-        #     print('seed = ', s)
-        # else:
-        #     s = 1
-        s = None
+        if 'time_seed' in os.environ:
+            # random.seed()
+            s = random.randint(0,1000000)
+            # s = 511458
+            # s = 482040
+            print('seed = ', s)
+        else:
+            s = 1
         for e in self.p_graph.Edges:
             self.hatp[e] = 0
         if self.qtype == 'reach': # Reachability
