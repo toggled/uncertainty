@@ -69,7 +69,7 @@ class Query:
 
     # @profile
     def eval(self,dontenumerateworlds=True):
-        print(self.qtype)
+        # print(self.qtype)
         """
         Given vertices u,v,w (some possibly None) as input, evaluates the query and 
         computes (world, value_of_the_property, prob) triplet for all possible worlds.
@@ -111,8 +111,8 @@ class Query:
                     self.possible_world_statistic[reachable] = self.possible_world_statistic.get(reachable,0) + 1
                     self.support_set.add(reachable)
                     self.evaluation_times.append(time()-start_tm)
-                print('#worlds: ', len(self.results))
-                print('Pr[omega] = ',self.get_distribution())
+                # print('#worlds: ', len(self.results))
+                # print('Pr[omega] = ',self.get_distribution())
         if self.qtype == 'reach_d': # Reachability
                 u = self.u 
                 v = self.v
