@@ -6,7 +6,7 @@ ea="exact"
 NT=$((N*T))
 NT_array=($((NT/4)) $((NT/2)) $((NT)) $((NT*2)) $((NT*4)) $((NT*8)) $((NT*16)))
 # NT_array=($((NT/4)) $((NT/2)) $((NT)) $((NT*2)) $((NT*3)) $((NT*4)) $((NT*5)) $((NT*6)))
-for k in {1..2}; do
+for k in {2..2}; do
    # for i in {0..6}; do 
    #    K=$((2**i)); 
    for K in "${NT_array[@]}"; do
