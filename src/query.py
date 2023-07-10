@@ -694,10 +694,7 @@ class Query:
             if ej in self.index[i]:
                 # print('e_j in ', i)
                 # print(PrG[i], self.p_graph.edict[ej])
-                try:
-                    self.PrG[i] /= self.hatp[ej]
-                except ZeroDivisionError:
-                    self.PrG[i] = 1.0
+                self.PrG[i] /= self.hatp[ej]
             else:
                 self.flags[i] = False
                 # print('e_j not in ',i)
@@ -711,7 +708,9 @@ class Query:
         # self.PrG = PrG
         # self.PrG = {i: p/_sumPrG for i,p in PrG.items()}
         R = sum(self.flags) # # of possible worlds where e exists
-        print('# remaining non-zero worlds: ',R)
+        if R == 0:
+            return False 
+        # print('# remaining non-zero worlds: ',R)
         # update \hat{p}(e)
         for e in self.hatp:
             count_e = 0
@@ -732,11 +731,14 @@ class Query:
                 if self.flags[i]:
                     for e in self.hatp:
                         if e in self.index[i]:
-                            M[omega][e] = M[omega].get(e,0) + (self.PrG[i]/self.hatp[e])
+                            try:
+                                M[omega][e] = M[omega].get(e,0) + (self.PrG[i]/self.hatp[e])
+                            except: 
+                                M[omega][e] = M[omega].get(e,0)
                         else:
                             M[omega][e] = M[omega].get(e,0) + 0
 
-
+        return True 
     def adaptiveUpdateTables(self, ej, p_up, M1, M0):
         """ 
         Adaptive setting requires both M0 and M1 to be updated.
@@ -760,7 +762,9 @@ class Query:
                         self.PrG[i] /= (1- self.hatp[ej])
 
         R = sum(self.flags) # # of possible worlds where e exists
-        print('# remaining non-zero worlds: ',R)
+        # print('# remaining non-zero worlds: ',R)
+        if R==0:
+            return False 
         # update \hat{p}(e)
         for e in self.hatp:
             count_e = 0
@@ -803,6 +807,7 @@ class Query:
                                 M0[omega][e] = M0[omega].get(e,0)
                                 pass 
                                 # print(self.hatp[e],' ',self.hatp[e]*R)
+        return True 
 
 class wQuery(Query):
     """

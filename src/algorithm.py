@@ -337,7 +337,7 @@ class ApproximateAlgorithm:
     def __init__(self, g, query, debug = False) -> None:
         self.debug = debug
         self.algostat = {} 
-        self.G = g 
+        self.G = deepcopy(g) 
         assert isinstance(self.G, Graph)
         # assert isinstance(query, Query)
         self.Query = query
@@ -964,7 +964,10 @@ class ApproximateAlgorithm:
             # print('results: ',self.Query.results)
         # Calculate Pr_up^{e_j}(G_i) for all i,j
         self.compute_Pr_up(verbose = verbose)
+        can_reduce_further = True
         for iter in range(k):
+            if not can_reduce_further:
+                break 
             if (verbose):
                 print("Iteration: ",iter)
             # Start of Algorithm 4
@@ -1022,7 +1025,7 @@ class ApproximateAlgorithm:
             E.append(estar)
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
             if iter < k-1:
-                self.Query.updateTables(estar, self.Pr_up)
+                can_reduce_further = self.Query.updateTables(estar, self.Pr_up)
             else:
                 if self.debug:
                     self.Query.updateTables(estar, self.Pr_up)
@@ -1304,7 +1307,10 @@ class ApproximateAlgorithm:
         # Calculate Pr_up^{e_j}(G_i) for all i,j
         self.compute_Pr_up(verbose = verbose)
         self.compute_Pr_up_zero()
+        can_reduce_further = True 
         for iter in range(k):
+            if not can_reduce_further:
+                break 
             if (verbose):
                 print("Iteration: ",iter)
             # Start of Algorithm 4
@@ -1368,7 +1374,7 @@ class ApproximateAlgorithm:
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
             if update_type == 'c2':
                 if iter < k-1:
-                    self.Query.adaptiveUpdateTables(estar,update_dict[estar], self.Pr_up,self.Pr_up_0)
+                    can_reduce_further = self.Query.adaptiveUpdateTables(estar,update_dict[estar], self.Pr_up,self.Pr_up_0)
                 self.G.update_edge_prob(estar[0],estar[1],update_dict[estar])
                 # print('-',self.Query.PrG)
                 self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
