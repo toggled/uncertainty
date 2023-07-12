@@ -27,7 +27,7 @@ parser.add_argument("-db",'--debug', action = 'store_true')
 parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
 parser.add_argument("-th",'--trackH', action = 'store_true')
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
-
+save_dir = 'reduce_main'
 opt_N_dict = {
     'default': {'reach': 100,'sp': 100},
     'ER_15_22': 
@@ -121,7 +121,7 @@ def singleQuery_singleRun(G,Query):
     # print(a.algostat)
     # if args.verbose:
     #     G.plot_probabilistic_graph()
-    os.system('mkdir -p ureduct/')
+    os.system('mkdir -p '+save_dir)
     # result_fname = 'output/'+args.dataset +'_'+args.algo+"_"+args.utype+'.pkl'
     # save_dict(a.algostat, result_fname)
     output = {}
@@ -156,9 +156,9 @@ def singleQuery_singleRun(G,Query):
     if (not args.verbose and not args.debug):
         # csv_name = 'ureduct/res_k'+str(args.k)+'.csv'
         if args.queryf:
-            csv_name = 'ureduct/reduce_k_'+str(args.k)+"_K_"+str(args.K)+"_" + args.dataset + "_" + args.algo + "_" + Query.qtype + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
+            csv_name = save_dir+'/reduce_k_'+str(args.k)+"_K_"+str(args.K)+"_" + args.dataset + "_" + args.algo + "_" + Query.qtype + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
         else:
-            csv_name = 'ureduct/res_k'+str(args.k)+'.csv'
+            csv_name = save_dir+'/res_k'+str(args.k)+'.csv'
         if os.path.exists(csv_name):
             result_df = pd.read_csv(csv_name)
         else:
