@@ -39,14 +39,14 @@ for k in "${arr[@]}"; do
       # ----
       python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/product_pair.true -mq 10 -dh 0 &
       python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/product_pair.true -u c2 -mq 10 -dh 0 &
-      # python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/product_pair.true -mq 10 -dh 0 &
-      # python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/product_pair.true -u c2 -mq 10 -dh 0 &
+      python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/product_pair.true -mq 10 -dh 0 &
+      python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/product_pair.true -u c2 -mq 10 -dh 0 &
       # python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_6.queries" -cr data/large/crowd/product_pair.true -mq 10 -dh 0 &
       # python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_6.queries" -cr data/large/crowd/product_pair.true -u c2 -mq 10 -dh 0 &
       # ----
    done
-   python reduce_main_crowd.py -k $k -pr reach -a greedy -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/product_pair.true -mq 10 -dh 0 &
-   python reduce_main_crowd.py -k $k -pr reach -a greedy -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/product_pair.true -u c2 -mq 10 -dh 0 &
+   # python reduce_main_crowd.py -k $k -pr reach -a greedy -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/product_pair.true -mq 10 -dh 0 &
+   # python reduce_main_crowd.py -k $k -pr reach -a greedy -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/product_pair.true -u c2 -mq 10 -dh 0 &
    # python reduce_main_crowd.py -k $k -pr reach -a greedy -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/product_pair.true -mq 10 -dh 0 &
    # python reduce_main_crowd.py -k $k -pr reach -a greedy -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/product_pair.true -u c2 -mq 10 -dh 0 &
    # python reduce_main_crowd.py -k $k -pr reach -a greedy -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_6.queries" -cr data/large/crowd/product_pair.true -mq 10 -dh 0 &

@@ -280,6 +280,7 @@ class Query:
     def compute_entropy(self, base = 2):
         """ Given a base for logarithm, returns the entropy of the Property_value distribution. """
         # print('distr: ',self.get_distribution())
+        # print('edict: ',self.p_graph.edict)
         if str(base) == 'e':
             return entropy([j for i,j in self.get_distribution()])
         return entropy([j for i,j in self.get_distribution()], base = base)
@@ -555,6 +556,8 @@ class Query:
             s = random.randint(0,1000000)
             # s = 511458
             # s = 482040
+            # s = 936663
+            # s = 652738
             print('seed = ', s)
         else:
             s = 1
@@ -688,19 +691,23 @@ class Query:
         # PrG = deepcopy(self.PrG)
         # _sumPrG = 0
         # Re-indexing
-        
+        # print('e_j = ',ej, '\hat{p}(e_j) = ',self.hatp[ej])
         for i in self.index:
             # print(i,'-- ',self.index[i])
-            if ej in self.index[i]:
-                # print('e_j in ', i)
-                # print(PrG[i], self.p_graph.edict[ej])
-                self.PrG[i] /= self.hatp[ej]
-            else:
-                self.flags[i] = False
-                # print('e_j not in ',i)
-                # PrG[i] = self.PrG[i] * (1-p_up_e) / (1-self.p_graph.edict[ej])
-                self.PrG[i] = 0
-                # pass
+            if self.flags[i]:
+                if ej in self.index[i]:
+                    # print('e_j in ', i)
+                    # print(PrG[i], self.p_graph.edict[ej])
+                    # try:
+                    self.PrG[i] /= self.hatp[ej]
+                    # except:
+                    #     self.PrG[i] = 1
+                else:
+                    self.flags[i] = False
+                    # print('e_j not in ',i)
+                    # PrG[i] = self.PrG[i] * (1-p_up_e) / (1-self.p_graph.edict[ej])
+                    self.PrG[i] = 0
+                    # pass
             # print('PrG[i]: ',PrG[i])
             # _sumPrG += PrG[i]
         # print('Pr: ',self.PrG)
@@ -708,9 +715,9 @@ class Query:
         # self.PrG = PrG
         # self.PrG = {i: p/_sumPrG for i,p in PrG.items()}
         R = sum(self.flags) # # of possible worlds where e exists
+        # print('# remaining non-zero worlds: ',R)
         if R == 0:
             return False 
-        # print('# remaining non-zero worlds: ',R)
         # update \hat{p}(e)
         for e in self.hatp:
             count_e = 0

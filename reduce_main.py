@@ -25,11 +25,11 @@ parser.add_argument('-b','--bucketing',type = int, help='Whether to compute buck
 parser.add_argument("-dh",'--hop',type = int, default = -1) # <d-hop reach
 parser.add_argument("-db",'--debug', action = 'store_true')
 parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
-
+parser.add_argument("-th",'--trackH', action = 'store_true')
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
 
 opt_N_dict = {
-    'default': {'reach': 10,'sp': 10},
+    'default': {'reach': 100,'sp': 100},
     'ER_15_22': 
         {'reach': 161, 'sp': 286, 'tri': 466},
     'biomine': {'reach': 171},
@@ -39,7 +39,7 @@ opt_N_dict = {
     'restaurants': {'reach': 156}
 }
 opt_T_dict = {
-    'default': {'reach': 5,'sp':5},
+    'default': {'reach': 10,'sp':10},
     'ER_15_22': {'reach': 6, 'sp': 11, 'tri': 11},
     'biomine': {'reach': 10},
     'flickr': {'tri': 51},
@@ -105,12 +105,12 @@ def singleQuery_singleRun(G,Query):
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
         a.greedy(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
                      N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
-                     update_type=args.utype, verbose = args.verbose)
+                     update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
     elif args.algo == 'greedymem': #
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 
                      N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
-                    update_type=args.utype, verbose = args.verbose)
+                    update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
     # elif args.algo == 'greedymem_re':
     #     raise ValueError("do not use this option.")
     #     a = ApproximateAlgorithm(G,Query)

@@ -37,9 +37,9 @@ opt_N_dict = {
     'biomine': {'reach': None},
     'flickr': {'tri': 76},
     'rome': {'sp': 96},
-    'papers': {'reach': 50},
-    'products': {'reach': 50},
-    'restaurants': {'reach': 50}
+    'papers': {'reach': 71},
+    'products': {'reach': 46},
+    'restaurants': {'reach': 156}
 }
 opt_T_dict = {
     'default': {'reach':10},
@@ -47,9 +47,9 @@ opt_T_dict = {
     'biomine': {'reach': 10},
     'flickr': {'tri': 51},
     'rome': {'sp': 11},
-    'papers': {'reach':50},
-    'products': {"reach": 30},
-    'restaurants': {'reach': 30}
+    'papers': {'reach':10},
+    'products': {"reach": 4},
+    'restaurants': {'reach': 6}
 }
 cr_dict = {}
 T = opt_T_dict[args.dataset]['reach']

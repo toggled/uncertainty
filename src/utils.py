@@ -2,6 +2,7 @@ from src.graph import UGraph,UMultiGraph
 import networkx as nx 
 from matplotlib import pyplot as plt
 import pickle
+from math import log2
 
 # num_nodes = {'ER_15_22': ,\
 #              'flickr': ,\
@@ -176,3 +177,17 @@ def save_ugraph(ugraph, fname='temp/graph.pkl'):
 
 def load_ugraph(fname = 'temp/graph.pkl'):
     return load_dict(fname)
+
+ZERO = 10**(-13)
+def h(x):
+    absx = abs(x)
+    if absx <= ZERO:
+        return 0
+    elif (1-absx) <= ZERO:
+        return 0
+    else:
+        try:
+            p = log2(x)
+        except:
+            print(x)
+    return -x*log2(x)
