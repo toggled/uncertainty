@@ -958,10 +958,10 @@ class ApproximateAlgorithm:
         E = []
         if (verbose):
             print('H0: ',self.algostat['result']['H0'])
-            print('p(e): ',self.G.edict)
+            # print('p(e): ',self.G.edict)
             print('\hatp(e): ',self.Query.hatp)
             print('Pr[G]: ',self.Query.PrG)
-            print('G: ',self.Query.G)
+            # print('G: ',self.Query.G)
             # print('Pr[Omega]: ', self.Query.freq_distr)
             # print('results: ',self.Query.results)
         # Calculate Pr_up^{e_j}(G_i) for all i,j
@@ -997,7 +997,7 @@ class ApproximateAlgorithm:
                 # print('Jacobian: ', DelPr_Omega_pe)
                 print('Pr[Omega]: ',Pr_Omega)
                 print("Pr_up[Omega]: ",self.Pr_up)
-                print('Gsums: ',self.Gsums)
+                # print('Gsums: ',self.Gsums)
             # local_maxima = None 
             minima = []
             candidates = []
@@ -1047,6 +1047,9 @@ class ApproximateAlgorithm:
                 candidates.append(e)
             minima_index = np.argmin(minima)
             if verbose: print(minima_index," : ",minima[minima_index])
+            multiple_minima = np.where(minima[minima_index] == minima)[0]
+            if verbose and len(multiple_minima)>1: 
+                print('multiple candidates: ', candidates[multiple_minima])
             # print(len(Estar),' ',len(minima))
             local_maxima = (candidates[minima_index],H0_i - minima[minima_index])
             if verbose: print('e*: ',local_maxima[0],' DeltaH2[e]: ',local_maxima[1])
@@ -1072,7 +1075,7 @@ class ApproximateAlgorithm:
 
             self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
             # print('-',self.Query.PrG)
-            self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
+            self.Query.reset(self.G)    # Re-initialise Query() with updated UGraph()  
             if track_H:
                 history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N)) 
             # print('=',self.Query.PrG)         
@@ -1086,7 +1089,9 @@ class ApproximateAlgorithm:
         if verbose: print('history_Hk = ',history_Hk)
         h0_hkhat = self.algostat['result']['H0'] - history_Hk
         min_hkhat = np.argmin(history_Hk)
-        largest_minima_index = np.where(history_Hk[min_hkhat] == history_Hk)[0][-1]
+        minima_index_list = np.where(history_Hk[min_hkhat] == history_Hk)[0]
+        if verbose and len(minima_index_list)>1: print('>1 minima: ', minima_index_list,' ',history_Hk[minima_index_list])
+        largest_minima_index = minima_index_list[-1]
         if verbose: print('argmin \hat{H}_k= ',min_hkhat, '. \hat{H}_k* = ',history_Hk[largest_minima_index])
         
         for i in range(largest_minima_index+1,len(E)):
@@ -1225,6 +1230,8 @@ class ApproximateAlgorithm:
         H0 = self.measure_H0(property,algorithm,T, N)
         self.algostat['result']['H0'] = H0
         E = []
+        history_Hk = []
+        previous_pe = []
         if (verbose):
             print('H0: ',H0)
             print('p(e): ',self.G.edict)
@@ -1232,10 +1239,12 @@ class ApproximateAlgorithm:
             # print('results: ',self.Query.results)
         for i in range(k):
             # print('iteration: ',i)
-            local_maxima = None 
+            # local_maxima = None 
             if (verbose):
                 print('Selecting edge#: ',i+1)
             # Estar= [Ecand[i]]
+            minima = []
+            candidates = []
             for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest reduction in Entropy
                 g_copy = deepcopy(self.G)
                 # if (verbose):
@@ -1253,19 +1262,26 @@ class ApproximateAlgorithm:
                 #     print('Pr[Omega]: ', self.Query.freq_distr)
                 #     # print('results: ',self.Query.results)
                 # Hi = self.Query.compute_entropy()
-                Hi = self.measure_H0(property, algorithm, T, N)
-                if local_maxima:
-                    if H0 -  Hi > H0 - local_maxima[1]:
-                        local_maxima = (e, Hi)
-                        # if (verbose):
-                        #     print('new maxima: ',local_maxima)
-                else:
-                    local_maxima = (e, Hi)
+                H_up = self.measure_H0(property, algorithm, T, N)
+                minima.append(H_up)
+                candidates.append(e)
+                # if local_maxima:
+                #     if H0 -  H_up > H0 - local_maxima[1]:
+                #         local_maxima = (e, H_up)
+                #         # if (verbose):
+                #         #     print('new maxima: ',local_maxima)
+                # else:
+                #     local_maxima = (e, H_up)
                     # if (verbose):
                     #     print('initial maxima: ',local_maxima)
-                # print('e: ',e,' \Delta H = ', H0-Hi, ' H0:', H0, ' H_next: ',Hi)
+                # print('e: ',e,' \Delta H = ', H0-H_up, ' H0:', H0, ' H_next: ',H_up)
+            minima_index = np.argmin(minima)
+            multiple_minima = np.where(minima[minima_index] == minima)[0]
+            local_maxima = (candidates[minima_index],H0 - minima[minima_index])
             estar = local_maxima[0] # assign e*
             H0 = local_maxima[1] # Assign H0 for the next iteration.
+            history_Hk.append(minima[minima_index])
+            previous_pe.append(self.G.edict[estar])
             E.append(estar)
             # if (verbose):
             #     print('e* = ',estar)
@@ -1277,11 +1293,26 @@ class ApproximateAlgorithm:
             # if (verbose):
             #     self.Query.eval()
             #     print('Entropy of Updated UGraph: ',self.Query.compute_entropy())
-
-        self.algostat['execution_time'] = time() - start_execution_time
+        history_Hk = np.array(history_Hk)
+        if verbose: print('history_Hk = ',history_Hk)
+        h0_hkhat = self.algostat['result']['H0'] - history_Hk # H0-\hat{H}_k
+        
+        min_hkhat = np.argmin(history_Hk)
+        minima_index_list = np.where(history_Hk[min_hkhat] == history_Hk)[0]
+        if verbose and len(minima_index_list)>1: print('>1 minima: ', minima_index_list,' ',history_Hk[minima_index_list])
+        largest_minima_index = minima_index_list[-1]
+        if verbose: print('argmin \hat{H}_k= ',min_hkhat, '. \hat{H}_k* = ',history_Hk[largest_minima_index])
+        
+        for i in range(largest_minima_index+1,len(E)):
+            self.Query.p_graph.update_edge_prob(E[i][0],E[i][1],previous_pe[i])
+        E = E[:largest_minima_index+1] # Take edges until the argmax min(H_1,H_2,..,H_k)
+        if verbose: print('H0-\hat{H}k: ',h0_hkhat)
+        
+        e_tm = time() - start_execution_time
         self.algostat['MCalgo'] = algorithm
         self.algostat['result']['edges'] = E
         self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N)
+        self.algostat['execution_time']= e_tm
         self.algostat['support'] = ''
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
         self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])

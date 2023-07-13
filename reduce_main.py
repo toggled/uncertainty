@@ -27,7 +27,8 @@ parser.add_argument("-db",'--debug', action = 'store_true')
 parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
 parser.add_argument("-th",'--trackH', action = 'store_true')
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
-save_dir = 'reduce_main'
+# save_dir = 'reduce_main'
+save_dir = 'ureduct'
 opt_N_dict = {
     'default': {'reach': 100,'sp': 100},
     'ER_15_22': 
