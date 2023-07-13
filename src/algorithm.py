@@ -1580,10 +1580,10 @@ class ApproximateAlgorithm:
                 self.G.update_edge_prob(estar[0],estar[1],update_dict[estar])
                 self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
                 # history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N)) 
-                if update_dict[estar] == 0:
-                    H0 = h0 # H0 for the edge selection
-                else:
-                    H0 = h1 # H0 for next edge selection
+                # if update_dict[estar] == 0:
+                #     H0 = h0 # H0 for the edge selection
+                # else:
+                #     H0 = h1 # H0 for next edge selection
 
         if update_type == 'c1':
             for e in E:

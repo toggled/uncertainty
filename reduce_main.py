@@ -33,6 +33,8 @@ opt_N_dict = {
     'default': {'reach': 100,'sp': 100},
     'ER_15_22': 
         {'reach': 161, 'sp': 286, 'tri': 466},
+    'ER_15_22p': 
+        {'reach': 161, 'sp': 286, 'tri': 466},
     'biomine': {'reach': 171},
     'flickr': {'tri': 76},
     'papers': {'reach': 71},
@@ -42,6 +44,7 @@ opt_N_dict = {
 opt_T_dict = {
     'default': {'reach': 10,'sp':10},
     'ER_15_22': {'reach': 6, 'sp': 11, 'tri': 11},
+    'ER_15_22p': {'reach': 6, 'sp': 11, 'tri': 11},
     'biomine': {'reach': 10},
     'flickr': {'tri': 51},
     'papers': {'reach': 10},
