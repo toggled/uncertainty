@@ -21,7 +21,7 @@ dataset='products'
 N=46
 T=4
 NT=$((N*T))
-NT_array=($((NT/4)) $((NT/2)) $((NT)) $((NT*2)) $((NT*4)) $((NT*8)) $((NT*16)))
+NT_array=($((NT/4)) $((NT/2)) $((NT)) $((NT*2)) $((NT*4)) $((NT*8)))
 low=1
 high=37
 incr=$((3*2))
@@ -42,8 +42,8 @@ for k in "${arr[@]}"; do
       python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/product_pair.true -u c2 -mq $mq -dh 0 &
       python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/product_pair.true -mq $mq -dh 0 &
       python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/product_pair.true -u c2 -mq $mq -dh 0 &
-      # python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_6.queries" -cr data/large/crowd/product_pair.true -mq $mq -dh 0 &
-      # python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_6.queries" -cr data/large/crowd/product_pair.true -u c2 -mq $mq -dh 0 &
+      python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_6.queries" -cr data/large/crowd/product_pair.true -mq $mq -dh 0 &
+      python reduce_main_crowd.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_6.queries" -cr data/large/crowd/product_pair.true -u c2 -mq $mq -dh 0 &
       # ----
    done
    # python reduce_main_crowd.py -k $k -pr reach -a greedy -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/product_pair.true -mq $mq -dh 0 &
