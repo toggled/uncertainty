@@ -299,13 +299,9 @@ if __name__=='__main__':
     for i,e in enumerate(probGraph.Edges): 
         ecl.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
     start_execution_time = time()
-    for s,t in queries:
-        # e_clean = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True) if e[2]['prob']<= p_max and e[2]['prob']>=p_min]
-        # if args.verbose: print("Candidate edges: ", e_clean)
-        # index = {}
-        # e_clean = deepcopy(ecl)
-        e_clean = ecl
-        for e in e_clean:
+    if_file = args.dataset+'.if'
+    if not os.path.isfile(if_file):
+        for e in ecl:
             u,v = e[0],e[1]
             length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
             length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
@@ -318,6 +314,15 @@ if __name__=='__main__':
                 if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight+dt_u <= d):
                     influence_set[(u,v)] = influence_set.get((u,v),[])
                     influence_set[(u,v)].append((_s,_t))
+        save_dict(influence_set,if_file)
+    else:
+        influence_set = load_dict(if_file)
+    for s,t in queries:
+        # e_clean = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True) if e[2]['prob']<= p_max and e[2]['prob']>=p_min]
+        # if args.verbose: print("Candidate edges: ", e_clean)
+        # index = {}
+        # e_clean = deepcopy(ecl)
+        e_clean = ecl
         print('(',s,t,'): length of influence set: ',len(influence_set))
         # s=3
         # t=2
