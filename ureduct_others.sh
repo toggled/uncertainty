@@ -19,6 +19,7 @@ for k in "${arr[@]}"; do
    python reduce_main.py -k $k  -pr reach  -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -mq $mq &
    python reduce_main.py -k $k  -pr reach  -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -mq $mq &
 done
+####################
 dataset='products'
 N=46
 T=4
@@ -34,7 +35,7 @@ for k in "${arr[@]}"; do
       python reduce_main.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -mq $mq &
       python reduce_main.py -k $k -K $K -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -mq $mq &
    done
-   python reduce_main.py -k $k  -pr reach  -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -mq $mq &
-   python reduce_main.py -k $k  -pr reach  -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -mq $mq &
+   python reduce_main.py -k $k -pr reach -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -mq $mq &
+   python reduce_main.py -k $k -pr reach -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -mq $mq &
 done
 #######################

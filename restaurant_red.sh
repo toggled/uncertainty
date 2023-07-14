@@ -3,6 +3,7 @@
 dataset='restaurants'
 N=156
 T=6
+mq=10
 NT=$((N*T))
 NT_array=($((NT/4)) $((NT/2)) $((NT)) $((NT*2)) $((NT*4)) $((NT*8)))
 low=1
