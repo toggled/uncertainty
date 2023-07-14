@@ -358,7 +358,7 @@ if __name__=='__main__':
             H0 = h(r0) + h(1-r0)
             # print('ro = ',r0)
             for k in range(args.budget):
-                print('selecting ',k,'-th edge')
+                # print('selecting ',k,'-th edge')
                 e=find_e_adaptive(G, s, t, d, influence_set, e_clean,probGraph) 
                 e_clean.remove(e)
                 e = (e[0],e[1])
@@ -423,8 +423,8 @@ if __name__=='__main__':
         else:
             os.system('mkdir -p CRureduct/')
             result_df = pd.DataFrame()
-        print(output)
+        # print(output)
         result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
         print(result)
-    # result.to_csv(csv_name, header=True, index=False)
+        result.to_csv(csv_name, header=True, index=False)
 # python AlgoTKDE17.py -d test -s 2 -t 3 -maxd 3 -b 2
