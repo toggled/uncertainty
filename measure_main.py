@@ -49,6 +49,7 @@ def singleRun(G,Query, save = True):
     elif (args.algo == 'appr' or args.algo=='eappr'):
         a = ApproximateAlgorithm(G,Query)
         a.measure_uncertainty(N=args.N, T = args.T)
+        a.algostat['algorithm'] = ['MC','PT-MC'][args.algo=='eappr']
 
     elif (args.algo == 'mcbfs' or args.algo == 'pTmcbfs'):
         a = ApproximateAlgorithm(G,Query)
@@ -195,5 +196,4 @@ else: # Run algorithms for all the queries
                 os.system('mkdir -p '+os.environ["precomp"])
                 print('precomputed support value location: ',os.environ['precomp'])  
             singleRun(G, Query)
-
             Query.clear()

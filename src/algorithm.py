@@ -906,7 +906,7 @@ class ApproximateAlgorithm:
     def measure_H0(self, property, algorithm, K, N = 1):
         if algorithm == 'exact':
             # print('exact')
-            self.Query.reset(self.G)
+            # self.Query.reset(self.G)
             self.Query.eval()
             H = self.Query.compute_entropy() # Initial entropy. Kept outside of time() because H0 is not needed in contr table and computed only for logging.
         elif algorithm == 'appr':
@@ -1046,6 +1046,12 @@ class ApproximateAlgorithm:
                 minima.append(H_up)
                 candidates.append(e)
             minima_index = np.argmin(minima)
+            if verbose:
+                top_k = np.argsort(minima)
+                print('Round ',iter,' : ')
+                for i,j in zip(np.array(minima)[top_k],np.array(candidates)[top_k]):
+                    print(j,' => ',i)
+                print('Selected edge: ',candidates[minima_index])
             if verbose: print(minima_index," : ",minima[minima_index])
             multiple_minima = np.where(minima[minima_index] == minima)[0]
             if verbose and len(multiple_minima)>1: 
@@ -1275,6 +1281,11 @@ class ApproximateAlgorithm:
                     # if (verbose):
                     #     print('initial maxima: ',local_maxima)
                 # print('e: ',e,' \Delta H = ', H0-H_up, ' H0:', H0, ' H_next: ',H_up)
+            # if verbose: print('H_up : ',minima,'\n\r candidates: ',candidates)
+            if verbose:
+                print('Round ',i,' : ')
+                for x,y in zip(minima,candidates):
+                    print(y,' => ',x)
             minima_index = np.argmin(minima)
             multiple_minima = np.where(minima[minima_index] == minima)[0]
             local_maxima = (candidates[minima_index],H0 - minima[minima_index])
@@ -1283,8 +1294,8 @@ class ApproximateAlgorithm:
             history_Hk.append(minima[minima_index])
             previous_pe.append(self.G.edict[estar])
             E.append(estar)
-            # if (verbose):
-            #     print('e* = ',estar)
+            if (verbose):
+                print('e* = ',estar)
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
             self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
@@ -1382,6 +1393,8 @@ class ApproximateAlgorithm:
         self.compute_Pr_up(verbose = verbose)
         self.compute_Pr_up_zero()
         can_reduce_further = True 
+        history_Hk = []
+        previous_pe = []
         for iter in range(k):
             if not can_reduce_further:
                 break 
@@ -1393,6 +1406,7 @@ class ApproximateAlgorithm:
             Pr_Omega = {}
             for omega in self.Query.phiInv:
                 Pr_Omega[omega] = sum([self.Query.PrG[i] for i in self.Query.phiInv[omega]])
+            H0_i = entropy([j for i,j in Pr_Omega.items()], base = 2)
             if self.debug: print('Pr[omega]: ',Pr_Omega)
             if self.debug:  print("M before update: \n\r",self.Pr_up)
             if self.debug:  M = deepcopy(self.Pr_up)#; print(M)
@@ -1407,16 +1421,18 @@ class ApproximateAlgorithm:
                 print('Pr[Omega]: ',Pr_Omega)
                 print("Pr_up[Omega]: ",self.Pr_up)
                 print('Gsums: ',self.Gsums)
-            local_maxima = None 
+            # local_maxima = None 
+            minima = []
+            candidates = []
             for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
                 DeltaHe2 = 0 # H - H^{e}_{up}
                 H_up = 0
                 p_e = self.G.edict[e]
                 for omega in self.Query.phiInv:
-                    if Pr_Omega[omega] == 0:
-                        h0 = 0
-                    else:
-                        h0 = log2(Pr_Omega[omega])*Pr_Omega[omega]
+                    # if Pr_Omega[omega] == 0:
+                    #     h0 = 0
+                    # else:
+                    #     h0 = log2(Pr_Omega[omega])*Pr_Omega[omega]
 
                     if self.Pr_up[omega].get(e,0) == 0:
                         h1 = 0
@@ -1427,25 +1443,30 @@ class ApproximateAlgorithm:
                     else:
                         h2 = (1-p_e)*log2(self.Pr_up_0[omega][e])*self.Pr_up_0[omega][e]
                     expected_entropy = h1 + h2
-                    DeltaHe2 += (expected_entropy - h0)
+                    # DeltaHe2 += (expected_entropy - h0)
                     H_up += -expected_entropy
-                    
+                minima.append(H_up)
+                candidates.append(e)
                 # if verbose:
                 if self.debug:
                     print('H_up^e', e,' -> ',H_up)
-                    print('e: ',e,' DeltaH2[e]: ',DeltaHe2)
+                    # print('e: ',e,' DeltaH2[e]: ',DeltaHe2)
                     # print('H_next [',e,']: ', self.algostat['result']['H0'] + DeltaHe2)
                 
-                if local_maxima is not None:
-                    if DeltaHe2 > local_maxima[1]:
-                        local_maxima = (e,DeltaHe2)
-                else:
-                   local_maxima = (e,DeltaHe2)
+                # if local_maxima is not None:
+                #     if DeltaHe2 > local_maxima[1]:
+                #         local_maxima = (e,DeltaHe2)
+                # else:
+                #    local_maxima = (e,DeltaHe2)
+            minima_index = np.argmin(minima)
+            local_maxima = (candidates[minima_index],H0_i - minima[minima_index])
             if verbose: print('e*: ',local_maxima[0],' DeltaH2[e]: ',local_maxima[1])
             estar = local_maxima[0] # assign e*
             # End of Algorithm 4
             E.append(estar)
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
+            history_Hk.append(minima[minima_index])
+            previous_pe.append(self.G.edict[estar])
             if update_type == 'c2':
                 if iter < k-1:
                     can_reduce_further = self.Query.adaptiveUpdateTables(estar,update_dict[estar], self.Pr_up,self.Pr_up_0)
@@ -1462,7 +1483,13 @@ class ApproximateAlgorithm:
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
             if track_H:
                 history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
-
+        history_Hk = np.array(history_Hk)
+        min_hkhat = np.argmin(history_Hk)
+        minima_index_list = np.where(history_Hk[min_hkhat] == history_Hk)[0]
+        largest_minima_index = minima_index_list[-1]
+        for i in range(largest_minima_index+1,len(E)):
+            self.Query.p_graph.update_edge_prob(E[i][0],E[i][1],previous_pe[i])
+        E = E[:largest_minima_index+1]
         e_tm = time() - start_execution_time
         self.algostat['algorithm'] = 'greedy+mem'
         self.algostat['MCalgo'] = algorithm
