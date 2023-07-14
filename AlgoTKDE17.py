@@ -279,6 +279,7 @@ if __name__=='__main__':
     else:
         probGraph = get_dataset(args.dataset)
         G = probGraph.get_weighted_graph_rep()
+        print(G.isconnected())
         queries = get_queries(queryfile = args.queryf,maxQ = args.maxquery)
         nodes = G.nodes()
         # print(len(G.nodes), ' ',len(G.edges))
@@ -429,4 +430,4 @@ if __name__=='__main__':
         result.to_csv(csv_name, header=True, index=False)
 # python AlgoTKDE17.py -d test -s 2 -t 3 -maxd 3 -b 2
 # python AlgoTKDE17.py -d ER_15_22 -mq 1 -q data/queries/ER/ER_15_22_4.queries -cr ER_15_22.true -maxd 5 -b 3
-# python AlgoTKDE17.py -d ER_15_22 -mq 10 -q data/queries/papers/papers_2.queries -cr data/large/crowd/paper_pair.true -maxd 2 -b 1
+# python AlgoTKDE17.py -d papers -mq 10 -q data/queries/papers/papers_2.queries -cr data/large/crowd/paper_pair.true -maxd 2 -b 1
