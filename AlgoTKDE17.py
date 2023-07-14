@@ -148,7 +148,7 @@ def compute_qual_improve_UQ(G, s,t,d,e_clean,probGraph):
     UQ = []
     Qstd_G = quality_Q_st(Rstd_G)
     # print('Qstd_G = ',Qstd_G)
-    print('len(e_clean) = ', len(e_clean))
+    # print('len(e_clean) = ', len(e_clean))
     for i in range(len(e_clean)):
         if len(path_l) == 0:
             U_e = 0
@@ -214,7 +214,7 @@ def doCleanto1(e_star,probGraph):
     probGraph.update_edge_prob(u = e_star[0],v = e_star[1], prob = 1)
         
 # Single edge selection, single query-pair
-def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph= None): #Algorithm 2 of the paper (Greedy variant)
+def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph): #Algorithm 2 of the paper (Greedy variant)
     # Single-edge selection among the candidates e_clean
     Uq = compute_qual_improve_UQ(G,s,t,d,e_clean,probGraph)
     descending_uq = sorted(list(zip(e_clean,Uq)),reverse=True, key=lambda x: x[1])
@@ -227,10 +227,10 @@ def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph= None): #Algorithm 2
             return descending_uq[i][0]
         else:
             e = descending_uq[i][0]  # pop from heap
-            e = (e[0],e[1])
+            # e = (e[0],e[1])
             E_deltaQ_st_d = 0
-            p_e = probGraph.edict[e]
-            for (s,t) in inf_set[e]:
+            p_e = probGraph.edict[(e[0],e[1])]
+            for (s,t) in inf_set[(e[0],e[1])]:
                 Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
                 # e = descending_uq[i][0]
                 pg1 = deepcopy(probGraph)
@@ -301,23 +301,23 @@ if __name__=='__main__':
     for s,t in queries:
         # e_clean = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True) if e[2]['prob']<= p_max and e[2]['prob']>=p_min]
         # if args.verbose: print("Candidate edges: ", e_clean)
-        index = {}
+        # index = {}
         # e_clean = deepcopy(ecl)
         e_clean = ecl
         for e in e_clean:
             u,v = e[0],e[1]
             length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
             length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
-            for s,t in combinations(nodes,2):
-                dv_t = length_v_all[t]
-                dv_s = length_v_all[s]
-                dt_u = length_all_u[t]
-                ds_u = length_all_u[s]
+            for _s,_t in combinations(nodes,2):
+                dv_t = length_v_all[_t]
+                dv_s = length_v_all[_s]
+                dt_u = length_all_u[_t]
+                ds_u = length_all_u[_s]
                 uv_weight = e[2]
                 if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight+dt_u <= d):
                     influence_set[(u,v)] = influence_set.get((u,v),[])
-                    influence_set[(u,v)].append((s,t))
-        print('length of influence set: ',len(influence_set))
+                    influence_set[(u,v)].append((_s,_t))
+        print('(',s,t,'): length of influence set: ',len(influence_set))
         # s=3
         # t=2
         # s = 2
@@ -352,27 +352,31 @@ if __name__=='__main__':
             # estar = find_e_nonadaptive(G, s, t, d, e_clean, budget = budget)
             raise Exception("Non-adaptive query not supported")
         else:
-            for i,e in enumerate(e_clean): # re-index
-                index[(e[0],e[1])] = i
+            # for i,e in enumerate(e_clean): # re-index
+            #     index[(e[0],e[1])] = i
             r0 = compute_approx_reach(s,t,d,probGraph=probGraph)
             H0 = h(r0) + h(1-r0)
             # print('ro = ',r0)
             for k in range(args.budget):
                 print('selecting ',k,'-th edge')
-                e=find_e_adaptive(G, s, t, d, influence_set, e_clean, probGraph=probGraph) 
+                e=find_e_adaptive(G, s, t, d, influence_set, e_clean,probGraph) 
+                e_clean.remove(e)
                 e = (e[0],e[1])
                 estar.append(e)
                 # print(e)
                 # print('index: ',index)
                 # print(index[(e[0],e[1])])
-                e_clean.pop(index[e])
-                for i,edge in enumerate(e_clean): # re-index
-                    index[edge] = i
+                # e_clean.pop(index[e])
+                # for i,edge in enumerate(e_clean): # re-index
+                #     index[edge] = i
                 # print(cr_dict)
                 # print(probGraph.edict)
                 probGraph.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
                 # probGraph.edict[e] = cr_dict[e]
+                # print('deleting edge: ',e)
+                # print('current edgelist: ',G.edges(data=True))
                 G.remove_edge(*e)
+                
         r_end = compute_approx_reach(s,t,d,probGraph=probGraph)
         # print('r_end: ',r_end)
         H_end = h(r_end) + h(1-r_end)
@@ -400,6 +404,8 @@ if __name__=='__main__':
         a.algostat['execution_time'] = time() - start_execution_time
         a.algostat['DeltaH'] = a.algostat['result']['H0'] - a.algostat['result']['H*']
         a.algostat['|DeltaH|'] = abs(a.algostat['result']['H0'] - a.algostat['result']['H*'])
+        a.algostat['source'] = s
+        a.algostat['target'] = t
         del a.algostat['support']
         output = {}
         for k in a.algostat['result']:
