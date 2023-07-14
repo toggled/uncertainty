@@ -279,7 +279,7 @@ if __name__=='__main__':
     else:
         probGraph = get_dataset(args.dataset)
         G = probGraph.get_weighted_graph_rep()
-        print(G.isconnected())
+        # print(G.isconnected())
         queries = get_queries(queryfile = args.queryf,maxQ = args.maxquery)
         nodes = G.nodes()
         # print(len(G.nodes), ' ',len(G.edges))
@@ -310,10 +310,10 @@ if __name__=='__main__':
             length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
             length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
             for _s,_t in combinations(nodes,2):
-                dv_t = length_v_all[_t]
-                dv_s = length_v_all[_s]
-                dt_u = length_all_u[_t]
-                ds_u = length_all_u[_s]
+                dv_t = length_v_all.get(_t,math.inf)
+                dv_s = length_v_all.get(_s,math.inf)
+                dt_u = length_all_u.get(_t,math.inf)
+                ds_u = length_all_u.get(_s,math.inf)
                 uv_weight = e[2]
                 if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight+dt_u <= d):
                     influence_set[(u,v)] = influence_set.get((u,v),[])
