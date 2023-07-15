@@ -228,20 +228,21 @@ class Query:
 
     def evalG(self,G):
         """ Function to evaluate a given possible world G"""
-        assert isinstance(G,list)
+        # assert isinstance(G,list)
         # def has_path(G,u,v):
-            
+        print(type(G))
         if self.qtype == 'reach': # Reachability
             u = self.u 
             v = self.v
             assert (u != None and v != None)
-            nx_G = nx.Graph()
-            nx_G.add_edges_from(G)
+            # nx_G = nx.Graph()
+            # nx_G.add_edges_from(G)
+            nx_G = G.nx_format
             reachable = 0
             if (u in nx_G) and (v in nx_G):
                 if (nx.has_path(nx_G,u,v)):
                     reachable = 1 
-            # reachable = has_path(G,u,v)
+            # reachable = has_path(G.nbrs,u,v)
 
             return reachable
 

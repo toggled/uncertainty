@@ -21,6 +21,8 @@ class UGraph:
         self.total_sample_tm = 0
         self.weights = {}
         self.nbrs = {} # neighborlist representation.
+        self.nx_format = nx.Graph()
+
     def __str__(self):
         return ' '.join(self.Edges)
     
@@ -411,7 +413,7 @@ class UGraph:
         # print(sample)
         return nbrs, sample, prob_sample,support_value 
     
-    def add_edge(self,u,v,prob,weight = 1.0, construct_nbr = False):
+    def add_edge(self,u,v,prob,weight = 1.0, construct_nbr = False, construct_nx = False):
         """ Add edge e = (u,v) along with p(e) """
         (u,v) = (min(u,v),max(u,v))
         self.Edges.append((u,v))
@@ -425,7 +427,9 @@ class UGraph:
             _tmp = self.nbrs.get(v,[])
             _tmp.append(u)
             self.nbrs[v] = _tmp
-            
+        if construct_nx:
+            self.nx_format.add_edge(u,v)
+
     def get_next_prob(self,u,v,type = 'o1'):
         ''' returns p_{up}(e): the probability of (u,v) after update without actually materialising it.  '''
         if type == 'o1':
@@ -623,14 +627,16 @@ class UGraph:
         start_execution_time = time()
         random.seed(seed)
         # nx_graph = nx.Graph()
-        poss_world = []
+        # poss_world = []
+        poss_world = UGraph()
         poss_world_prob = 1
         for e in self.Edges:
             p = self.edict[e]
             # print(e,p)
             if random.random() < p:
                 # nx_graph.add_edge(*e,weight = p)
-                poss_world.append(e)
+                # poss_world.append(e)
+                poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
                 if verbose:
                     poss_world_prob = poss_world_prob * p
             else:
