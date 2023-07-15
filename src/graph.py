@@ -29,50 +29,60 @@ class UGraph:
         return self.edict[(u,v)]
 
     def count_nodes(self):
-        d = set()
-        for e in self.Edges:
-            if e[0] not in d:
-                d.add(e[0])
-            if e[1] not in d:
-                d.add(e[1])
-        return len(d)
+        if len(self.nbrs) == 0:
+            d = set()
+            for e in self.Edges:
+                if e[0] not in d:
+                    d.add(e[0])
+                if e[1] not in d:
+                    d.add(e[1])
+            return len(d)
+        else:
+            return len(self.nbrs)
     
     def construct_nbrs(self):
-        nbrs = {}
-        for e in self.Edges:
-            _tmp = nbrs.get(e[0],[])
-            _tmp.append(e[1])
-            nbrs[e[0]] = _tmp 
-            _tmp = nbrs.get(e[1],[])
-            _tmp.append(e[0])
-            nbrs[e[1]] = _tmp 
+        if len(self.nbrs) == 0:
+            nbrs = {}
+            for e in self.Edges:
+                _tmp = nbrs.get(e[0],[])
+                _tmp.append(e[1])
+                nbrs[e[0]] = _tmp 
+                _tmp = nbrs.get(e[1],[])
+                _tmp.append(e[0])
+                nbrs[e[1]] = _tmp 
+            self.nbrs = nbrs
+        else:
+            nbrs = self.nbrs
         return nbrs 
     
     
     def count_tri_approx(self, sample_edges):
         num_nodes = 0 # total number of nodes in the possible worlds
         nodeset = set() # set of nodes with deg >=2
-        nbrs = {} # #nbrs for all the nodes.
+        nbrs = {} # #nbrs for all the nodes in the subgraph induced by edges in sample_edges.
         # This loop computes (1) #nbrs for all nodes (2) constructs nodeset and (3) count num nodes
         for e in sample_edges: 
             # print(e)
-            _tmp = nbrs.get(e[0],[])
-            if (len(_tmp)==0):
+            u,v = e[0],e[1]
+            _tmp = nbrs.get(u,[])
+            num_nbrs_u = len(_tmp)
+            if (num_nbrs_u==0):
                 num_nodes += 1 # If first time inserted into dic nbrs. count it.
             else:
-                if (len(_tmp)+1)>=2:
-                    nodeset.add(e[0])
-            _tmp.append(e[1])
-            nbrs[e[0]] = _tmp 
+                if (num_nbrs_u+1)>=2:
+                    nodeset.add(u)
+            _tmp.append(v)
+            nbrs[u] = _tmp 
 
-            _tmp = nbrs.get(e[1],[])
-            if (len(_tmp)==0):
+            _tmp = nbrs.get(v,[])
+            num_nbrs_v = len(_tmp)
+            if (num_nbrs_v==0):
                 num_nodes += 1 # If first time inserted into dic nbrs. count it.
             else:
-                if (len(_tmp)+1)>=2:
-                    nodeset.add(e[1])
-            _tmp.append(e[0])
-            nbrs[e[1]] = _tmp 
+                if (num_nbrs_v+1)>=2:
+                    nodeset.add(v)
+            _tmp.append(u)
+            nbrs[v] = _tmp 
         
         # Construct parameter value for approximation algorithm 
         nu = 100 # 1000 # prob of having good estimate is at least 99%
@@ -99,7 +109,8 @@ class UGraph:
                   "0110","0111","1000","1001","1010",\
                  "1011","1100","1101","1110","1111",\
                 "0000"]
-        # start_execution_time = time()
+        start_execution_time = time()
+        assert len(self.nbrs)>0
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
                 nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
@@ -233,14 +244,15 @@ class UGraph:
         """ For Reachability query. """
         # print(self.Edges)
         start_execution_time = time()
-        # if optimiseargs is not None:
-        #     if optimiseargs['nbrs'] is None:
-        #         nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
-        #     else:
-        #         nbrs = optimiseargs['nbrs']
-        # else:
-        #     nbrs = self.construct_nbrs()
-        nbrs = self.nbrs        
+        assert len(self.nbrs)>0
+        if optimiseargs is not None:
+            if optimiseargs['nbrs'] is None:
+                nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
+            else:
+                nbrs = optimiseargs['nbrs']
+        else:
+            nbrs = self.construct_nbrs()
+   
         queue = deque([source]) # Should be deque()
         reached_target = 0
         # if verbose:
@@ -284,6 +296,7 @@ class UGraph:
         """ For SP query (unweighted graph). """
         # print(self.Edges)
         start_execution_time = time()
+        assert len(self.nbrs) > 0
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
                 nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 

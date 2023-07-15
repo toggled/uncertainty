@@ -132,10 +132,10 @@ def get_dataset(dataset):
                     continue 
                 if not has_weight:
                     u,v,p = line.split()
-                    G.add_edge(u,v,float(p),construct_nbr=True)
+                    G.add_edge(u,v,float(p),construct_nbr=True) # For T_loop/N_Loop we memorize nbrs, so set it to false
                 else:
                     u,v,w,p = line.split()
-                    G.add_edge(u,v,float(p),weight=float(w),construct_nbr=True)
+                    G.add_edge(u,v,float(p),weight=float(w),construct_nbr=True) # For T_loop/N_Loop we memorize nbrs, so set it to false
     except KeyError as e:
         print("Wrong dataset name provided.")
         raise e
