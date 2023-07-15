@@ -416,10 +416,13 @@ class UGraph:
     def add_edge(self,u,v,prob,weight = 1.0, construct_nbr = False, construct_nx = False):
         """ Add edge e = (u,v) along with p(e) """
         (u,v) = (min(u,v),max(u,v))
-        self.Edges.append((u,v))
-        self.edict[(u,v)] = prob 
-        self.notedict[(u,v)] = 1-prob 
-        self.weights[(u,v)] = weight
+        if construct_nx:
+            self.nx_format.add_edge(u,v)
+        else:
+            self.Edges.append((u,v))
+            self.edict[(u,v)] = prob 
+            self.notedict[(u,v)] = 1-prob 
+            self.weights[(u,v)] = weight
         if construct_nbr:
             _tmp = self.nbrs.get(u,[])
             _tmp.append(v)
@@ -427,8 +430,7 @@ class UGraph:
             _tmp = self.nbrs.get(v,[])
             _tmp.append(u)
             self.nbrs[v] = _tmp
-        if construct_nx:
-            self.nx_format.add_edge(u,v)
+        
 
     def get_next_prob(self,u,v,type = 'o1'):
         ''' returns p_{up}(e): the probability of (u,v) after update without actually materialising it.  '''
@@ -639,6 +641,31 @@ class UGraph:
                         reached_target = 1
                         break 
         return reached_target
+    def dhop_reachable(self, source, target, d):
+        reached_target = 0
+        seen = {source:0}
+        dists = {}
+        heap = []
+        heappush(heap,(0,source))
+        while len(heap) and reached_target == 0: 
+            dist_u, u = heappop(heap)
+            if u in dists:
+                continue 
+            dists[u] = dist_u
+            if u == target and dist_u <= d:
+                reached_target = 1
+                break
+            for v in self.nbrs.get(u,[]):
+                (uu,vv) = (min(u,v),max(u,v))
+                dist_uv = dists[u] + self.weights[(uu,vv)]
+                if (v not in seen) or (dist_uv < seen[v]):
+                    seen[v] = dist_uv
+                    heappush(heap,(dist_uv,v))
+                    if v == target and dist_uv <= d:
+                        reached_target = 1
+                        dists[v] = dist_uv
+                        break 
+        return reached_target
     
     def get_sample(self, seed = 1, verbose = False):
         """ Returns a random possible world (as a networkx Graph) instance. """
@@ -752,6 +779,7 @@ class UMultiGraph(UGraph):
     """
     def __init__(self):
         super().__init__()
+        self.nx_format = nx.MultiGraph()
     
     def get_prob(self, e):
         u,v = min(e[0],e[1]),max(e[0],e[1]) 
@@ -760,19 +788,22 @@ class UMultiGraph(UGraph):
     def __str__(self):
         return str(self.Edges)
     
-    def add_edge(self,u,v,id, prob, weight = 1.0, construct_nbr = False):
+    def add_edge(self,u,v,id, prob, weight = 1.0, construct_nbr = False, construct_nx = False):
         """ Add edge e = (u,v) along with p(e) """
         (u,v) = (min(u,v),max(u,v))
-        self.Edges.append((u,v,id))
-        self.edict[(u,v,id)] = prob 
-        self.notedict[(u,v,id)] = 1-prob 
-        self.weights[(u,v,id)] = weight
-        if construct_nbr:
-            _tmp = self.nbrs.get(u,[])
-            _tmp.append(v)
+        if construct_nx:
+            self.nx_format.add_edge(u,v)
+        else:
+            self.Edges.append((u,v,id))
+            self.edict[(u,v,id)] = prob 
+            self.notedict[(u,v,id)] = 1-prob 
+            self.weights[(u,v,id)] = weight
+        if construct_nbr: # here neighbors are not duplicated
+            _tmp = self.nbrs.get(u,set())
+            _tmp.add(v)
             self.nbrs[u] = _tmp 
-            _tmp = self.nbrs.get(v,[])
-            _tmp.append(u)
+            _tmp = self.nbrs.get(v,set())
+            _tmp.add(u)
             self.nbrs[v] = _tmp
 
     def get_next_prob(self,u,v,id,type = 'o1'):
@@ -820,17 +851,36 @@ class UMultiGraph(UGraph):
             nbrs = {} # key = vertex id, value = [list of edge ids]
             for e in self.Edges:
                 u,v,_id = e
-                _tmp = nbrs.get(u,[])
-                _tmp.append((v,_id))
+                _tmp = nbrs.get(u,set())
+                _tmp.add((v,_id))
                 nbrs[u] = _tmp 
-                _tmp = nbrs.get(v,[])
-                _tmp.append((u,_id))
+                _tmp = nbrs.get(v,set())
+                _tmp.add((u,_id))
                 nbrs[v] = _tmp 
             self.nbrs = nbrs
         else:
             nbrs = self.nbrs
         return nbrs 
     
+    def get_sample(self, seed = 1, verbose = False):
+        """ Returns a random possible world (as a networkx Graph) instance. """
+        start_execution_time = time()
+        random.seed(seed)
+        poss_world = UMultiGraph()
+        poss_world_prob = 1
+        for e in self.Edges:
+            p = self.edict[e]
+            # print(e,p)
+            if random.random() < p:
+                # nx_graph.add_edge(*e,weight = p)
+                # poss_world.append(e)
+                poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
+                # poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
+
+        sample_tm = time() - start_execution_time
+        # self.sample_time_list.append(sample_tm)
+        self.total_sample_tm += sample_tm
+        return (poss_world,poss_world_prob) 
     def bfs_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For Reachability query. """
         # print('bfs_sample multigraph')

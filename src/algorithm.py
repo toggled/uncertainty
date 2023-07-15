@@ -1377,6 +1377,7 @@ class ApproximateAlgorithm:
         if verbose: print('Query eval.')
         self.algostat['result']['H0'] = self.measure_H0(property,algorithm,T,N)
         # Start of Algorithm 5
+        print(self.Query.qtype)
         self.Query.constructTables_S(K = K, verbose = verbose)
         Estar = copy(self.G.edict)
         assert k<=len(Estar)

@@ -16,10 +16,10 @@ parser.add_argument("-k",'--k',type = int, default = 1)
 parser.add_argument("-v", "--verbose", action='store_true')
 parser.add_argument('-s','--source',type = str, default = None)
 parser.add_argument('-t','--target',type = str, default = None)
-parser.add_argument('-pr','--property',type = str, default = 'tri', help = "either tri/diam/reach")
+parser.add_argument('-pr','--property',type = str, default = 'reach_d', help = "either tri/diam/reach")
 # parser.add_argument('-va','--variant',type = str, default = 'exact',help = 'Either exact/appr')
 parser.add_argument("-K",'--K',type = int, default = 10, help='#of Possible world samples')
-parser.add_argument("-ea", "--est_algo", type=str, default="appr") # exact/appr/eappr/mcbfs/pTmcbfs/mcdij/pTmcdij/rss/pTrss/mcapproxtri 
+parser.add_argument("-ea", "--est_algo", type=str, default="mcbfs") # exact/appr/eappr/mcbfs/pTmcbfs/mcdij/pTmcdij/rss/pTrss/mcapproxtri 
 parser.add_argument('-q','--queryf', type=str,help='query file',default = None) # 'data/queries/ER/ER_15_22_2.queries'
 parser.add_argument('-b','--bucketing',type = int, help='Whether to compute bucketed entropy or not', default = 0) # only tri query is supported
 parser.add_argument("-dh",'--hop',type = int, default = -1) # <d-hop reach
@@ -28,7 +28,7 @@ parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, ma
 parser.add_argument("-th",'--trackH', action = 'store_true')
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
 # save_dir = 'reduce_main'
-save_dir = 'ureduct'
+save_dir = 'baseline'
 opt_N_dict = {
     'default': {'reach': 100,'sp': 100},
     'ER_15_22': 
@@ -242,7 +242,7 @@ if __name__== '__main__':
         assert (args.queryf is not None)
         assert (os.path.isfile(args.queryf))
         queries = get_queries(queryfile = args.queryf, maxQ = args.maxquery)
-        args.queryf
+        # args.queryf
         if runProbTree: # Efficient variant of algorithm 2 requires pre-computed Prob Tree subgraph.
             whichquery = args.queryf.split('.')[0].split('_')[-1]
             rsubgraphpaths = [ 'data/maniu/'+args.dataset+'_'+whichquery+'_subg/'+dataset_to_filename[args.dataset].split('/')[-1]+'_query_subgraph_'+s+'_'+t+'.txt' \
@@ -284,9 +284,9 @@ if __name__== '__main__':
                 Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
             elif args.property == 'reach': # For reachability query, we ignore edge weights.  
                 if dhopreach:
-                    Querylist = [Query(G,args.property,{'u':s,'v':t,'d':args.hop}) for s,t in queries]
+                    Querylist = [Query(G,'reach_d',{'u':s,'v':t,'d':args.hop}) for s,t in queries]
                 else:     
-                    Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
+                    Querylist = [Query(G,'reach',{'u':s,'v':t}) for s,t in queries]
             elif args.property == 'tri':
                 Q = Query(G,'tri')
                 Q.bucketing = args.bucketing 

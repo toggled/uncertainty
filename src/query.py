@@ -554,7 +554,7 @@ class Query:
         
         if (verbose):
             self.G = {} 
-        # print(self.qtype)
+        print(self.qtype)
         if 'time_seed' in os.environ:
             # random.seed()
             s = random.randint(0,1000000)
@@ -615,27 +615,27 @@ class Query:
                     self.phiInv[sp_len] = [i]
                 else:
                     self.phiInv[sp_len].append(i)
-        elif self.qtype == 'diam':
-            for i,G in enumerate(self.p_graph.get_Ksample(K,seed = s)):
-                self.PrG[i] = probG_i # G[1]
-                self.index[i] = {}
-                for e in G[0]:
-                    self.index[i][e] = 1
-                    self.hatp[e] += 1.0/K
-                # Construct phiInv
-                if (len(G[0])) == 0:
-                    diam = 0 
-                else:
-                    nx_G = nx.Graph()
-                    nx_G.add_edges_from(G[0])
-                    if not nx.is_connected(nx_G):
-                        diam = math.inf
-                    else:
-                        diam = nx.diameter(nx_G)
-                    if diam not in self.phiInv:
-                        self.phiInv[diam] = [i]
-                    else:
-                        self.phiInv[diam].append(i)
+        # elif self.qtype == 'diam':
+        #     for i,G in enumerate(self.p_graph.get_Ksample(K,seed = s)):
+        #         self.PrG[i] = probG_i # G[1]
+        #         self.index[i] = {}
+        #         for e in G[0]:
+        #             self.index[i][e] = 1
+        #             self.hatp[e] += 1.0/K
+        #         # Construct phiInv
+        #         if (len(G[0])) == 0:
+        #             diam = 0 
+        #         else:
+        #             nx_G = nx.Graph()
+        #             nx_G.add_edges_from(G[0])
+        #             if not nx.is_connected(nx_G):
+        #                 diam = math.inf
+        #             else:
+        #                 diam = nx.diameter(nx_G)
+        #             if diam not in self.phiInv:
+        #                 self.phiInv[diam] = [i]
+        #             else:
+        #                 self.phiInv[diam].append(i)
         
         elif self.qtype == "tri":
             # print('Tri')
@@ -667,18 +667,21 @@ class Query:
                         self.G[i] = G[0] 
                     self.PrG[i] = probG_i # G[1]
                     self.index[i] = {}
-                    for e in G[0]:
-                        self.index[i][e] = 1
-                        self.hatp[e] += 1.0/K
+                    for e in G[0].nx_format.edges:
+                        _e = (min(e[0],e[1]),max(e[0],e[1]))
+                        print(_e)
+                        self.index[i][_e] = 1
+                        self.hatp[_e] += 1.0/K
                         
-                    nx_G = nx.Graph()
-                    nx_G.add_edges_from(G[0])
-                    reachable = 0
-                    if (u in nx_G) and (v in nx_G):
-                        if (nx.has_path(nx_G,u,v)):
-                            if nx.shortest_path_length(nx_G, source=u, target=v) <= d:
-                                reachable = 1 
-                
+                    # nx_G = nx.Graph()
+                    # nx_G.add_edges_from(G[0])
+                    # reachable = 0
+                    # if (u in nx_G) and (v in nx_G):
+                    #     if (nx.has_path(nx_G,u,v)):
+                    #         if nx.shortest_path_length(nx_G, source=u, target=v) <= d:
+                    #             reachable = 1 
+                    reachable = G[0].dhop_reachable(u,v,d)
+                    print(d,'-hop reachable: ',reachable)
                     if reachable not in self.phiInv:
                         self.phiInv[reachable] = [i]
                     else:
@@ -874,13 +877,15 @@ class multiGraphQuery(Query):
     def evalG(self,G):
         """ Function to evaluate a given possible world G (multigraph)"""
         # print('Multigraph eval.')
-        assert isinstance(G,list)
+        # assert isinstance(G,list)
         if self.qtype == 'reach': # Reachability
             u = self.u 
             v = self.v
             assert (u != None and v != None)
-            nx_G = nx.MultiGraph()
-            nx_G.add_edges_from(G)
+            # nx_G = nx.MultiGraph()
+            # nx_G.add_edges_from(G)
+            nx_G = G.nx_format
+            # print(type(nx_G))
             reachable = 0
             if (u in nx_G) and (v in nx_G):
                 if (nx.has_path(nx_G,u,v)):
@@ -893,33 +898,35 @@ class multiGraphQuery(Query):
             v = self.v
             assert (u != None and v != None)
             
-            nx_G = nx.MultiGraph()
-            nx_G.add_edges_from(G)
+            # nx_G = nx.MultiGraph()
+            # nx_G.add_edges_from(G)
+            nx_G = G.nx_format
             sp_len = INFINITY
             if (u in nx_G) and (v in nx_G):
                 if (nx.has_path(nx_G,u,v)):
                     sp_len = nx.shortest_path_length(nx_G, source=u, target=v)
             return sp_len
 
-        if self.qtype =="diam":
-            self.plot_properties['xlabel'] = 'Diam'
-            self.plot_properties['ylabel'] = 'Prob.'
+        # if self.qtype =="diam":
+        #     self.plot_properties['xlabel'] = 'Diam'
+        #     self.plot_properties['ylabel'] = 'Prob.'
            
-            nx_G = nx.MultiGraph()
-            nx_G.add_edges_from(G)
-            if nx_G.number_of_edges() == 0:
-                diam = INFINITY
-            else:
-                if not nx.is_connected(nx_G):
-                    diam = INFINITY
-                else:
-                    diam = nx.diameter(nx_G)
+        #     nx_G = nx.MultiGraph()
+        #     nx_G.add_edges_from(G)
+        #     if nx_G.number_of_edges() == 0:
+        #         diam = INFINITY
+        #     else:
+        #         if not nx.is_connected(nx_G):
+        #             diam = INFINITY
+        #         else:
+        #             diam = nx.diameter(nx_G)
             
-            return diam 
+        #     return diam 
             
         if self.qtype == 'tri': # Bug here
-            g = nx.MultiGraph()
-            g.add_edges_from(G)
+            # g = nx.MultiGraph()
+            # g.add_edges_from(G)
+            nx_G = G.nx_format
             num_triangles = sum(nx.triangles(g).values()) / 3
             return num_triangles
 
