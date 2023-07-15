@@ -622,6 +622,24 @@ class UGraph:
             V.add(e[1])
         return len(V)
 
+    def reachable(self, source, target):
+        queue = deque([source])
+        reached_target = 0
+        visited = {source: True}
+        while len(queue) and reached_target == 0: 
+            u = queue.popleft()
+            if u == target:
+                reached_target = 1
+                break
+            for v in self.nbrs.get(u,[]):
+                if (not visited.get(v,False)):
+                    visited[v] = True
+                    queue.append(v)
+                    if v == target:
+                        reached_target = 1
+                        break 
+        return reached_target
+    
     def get_sample(self, seed = 1, verbose = False):
         """ Returns a random possible world (as a networkx Graph) instance. """
         start_execution_time = time()
@@ -636,7 +654,8 @@ class UGraph:
             if random.random() < p:
                 # nx_graph.add_edge(*e,weight = p)
                 # poss_world.append(e)
-                poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
+                # poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
+                poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
                 if verbose:
                     poss_world_prob = poss_world_prob * p
             else:
