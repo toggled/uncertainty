@@ -654,8 +654,8 @@ class UGraph:
             if random.random() < p:
                 # nx_graph.add_edge(*e,weight = p)
                 # poss_world.append(e)
-                # poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
-                poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
+                poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
+                # poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
                 if verbose:
                     poss_world_prob = poss_world_prob * p
             else:

@@ -236,12 +236,12 @@ class Query:
             assert (u != None and v != None)
             # nx_G = nx.Graph()
             # nx_G.add_edges_from(G)
-            # nx_G = G.nx_format
-            # reachable = 0
-            # if (u in nx_G) and (v in nx_G):
-            #     if (nx.has_path(nx_G,u,v)):
-            #         reachable = 1 
-            reachable = G.reachable(u,v)
+            nx_G = G.nx_format
+            reachable = 0
+            if (u in nx_G) and (v in nx_G):
+                if (nx.has_path(nx_G,u,v)):
+                    reachable = 1 
+            # reachable = G.reachable(u,v)
             return reachable
 
         if self.qtype == 'sp': # length of shortest path
