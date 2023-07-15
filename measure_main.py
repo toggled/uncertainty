@@ -104,7 +104,7 @@ def singleRun(G,Query, save = True):
     for k in a.algostat.keys():
         if k!='result' and k!='k': 
             output[k] = a.algostat[k]
-    # print(output)
+    print(output['execution_time'])
     if (not args.verbose):
         # csv_name = 'output/measure_'+args.dataset+'.csv'
         csv_name = 'output/measure_' + args.dataset + "_" + args.algo + "_" + args.property + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
@@ -138,7 +138,10 @@ if debug:
 else:
     if not runProbTree:
         if args.property == 'sp':
-            Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
+            if is_weightedGraph(args.dataset):
+                Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
+            else:
+                Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
         if args.property == 'reach': # For reachability query, we ignore edge weights.  
             Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
 

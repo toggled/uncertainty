@@ -82,7 +82,8 @@ def get_decompGraph(dataset, source, target, dataset_path = None):
                     for line in f:
                         u,v,w,p = line.split()
                         # Since dataset is unweighted graph, ignore length l
-                        G.add_edge(u,v, _id, float(p),float(w))
+                        # print('Since dataset is unweighted graph, ignore length l')
+                        G.add_edge(u,v, _id, float(p),float(w),construct_nbr=True)
                         _id +=1
             except KeyError as e:
                 print("Wrong dataset name provided.")
@@ -95,7 +96,7 @@ def get_decompGraph(dataset, source, target, dataset_path = None):
                     for line in f:
                         u,v,l,w,p = line.split()
                         # Since dataset is unweighted graph, ignore length l
-                        G.add_edge(u,v, _id, float(p),float(w))
+                        G.add_edge(u,v, _id, float(p),float(w),construct_nbr=True)
                         _id +=1
             except KeyError as e:
                 print("Wrong dataset name provided.")
@@ -109,7 +110,7 @@ def get_decompGraph(dataset, source, target, dataset_path = None):
                 for line in f:
                     u,v,l,w,p = line.split()
                     # Since dataset is weighted graph, length (l) column already contains weight of original edges + pseudo edges.
-                    G.add_edge(u,v, _id, float(p),float(l))
+                    G.add_edge(u,v, _id, float(p),float(l),construct_nbr=True)
                     _id +=1
         except KeyError as e:
             print("Wrong dataset name provided.")
