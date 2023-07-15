@@ -799,11 +799,11 @@ class UMultiGraph(UGraph):
             self.notedict[(u,v,id)] = 1-prob 
             self.weights[(u,v,id)] = weight
         if construct_nbr: # here neighbors are not duplicated
-            _tmp = self.nbrs.get(u,set())
-            _tmp.add(v)
+            _tmp = self.nbrs.get(u,[])
+            _tmp.append((v,id))
             self.nbrs[u] = _tmp 
-            _tmp = self.nbrs.get(v,set())
-            _tmp.add(u)
+            _tmp = self.nbrs.get(v,[])
+            _tmp.append((u,id))
             self.nbrs[v] = _tmp
 
     def get_next_prob(self,u,v,id,type = 'o1'):
@@ -851,11 +851,11 @@ class UMultiGraph(UGraph):
             nbrs = {} # key = vertex id, value = [list of edge ids]
             for e in self.Edges:
                 u,v,_id = e
-                _tmp = nbrs.get(u,set())
-                _tmp.add((v,_id))
+                _tmp = nbrs.get(u,[])
+                _tmp.append((v,_id))
                 nbrs[u] = _tmp 
-                _tmp = nbrs.get(v,set())
-                _tmp.add((u,_id))
+                _tmp = nbrs.get(v,[])
+                _tmp.append((u,_id))
                 nbrs[v] = _tmp 
             self.nbrs = nbrs
         else:
@@ -894,6 +894,7 @@ class UMultiGraph(UGraph):
                 nbrs = optimiseargs['nbrs']
         else:
             nbrs = self.construct_nbrs()
+        # print(nbrs)
         queue = deque([source])
         reached_target = 0
         sample = []
