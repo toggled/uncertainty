@@ -7,7 +7,7 @@ from copy import deepcopy
 from heapq import heappush, heappop
 from networkx.algorithms.bipartite.matching import INFINITY
 from math import sqrt,ceil,floor,log
-
+from collections import deque 
 class UGraph:
     """
     A generic class for Uncertain Graph data structure and for various operations on it. 
@@ -229,7 +229,7 @@ class UGraph:
     
         return findReliability_RSS(sv_map,si_queue, n = T,flag = 15, nodes = []), nbrs
 
-    def bfs_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
+    def bfs_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For Reachability query. """
         # print(self.Edges)
         start_execution_time = time()
@@ -240,14 +240,16 @@ class UGraph:
                 nbrs = optimiseargs['nbrs']
         else:
             nbrs = self.construct_nbrs()
-        queue = [source]
+        queue = deque([source]) # Should be deque()
         reached_target = 0
-        sample = []
+        # if verbose:
+        sample = [] # Remove this container
         prob_sample = 1.0
         random.seed(seed)
         visited = {source: True}
         while len(queue) and reached_target == 0: # MC+BFS loop
-            u = queue.pop(0)
+            # u = queue.pop(0)
+            u = queue.popleft()
             # visited[u] = True
             if u == target:
                 reached_target = 1
@@ -261,14 +263,15 @@ class UGraph:
                 if random.random() < p:
                     if (not visited.get(v,False)):
                         visited[v] = True
-                        sample.append((uu,vv))
-                        prob_sample *= p 
+                        if verbose:
+                            sample.append((uu,vv))
+                            prob_sample *= p 
                         queue.append(v)
                         if v == target:
                             reached_target = 1
                             break 
                 else:
-                    prob_sample *= (1-p)
+                    if verbose: prob_sample *= (1-p)
         support_value = reached_target
         sample_tm = time() - start_execution_time
         self.total_sample_tm += sample_tm
@@ -276,7 +279,7 @@ class UGraph:
         return nbrs, sample, prob_sample,support_value 
         # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
     
-    def dijkstra_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
+    def dijkstra_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
         start_execution_time = time()
@@ -288,8 +291,9 @@ class UGraph:
         else:
             nbrs = self.construct_nbrs()
         reached_target = 0
-        sample = []
-        prob_sample = 1.0
+        # if verbose:
+        sample = [] # No need this.
+        prob_sample = 1.0 # No need.
         random.seed(seed)
         seen = {source:0}
         dists = {}
@@ -313,15 +317,16 @@ class UGraph:
                 if random.random() < p:
                     if (v not in seen) or (dist_uv < seen[v]):
                         seen[v] = dist_uv
-                        sample.append((uu,vv))
-                        prob_sample *= p 
+                        if verbose:
+                            sample.append((uu,vv))
+                            prob_sample *= p 
                         heappush(heap,(dist_uv,v))
                         if v == target:
                             reached_target = 1
                             dists[v] = dist_uv
                             break 
                 else:
-                    prob_sample *= (1-p)
+                    if verbose:     prob_sample *= (1-p)
         support_value = dists.get(target,INFINITY)
         # print(source,target,sample,support_value,dists)
         # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
@@ -329,7 +334,7 @@ class UGraph:
         self.total_sample_tm += sample_tm
         return nbrs, sample, prob_sample,support_value 
 
-    def dhop_reach_sample(self,source,target, seed = 1, dhop = None, optimiseargs = {'nbrs':None, 'doopt': False}):
+    def dhop_reach_sample(self,source,target, seed = 1, dhop = None, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
         start_execution_time = time()
@@ -373,15 +378,16 @@ class UGraph:
                 if random.random() < p:
                     if (v not in seen) or (dist_uv < seen[v]):
                         seen[v] = dist_uv
-                        sample.append((uu,vv))
-                        prob_sample *= p 
+                        if verbose:
+                            sample.append((uu,vv))
+                            prob_sample *= p 
                         heappush(heap,(dist_uv,v))
                         if v == target and dist_uv <= max_d:
                             reached_target = 1
                             dists[v] = dist_uv
                             break 
                 else:
-                    prob_sample *= (1-p)
+                    if verbose:     prob_sample *= (1-p)
         support_value = reached_target
         # print(source,target,sample,support_value,dists)
         # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
@@ -603,9 +609,11 @@ class UGraph:
             if random.random() < p:
                 # nx_graph.add_edge(*e,weight = p)
                 poss_world.append(e)
-                poss_world_prob = poss_world_prob * p
+                if verbose:
+                    poss_world_prob = poss_world_prob * p
             else:
-                poss_world_prob = poss_world_prob * (1-p)
+                if verbose:
+                    poss_world_prob = poss_world_prob * (1-p)
         if verbose:
             # print(nx_graph.nodes)
             # print(nx_graph.edges)
@@ -765,7 +773,7 @@ class UMultiGraph(UGraph):
             nbrs[v] = _tmp 
         return nbrs 
     
-    def bfs_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}):
+    def bfs_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For Reachability query. """
         # print('bfs_sample multigraph')
         # print(self.Edges)
@@ -776,14 +784,15 @@ class UMultiGraph(UGraph):
                 nbrs = optimiseargs['nbrs']
         else:
             nbrs = self.construct_nbrs()
-        queue = [source]
+        queue = deque([source])
         reached_target = 0
         sample = []
         prob_sample = 1.0
         random.seed(seed)
         visited = {}
         while len(queue) and reached_target == 0: # MC+BFS loop
-            u = queue.pop(0)
+            # u = queue.pop(0)
+            u = queue.popleft()
             # print('pop: ',u)
             # visited[u] = True
             if u == target:
@@ -799,21 +808,22 @@ class UMultiGraph(UGraph):
                 if random.random() < p:
                     if (not visited.get(eid,False)):
                         visited[eid] = True
-                        sample.append((uu,vv))
-                        # print('added ',(uu,vv),' into poss world')
-                        prob_sample *= p 
+                        if verbose: 
+                            sample.append((uu,vv))
+                            # print('added ',(uu,vv),' into poss world')
+                            prob_sample *= p 
                         queue.append(v)
                         if v == target:
                             reached_target = 1
                             break 
                 else:
-                    prob_sample *= (1-p)
+                    if verbose:     prob_sample *= (1-p)
                 # print(visited)
         support_value = reached_target
         # print(source,target,sample,support_value)
         return nbrs, sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
 
-    def dijkstra_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}):
+    def dijkstra_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
         if optimiseargs is not None:
@@ -850,20 +860,21 @@ class UMultiGraph(UGraph):
                 if random.random() < p:
                     if (v not in seen) or (dist_uv < seen[v]):
                         seen[v] = dist_uv
-                        sample.append((uu,vv))
-                        prob_sample *= p 
+                        if verbose:
+                            sample.append((uu,vv))
+                            prob_sample *= p 
                         heappush(heap,(dist_uv,v))
                         if v == target:
                             reached_target = 1
                             dists[v] = dist_uv
                             break 
                 else:
-                    prob_sample *= (1-p)
+                    if verbose: prob_sample *= (1-p)
         support_value = dists.get(target,INFINITY)
         # print(source,target,sample,support_value,dists)
         return nbrs, sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
     
-    def dhop_reach_sample(self,source,target, seed = 1, dhop = None, optimiseargs = {'nbrs':None, 'doopt': False}):
+    def dhop_reach_sample(self,source,target, seed = 1, dhop = None, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
         start_execution_time = time()
@@ -907,15 +918,16 @@ class UMultiGraph(UGraph):
                 if random.random() < p:
                     if (v not in seen) or (dist_uv < seen[v]):
                         seen[v] = dist_uv
-                        sample.append((uu,vv))
-                        prob_sample *= p 
+                        if verbose:
+                            sample.append((uu,vv))
+                            prob_sample *= p 
                         heappush(heap,(dist_uv,v))
                         if v == target and dist_uv <= max_d:
                             reached_target = 1
                             dists[v] = dist_uv
                             break 
                 else:
-                    prob_sample *= (1-p)
+                    if verbose: prob_sample *= (1-p)
         support_value = reached_target
         # print(source,target,sample,support_value,dists)
         # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
@@ -925,7 +937,7 @@ class UMultiGraph(UGraph):
     
     def find_rel_rss(self,T, source,target,seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
         # print('source: ',source, ' target: ',target)
-        kRecursiveSamplingThreshold = 10
+        kRecursiveSamplingThreshold = 5
         states = ["0001","0010","0011","0100","0101",\
                   "0110","0111","1000","1001","1010",\
                  "1011","1100","1101","1110","1111",\
