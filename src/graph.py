@@ -352,6 +352,7 @@ class UGraph:
         """ For SP query (unweighted graph). """
         # print(self.Edges)
         start_execution_time = time()
+        assert len(self.nbrs) > 0
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
                 nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
@@ -734,14 +735,21 @@ class UMultiGraph(UGraph):
     def __str__(self):
         return str(self.Edges)
     
-    def add_edge(self,u,v,id, prob, weight = 1.0):
+    def add_edge(self,u,v,id, prob, weight = 1.0, construct_nbr = False):
         """ Add edge e = (u,v) along with p(e) """
         (u,v) = (min(u,v),max(u,v))
         self.Edges.append((u,v,id))
         self.edict[(u,v,id)] = prob 
         self.notedict[(u,v,id)] = 1-prob 
         self.weights[(u,v,id)] = weight
-    
+        if construct_nbr:
+            _tmp = self.nbrs.get(u,[])
+            _tmp.append(v)
+            self.nbrs[u] = _tmp 
+            _tmp = self.nbrs.get(v,[])
+            _tmp.append(u)
+            self.nbrs[v] = _tmp
+
     def get_next_prob(self,u,v,id,type = 'o1'):
         ''' returns p_{up}(e): the probability of (u,v) after update without actually materialising it. '''
         if type == 'o1':
@@ -783,21 +791,27 @@ class UMultiGraph(UGraph):
         pass
     
     def construct_nbrs(self):
-        nbrs = {} # key = vertex id, value = [list of edge ids]
-        for e in self.Edges:
-            u,v,_id = e
-            _tmp = nbrs.get(u,[])
-            _tmp.append((v,_id))
-            nbrs[u] = _tmp 
-            _tmp = nbrs.get(v,[])
-            _tmp.append((u,_id))
-            nbrs[v] = _tmp 
+        if len(self.nbrs) == 0:
+            nbrs = {} # key = vertex id, value = [list of edge ids]
+            for e in self.Edges:
+                u,v,_id = e
+                _tmp = nbrs.get(u,[])
+                _tmp.append((v,_id))
+                nbrs[u] = _tmp 
+                _tmp = nbrs.get(v,[])
+                _tmp.append((u,_id))
+                nbrs[v] = _tmp 
+            self.nbrs = nbrs
+        else:
+            nbrs = self.nbrs
         return nbrs 
     
     def bfs_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For Reachability query. """
         # print('bfs_sample multigraph')
         # print(self.Edges)
+        start_execution_time = time()
+        assert len(self.nbrs)>0
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
                 nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
@@ -841,12 +855,16 @@ class UMultiGraph(UGraph):
                     if verbose:     prob_sample *= (1-p)
                 # print(visited)
         support_value = reached_target
+        sample_tm = time() - start_execution_time
+        self.total_sample_tm += sample_tm
         # print(source,target,sample,support_value)
         return nbrs, sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
 
     def dijkstra_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
+        start_execution_time = time()
+        assert len(self.nbrs)>0
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
                 nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
@@ -892,12 +910,15 @@ class UMultiGraph(UGraph):
                 else:
                     if verbose: prob_sample *= (1-p)
         support_value = dists.get(target,INFINITY)
+        sample_tm = time() - start_execution_time
+        self.total_sample_tm += sample_tm
         # print(source,target,sample,support_value,dists)
         return nbrs, sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
     
     def dhop_reach_sample(self,source,target, seed = 1, dhop = None, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
+        assert len(self.nbrs)>0
         start_execution_time = time()
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
@@ -963,7 +984,8 @@ class UMultiGraph(UGraph):
                   "0110","0111","1000","1001","1010",\
                  "1011","1100","1101","1110","1111",\
                 "0000"]
-        # start_execution_time = time()
+        start_execution_time = time()
+        assert len(self.nbrs)>0
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
                 nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
