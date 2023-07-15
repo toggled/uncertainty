@@ -535,6 +535,7 @@ class ApproximateAlgorithm:
         """
         MC + BFS 
         """
+        print('self.G: ',type(self.G))
         precomp = {}
         source,target = self.Query.u, self.Query.v
         if os.environ['precomp']:
