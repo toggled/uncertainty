@@ -249,33 +249,35 @@ class Query:
             v = self.v
             assert (u != None and v != None)
             
-            nx_G = nx.Graph()
-            nx_G.add_edges_from(G)
+            # nx_G = nx.Graph()
+            # nx_G.add_edges_from(G)
+            nx_G = G.nx_format
             sp_len = INFINITY
             if (u in nx_G) and (v in nx_G):
                 if (nx.has_path(nx_G,u,v)):
                     sp_len = nx.shortest_path_length(nx_G, source=u, target=v)
             return sp_len
 
-        if self.qtype =="diam":
-            self.plot_properties['xlabel'] = 'Diam'
-            self.plot_properties['ylabel'] = 'Prob.'
+        # if self.qtype =="diam":
+        #     self.plot_properties['xlabel'] = 'Diam'
+        #     self.plot_properties['ylabel'] = 'Prob.'
            
-            nx_G = nx.Graph()
-            nx_G.add_edges_from(G)
-            if nx_G.number_of_edges() == 0:
-                diam = INFINITY
-            else:
-                if not nx.is_connected(nx_G):
-                    diam = INFINITY
-                else:
-                    diam = nx.diameter(nx_G)
+        #     nx_G = nx.Graph()
+        #     nx_G.add_edges_from(G)
+        #     if nx_G.number_of_edges() == 0:
+        #         diam = INFINITY
+        #     else:
+        #         if not nx.is_connected(nx_G):
+        #             diam = INFINITY
+        #         else:
+        #             diam = nx.diameter(nx_G)
             
-            return diam 
+        #     return diam 
             
         if self.qtype == 'tri':
-            g = nx.Graph()
-            g.add_edges_from(G)
+            # g = nx.Graph()
+            # g.add_edges_from(G)
+            g = G.nx_format
             num_triangles = sum(nx.triangles(g).values()) / 3
             return num_triangles
 
@@ -571,19 +573,22 @@ class Query:
                 self.PrG[i] = probG_i # G[1]
                 # self.PrG[i] = G[1]
                 self.index[i] = {}
-                for e in G[0]:
-                    self.index[i][e] = 1
-                    self.hatp[e] += 1.0/K
+                for e in G[0].nx_format.edges:
+                    _e = (min(e[0],e[1]),max(e[0],e[1]))
+                    self.index[i][_e] = 1
+                    self.hatp[_e] += 1.0/K
                 # Construct phiInv
                 u = self.u 
                 v = self.v
                 assert (u != None and v != None)
-                nx_G = nx.Graph()
-                nx_G.add_edges_from(G[0])
-                reachable = 0
-                if (u in nx_G) and (v in nx_G):
-                    if (nx.has_path(nx_G,u,v)):
-                        reachable = 1
+                # nx_G = nx.Graph()
+                # nx_G.add_edges_from(G[0])
+                # nx_G = G[0].nx_format
+                # reachable = 0
+                # if (u in nx_G) and (v in nx_G):
+                #     if (nx.has_path(nx_G,u,v)):
+                #         reachable = 1
+                reachable = G[0].reachable(u,v)
                 if reachable not in self.phiInv:
                     self.phiInv[reachable] = [i]
                 else:
