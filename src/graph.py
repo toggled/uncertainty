@@ -20,7 +20,7 @@ class UGraph:
         # self.sample_time_list = [] # exec. time to generate individual possible worlds
         self.total_sample_tm = 0
         self.weights = {}
-
+        self.nbrs = {} # neighborlist representation.
     def __str__(self):
         return ' '.join(self.Edges)
     
@@ -232,15 +232,15 @@ class UGraph:
     def bfs_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For Reachability query. """
         # print(self.Edges)
-        
-        if optimiseargs is not None:
-            if optimiseargs['nbrs'] is None:
-                nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
-            else:
-                nbrs = optimiseargs['nbrs']
-        else:
-            nbrs = self.construct_nbrs()
         start_execution_time = time()
+        # if optimiseargs is not None:
+        #     if optimiseargs['nbrs'] is None:
+        #         nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
+        #     else:
+        #         nbrs = optimiseargs['nbrs']
+        # else:
+        #     nbrs = self.construct_nbrs()
+        nbrs = self.nbrs        
         queue = deque([source]) # Should be deque()
         reached_target = 0
         # if verbose:
@@ -397,14 +397,21 @@ class UGraph:
         # print(sample)
         return nbrs, sample, prob_sample,support_value 
     
-    def add_edge(self,u,v,prob,weight = 1.0):
+    def add_edge(self,u,v,prob,weight = 1.0, construct_nbr = False):
         """ Add edge e = (u,v) along with p(e) """
         (u,v) = (min(u,v),max(u,v))
         self.Edges.append((u,v))
         self.edict[(u,v)] = prob 
         self.notedict[(u,v)] = 1-prob 
         self.weights[(u,v)] = weight
-
+        if construct_nbr:
+            _tmp = self.nbrs.get(u,[])
+            _tmp.append(v)
+            self.nbrs[u] = _tmp 
+            _tmp = self.nbrs.get(v,[])
+            _tmp.append(u)
+            self.nbrs[v] = _tmp
+            
     def get_next_prob(self,u,v,type = 'o1'):
         ''' returns p_{up}(e): the probability of (u,v) after update without actually materialising it.  '''
         if type == 'o1':

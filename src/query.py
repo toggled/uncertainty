@@ -241,7 +241,7 @@ class Query:
             if (u in nx_G) and (v in nx_G):
                 if (nx.has_path(nx_G,u,v)):
                     reachable = 1 
-            reachable = has_path(G,u,v)
+            # reachable = has_path(G,u,v)
 
             return reachable
 
