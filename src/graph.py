@@ -232,7 +232,7 @@ class UGraph:
     def bfs_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For Reachability query. """
         # print(self.Edges)
-        start_execution_time = time()
+        
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
                 nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
@@ -240,6 +240,7 @@ class UGraph:
                 nbrs = optimiseargs['nbrs']
         else:
             nbrs = self.construct_nbrs()
+        start_execution_time = time()
         queue = deque([source]) # Should be deque()
         reached_target = 0
         # if verbose:
