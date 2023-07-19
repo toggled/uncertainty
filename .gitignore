@@ -157,3 +157,4 @@ Ehsan_shared/
 pre/
 plot.ipynb
 figs/
+*.if
