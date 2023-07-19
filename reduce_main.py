@@ -28,8 +28,8 @@ parser.add_argument("-db",'--debug', action = 'store_true')
 parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
 parser.add_argument("-th",'--trackH', action = 'store_true')
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
-# save_dir = 'reduce_main'
-save_dir = 'baseline'
+save_dir = 'reduce_main'
+# save_dir = 'baseline'
 opt_N_dict = {
     'default': {'reach': 100,'sp': 100, 'tri': 100},
     'ER_15_22': 
@@ -135,8 +135,7 @@ def singleQuery_singleRun(G,Query):
         a.greedyP(property = Query.qtype, algorithm = args.est_algo, k = args.k, r = r, \
                      N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                      update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
-        print(a.algostat)
-        return 
+         
     elif args.algo == 'greedymem': #
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 
