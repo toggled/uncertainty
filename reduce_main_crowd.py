@@ -29,6 +29,7 @@ parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, ma
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
 
 opt_N_dict = {
+    'default': {'reach': 100,'sp': 100},
     'ER_15_22': 
         {'reach': 11, 'sp': 26, 'tri': 6},
     'biomine': {'reach': 171},
@@ -38,6 +39,7 @@ opt_N_dict = {
     'restaurants': {'reach': 156}
 }
 opt_T_dict = {
+    'default': {'reach': 10,'sp': 10},
     'ER_15_22': {'reach': 6, 'sp': 11, 'tri': 11},
     'biomine': {'reach': 10},
     'flickr': {'tri': 51},

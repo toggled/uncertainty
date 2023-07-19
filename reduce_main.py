@@ -6,13 +6,14 @@ from src.algorithm import Algorithm,ApproximateAlgorithm
 from src.query import Query,wQuery,multiGraphQuery,multiGraphwQuery
 import pandas as pd
 from datetime import datetime
+import math
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-d", "--dataset", type=str, default="default")
 parser.add_argument("-a", "--algo", type=str, default="greedy") # exact/greedy/greedymem 
 parser.add_argument("-u",'--utype',type = str, default = 'o1')
-parser.add_argument("-k",'--k',type = int, default = 1)
+parser.add_argument("-k",'--k',type = int, default = 1) # Budget
 parser.add_argument("-v", "--verbose", action='store_true')
 parser.add_argument('-s','--source',type = str, default = None)
 parser.add_argument('-t','--target',type = str, default = None)
@@ -30,7 +31,7 @@ parser.add_argument("-th",'--trackH', action = 'store_true')
 # save_dir = 'reduce_main'
 save_dir = 'baseline'
 opt_N_dict = {
-    'default': {'reach': 100,'sp': 100},
+    'default': {'reach': 100,'sp': 100, 'tri': 100},
     'ER_15_22': 
         {'reach': 161, 'sp': 286, 'tri': 466},
     'ER_15_22p': 
@@ -42,7 +43,7 @@ opt_N_dict = {
     'restaurants': {'reach': 156}
 }
 opt_T_dict = {
-    'default': {'reach': 10,'sp':10},
+    'default': {'reach': 10,'sp':10, 'tri': 10},
     'ER_15_22': {'reach': 6, 'sp': 11, 'tri': 11},
     'ER_15_22p': {'reach': 6, 'sp': 11, 'tri': 11},
     'biomine': {'reach': 10},
@@ -110,6 +111,32 @@ def singleQuery_singleRun(G,Query):
         a.greedy(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
                      N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                      update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
+    elif args.algo == 'dp': #
+        a = ApproximateAlgorithm(G,Query, debug = args.debug)
+        print("dynamic programming algorithm (w/o mem.): ")
+        # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
+        a.dp(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
+                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
+        return
+    elif args.algo == 'greedyp': #
+        a = ApproximateAlgorithm(G,Query, debug = args.debug)
+        print("Greedy path selection algorithm (w/o mem.): ")
+        # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
+        if args.queryf is not None:
+            q = int(args.queryf.split('.')[0].split('_')[-1])
+        else:
+            q = 2   
+        if Query.qtype == 'tri':
+            r = math.ceil(args.k/3)
+        else:
+            r = math.ceil(args.k/q)  
+        print('r = ',r)
+        a.greedyP(property = Query.qtype, algorithm = args.est_algo, k = args.k, r = r, \
+                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
+        print(a.algostat)
+        return 
     elif args.algo == 'greedymem': #
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 

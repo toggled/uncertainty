@@ -104,7 +104,7 @@ def singleRun(G,Query, save = True):
     for k in a.algostat.keys():
         if k!='result' and k!='k': 
             output[k] = a.algostat[k]
-    print(output['execution_time'])
+    # print(output['execution_time'])
     if (not args.verbose):
         # csv_name = 'output/measure_'+args.dataset+'.csv'
         csv_name = 'output/measure_' + args.dataset + "_" + args.algo + "_" + args.property + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
@@ -115,9 +115,9 @@ def singleRun(G,Query, save = True):
         result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
         if save: # Save the algorithm run statistics
             result.to_csv(csv_name, header=True, index=False)
-            print(result.head())
+            print(result.head(10))
         else:
-            print(result.head())
+            print(result.head(10))
     a = None 
 # Get list of queries
 if not debug:

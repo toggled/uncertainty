@@ -268,6 +268,25 @@ def compute_uncertainty(probGraph,s,t,d, aftercleaning = False, estar = None):
         Q.eval()
         return Q.compute_entropy()
 
+def compute_influence_set(nodes,E,G,d):
+    influence_set = {}
+    for e in E:
+        u,v = e[0],e[1]
+        print(u,v)
+        length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
+        length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
+        for _s,_t in combinations(nodes,2):
+            dv_t = length_v_all.get(_t,math.inf)
+            dv_s = length_v_all.get(_s,math.inf)
+            dt_u = length_all_u.get(_t,math.inf)
+            ds_u = length_all_u.get(_s,math.inf)
+            uv_weight = e[2]
+            if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight+dt_u <= d):
+                influence_set[(u,v)] = influence_set.get((u,v),[])
+                influence_set[(u,v)].append((_s,_t))
+    print(influence_set)
+    return influence_set
+
 if __name__=='__main__': 
     if args.dataset == 'test':
         G=nx.read_edgelist("test_graph_TKDE.txt", delimiter=" ", create_using=nx.Graph(), nodetype=int, data=(("weight", float), ("prob", float)))
@@ -279,9 +298,15 @@ if __name__=='__main__':
     else:
         probGraph = get_dataset(args.dataset)
         G = probGraph.get_weighted_graph_rep()
+        # print(type(G))
         # print(G.isconnected())
-        queries = get_queries(queryfile = args.queryf,maxQ = args.maxquery)
+        if (args.source is None and args.target is None):
+            queries = get_queries(queryfile = args.queryf,maxQ = args.maxquery)
+        else:
+            queries = [(args.source,args.target)]
         nodes = G.nodes()
+        print('nodes: ',nodes)
+        print('queries = ', queries)
         # print(len(G.nodes), ' ',len(G.edges))
         # import sys
         # sys.exit(1)
@@ -294,30 +319,21 @@ if __name__=='__main__':
     # e_clean=[(3, 0, 1.0, 0.5),
     #           (0, 2, 1.0, 0.7),
     #           (1, 3, 1.0, 0.3)] #Edges to clean
-    influence_set = {}
+    
     ecl = []
     for i,e in enumerate(probGraph.Edges): 
         ecl.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
     start_execution_time = time()
-    if_file = args.dataset+'.if'
+    if_file = args.dataset+'_'+str(d)+'.if'
     if not os.path.isfile(if_file):
-        for e in ecl:
-            u,v = e[0],e[1]
-            length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
-            length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
-            for _s,_t in combinations(nodes,2):
-                dv_t = length_v_all.get(_t,math.inf)
-                dv_s = length_v_all.get(_s,math.inf)
-                dt_u = length_all_u.get(_t,math.inf)
-                ds_u = length_all_u.get(_s,math.inf)
-                uv_weight = e[2]
-                if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight+dt_u <= d):
-                    influence_set[(u,v)] = influence_set.get((u,v),[])
-                    influence_set[(u,v)].append((_s,_t))
+        influence_set = compute_influence_set(nodes,ecl,G,d)
+        print('saving influence_set file: ',if_file)
         save_dict(influence_set,if_file)
     else:
+        print('loading influence_set file: ',if_file)
         influence_set = load_dict(if_file)
     for s,t in queries:
+        print('s,t = ',s,t)
         # e_clean = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True) if e[2]['prob']<= p_max and e[2]['prob']>=p_min]
         # if args.verbose: print("Candidate edges: ", e_clean)
         # index = {}

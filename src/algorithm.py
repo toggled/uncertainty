@@ -10,6 +10,14 @@ from scipy.stats import entropy
 from datetime import datetime
 import numpy as np
 from src.utils import h 
+import networkx as nx
+from itertools import combinations,permutations
+import json
+from pptree import * 
+from heapdict import heapdict 
+from collections import deque 
+import sys 
+
 def save_pickle(ob, fname):
     with open (fname, 'wb') as f:
         #Use the dump function to convert Python objects into binary object files
@@ -1063,7 +1071,7 @@ class ApproximateAlgorithm:
             history_deltaH.append(local_maxima[1])
             # history_Hk.append(H_up)
             history_Hk.append(minima[minima_index])
-            previous_pe.append(self.G.edict[estar])
+            previous_pe.append(self.G.edict.get_prob(estar))
             # H0 = H_up
             # End of Algorithm 4
             E.append(estar)
@@ -1216,7 +1224,24 @@ class ApproximateAlgorithm:
     #     return E,self.algostat['result']['H*'],self.algostat['result']['H0'] - self.algostat['result']['H*']
     
     #     # Greedy k-edge selection: Algorithm 3
-
+    def compute_influence_set(self, nodes, E, nx_G, d):
+        G = nx_G
+        influence_set = {}
+        for e in E:
+            u,v = min(e[0],e[1]),max(e[0],e[1])
+            length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
+            length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
+            for s,t in combinations(nodes,2):
+                _s,_t = min(s,t), max(s,t)
+                dv_t = length_v_all.get(_t,math.inf)
+                dv_s = length_v_all.get(_s,math.inf)
+                dt_u = length_all_u.get(_t,math.inf)
+                ds_u = length_all_u.get(_s,math.inf)
+                uv_weight = self.G.weights[(u,v)]
+                if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight+dt_u <= d):
+                    influence_set[(u,v)] = influence_set.get((u,v),[])
+                    influence_set[(u,v)].append((_s,_t))
+        return influence_set
     def greedy(self,  property, algorithm, k,  N = 1, T = 1, update_type = 'o1', verbose = False, track_H = False):
         """
         Exact version of Algorithm 3
@@ -1292,7 +1317,7 @@ class ApproximateAlgorithm:
             estar = local_maxima[0] # assign e*
             H0 = local_maxima[1] # Assign H0 for the next iteration.
             history_Hk.append(minima[minima_index])
-            previous_pe.append(self.G.edict[estar])
+            previous_pe.append(self.G.edict.get_prob(estar))
             E.append(estar)
             if (verbose):
                 print('e* = ',estar)
@@ -1328,6 +1353,381 @@ class ApproximateAlgorithm:
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
         self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
         self.algostat['history_deltaH'] = history
+        return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
+
+    def dp(self,  property, algorithm, k,  N = 1, T = 1, update_type = 'o1', verbose = False, track_H = False):
+        """
+        Bruteforce algorithm that shows the search Tree of edges.
+        """
+        ZERO = 10**(-13)
+        def h(x):
+            absx = abs(x)
+            if absx <= ZERO:
+                return 0
+            elif (1-absx) <= ZERO:
+                return 0
+            else:
+                try:
+                    p = log2(x)
+                except:
+                    print(x)
+            return -x*log2(x)
+        
+        self.algostat['algorithm'] = 'greedy+dp'
+        self.algostat['k'] = k
+        start_execution_time = time()
+        H0 = self.measure_H0(property,algorithm,T, N)
+        self.algostat['result']['H0'] = H0
+        E = []
+        Estar = copy(self.G.edict)
+        memory = {}
+        head = Node('[], H0 = '+"{:1.3f}".format(H0))
+        for i in range(1,k+1):
+            print('--> ',i)
+            # for choice in permutations(Estar.keys(),i):
+            for choice in combinations(Estar.keys(),i):
+                print(choice)
+                if len(choice)==1:
+                    g_copy = deepcopy(self.G)
+                    g_copy.edge_update(choice[0][0],choice[0][1], type= update_type)
+                    self.Query.reset(g_copy)
+                    H_up = self.measure_H0(property, algorithm, T, N)
+                    if choice not in memory:
+                        memory[choice] = Node(str(choice)+'='+"{:1.3f}".format(H_up) \
+                                              +'/' +"{:1.3f}".format(h(self.G.edict.get_prob(choice[0]))), head)
+
+                else:
+                    g_copy = deepcopy(self.G)
+                    H_pe = 0
+                    for e in choice:
+                        H_pe += h(self.G.edict.get_prob(e))
+                        g_copy.edge_update(e[0],e[1], type= update_type)
+                    self.Query.reset(g_copy)
+                    H_up = self.measure_H0(property, algorithm, T, N)
+                    ref = memory[tuple(choice[:-1])]
+                    # for j,e in enumerate(choice):
+                    #     if e in memory:
+                    #         ref = memory[e]
+                    #         continue 
+                    #     else:
+                    memory[choice] = Node(str(choice)+'='+"{:1.3f}".format(H_up)+'/'+"{:1.3f}".format(H_pe), ref)
+        print_tree(head)
+        # print_tree(head,horizontal = False)
+        # json_object = json.dumps(memory,indent = 4)
+        # json_formatted_str = json.dumps(json_object, indent=2)
+        # print(json_formatted_str)
+        # print(json_object)
+        # assert k>=1
+        # history = []
+        # self.algostat['algorithm'] = 'greedy'
+        # self.algostat['k'] = k
+        # if(len(self.G.nx_format) == 0):
+        #     self.G.nx_format.add_edges_from(self.G.Edges)
+        # nodes = self.G.nx_format.nodes()
+        # nx_G = self.G.nx_format
+        # start_execution_time = time()
+        # Estar = copy(self.G.edict)
+        # # if Iset:
+        # #     inf_set = self.compute_influence_set(nodes,self.G.edict.keys(),nx_G,self.Query.d)
+        # #     # Estar = inf_set
+        # #     print('influence_set: ',inf_set)
+
+        # assert k<=len(Estar)
+        # # Ecand = [('s','u'),('s','y')]
+        # # Ecand = [('s','x'),('s','y')]
+        # # self.Query.eval()
+        # # H0 = self.Query.compute_entropy() # Initial entropy
+        # H0 = self.measure_H0(property,algorithm,T, N)
+        
+        # self.algostat['result']['H0'] = H0
+        # E = []
+        # history_Hk = []
+        # previous_pe = []
+        # if (verbose):
+        #     print('H0: ',H0)
+        #     print('p(e): ',self.G.edict)
+        #     print('Pr[Omega]: ', self.Query.freq_distr)
+        #     # print('results: ',self.Query.results)
+        # for i in range(k):
+        #     print('iteration: ',i)
+        #     # local_maxima = None 
+        #     if (verbose):
+        #         print('Selecting edge#: ',i+1)
+        #     # Estar= [Ecand[i]]
+        #     minima = []
+        #     candidates = []
+        #     # if Iset:
+        #     #     qual_improve = {}
+        #     #     prev_qual = -1000000000
+        #     #     for e in Estar:
+        #     #         g_copy = deepcopy(self.G)
+        #     #         g_copy.edge_update(e[0],e[1], type= update_type)
+        #     #         self.Query.reset(g_copy)
+        #     #         He = self.measure_H0(property, algorithm, T, N)
+        #     #         qual_improve[e] = H0 - He
+        #     #         candidates.append(e)
+        #     #         minima.append(qual_improve[e])
+        #     #     if verbose:
+        #     #         print('qual delta: ', qual_improve)
+        #     # for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest reduction in Entropy
+        #     #     print('e = ',e)
+        #     #     g_copy = deepcopy(self.G)
+        #     #     # if (verbose):
+        #     #     #     print('g_copy: ',g_copy.edict)
+        #     #     g_copy.edge_update(e[0],e[1], type= update_type)
+        #     #     # if i==0:
+        #     #     #     g_copy.update_edge_prob(e[0],e[1], 0)
+        #     #     # else:
+        #     #     #     g_copy.update_edge_prob(e[0],e[1], 1)
+        #     #     self.Query.reset(g_copy)
+        #     #     # self.Query.eval()
+        #     #     # if (verbose):
+        #     #     #     print('considering e= ',e)
+        #     #     #     # print('p(e): ',g_copy.edict)
+        #     #     #     print('Pr[Omega]: ', self.Query.freq_distr)
+        #     #     #     # print('results: ',self.Query.results)
+        #     #     # Hi = self.Query.compute_entropy()
+        #     #     if Iset:
+        #     #         Qual_next = 0
+        #     #         for _e in inf_set[e]:
+        #     #             Qual_next += qual_improve.get(_e,0)
+        #     #             Qual_next += qual_improve.get((_e[1],_e[0]),0)
+        #     #         minima.append(Qual_next)
+        #     #     else:
+        #     #         H_up = self.measure_H0(property, algorithm, T, N)
+        #     #         minima.append(H_up)
+        #     #     candidates.append(e)
+        #         # if local_maxima:
+        #         #     if H0 -  H_up > H0 - local_maxima[1]:
+        #         #         local_maxima = (e, H_up)
+        #         #         # if (verbose):
+        #         #         #     print('new maxima: ',local_maxima)
+        #         # else:
+        #         #     local_maxima = (e, H_up)
+        #             # if (verbose):
+        #             #     print('initial maxima: ',local_maxima)
+        #         # print('e: ',e,' \Delta H = ', H0-H_up, ' H0:', H0, ' H_next: ',H_up)
+        #     # if verbose: print('H_up : ',minima,'\n\r candidates: ',candidates)
+        #     if verbose:
+        #         print('Round ',i,' : ')
+        #         for x,y in zip(minima,candidates):
+        #             print(y,' => ',x)
+        #     # if Iset:
+        #     #     maxima_index = np.argmax(minima)
+        #     #     local_maxima =  (candidates[maxima_index],H0 - minima[maxima_index])
+        #     #     estar = local_maxima[0]
+        #     #     Hupstar = H0 - qual_improve[estar]
+        #     #     history_Hk.append(Hupstar)
+        #     #     H0 = Hupstar
+        #     else:
+        #         minima_index = np.argmin(minima)
+        #         multiple_minima = np.where(minima[minima_index] == minima)[0]
+        #         local_maxima = (candidates[minima_index],H0 - minima[minima_index])
+        #         estar = local_maxima[0] # assign e*
+        #         H0 = local_maxima[1] # Assign H0 for the next iteration.
+        #         history_Hk.append(minima[minima_index])
+        #     previous_pe.append(self.G.edict[estar])
+        #     E.append(estar)
+        #     del inf_set[estar]
+        #     if (verbose):
+        #         print('e* = ',estar)
+        #     del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
+        #     self.G.edge_update(estar[0],estar[1],type = update_type) # Update UGraph()
+        #     self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()
+        #     if track_H:
+        #         history.append(self.algostat['result']['H0']-self.measure_H0(property,algorithm,T,N))
+        #     # if (verbose):
+        #     #     self.Query.eval()
+        #     #     print('Entropy of Updated UGraph: ',self.Query.compute_entropy())
+        # history_Hk = np.array(history_Hk)
+        # if verbose: print('history_Hk = ',history_Hk)
+        # h0_hkhat = self.algostat['result']['H0'] - history_Hk # H0-\hat{H}_k
+        
+        # min_hkhat = np.argmin(history_Hk)
+        # minima_index_list = np.where(history_Hk[min_hkhat] == history_Hk)[0]
+        # if verbose and len(minima_index_list)>1: print('>1 minima: ', minima_index_list,' ',history_Hk[minima_index_list])
+        # largest_minima_index = minima_index_list[-1]
+        # if verbose: print('argmin \hat{H}_k= ',min_hkhat, '. \hat{H}_k* = ',history_Hk[largest_minima_index])
+        
+        # for i in range(largest_minima_index+1,len(E)):
+        #     self.Query.p_graph.update_edge_prob(E[i][0],E[i][1],previous_pe[i])
+        # E = E[:largest_minima_index+1] # Take edges until the argmax min(H_1,H_2,..,H_k)
+        # if verbose: print('H0-\hat{H}k: ',h0_hkhat)
+        
+        # e_tm = time() - start_execution_time
+        # self.algostat['MCalgo'] = algorithm
+        # self.algostat['result']['edges'] = E
+        # self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N)
+        # self.algostat['execution_time']= e_tm
+        # self.algostat['support'] = ''
+        # self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+        # self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+        # self.algostat['history_deltaH'] = history
+        # return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
+
+    def greedyP(self,  property, algorithm, k, r, N = 1, T = 1, update_type = 'o1', verbose = False, track_H = False):
+        """
+        Bruteforce algorithm that shows the search Tree of edges.
+        """
+        ZERO = 10**(-13)
+        def h(x):
+            absx = abs(x)
+            if absx <= ZERO:
+                return 0
+            elif (1-absx) <= ZERO:
+                return 0
+            else:
+                try:
+                    p = log2(x)
+                except:
+                    print(x)
+            return -x*log2(x)
+        
+        def weightFn(e, type = 'log'): # type = `log` (-p(e)logp(e)), `hx` (H(e)), None (1), orig (w(e))
+            if type is None:
+                return 1
+            else:
+                x = self.G.get_prob(e)
+                if type == 'log':
+                    return h(x) # -p(e)log p(e)
+                elif type == 'hx':
+                    return h(x)+h(1-x) # Entropy(e)
+                elif type == 'orig':
+                    return self.G.weights[e]
+        self.algostat['algorithm'] = 'greedy+P'
+        self.algostat['k'] = k
+        H0 = self.measure_H0(property,algorithm,T, N)
+        self.algostat['result']['H0'] = H0
+
+        start_execution_time = time()
+        E = []
+        Estar = copy(self.G.edict)
+        top_rpaths = []
+        edge_path_index = {}
+        if property == 'reach' or property=='reach_d' or property == 'sp':
+            nx_G = self.G.nx_format
+            edges_with_weights = [(e[0],e[1],weightFn(e,type=None)) for e in self.G.Edges]
+            nx_G.add_weighted_edges_from(edges_with_weights)
+            # nx_G.add_edges_from(self.G.edict.keys())
+            if verbose: print(nx_G.edges(data=True))
+            # entropy_paths = []
+            count = 0
+            # for path in nx.all_simple_paths(nx_G,self.Query.u,self.Query.v):
+            #     print(path)
+            # path_gen = nx.all_simple_paths(nx_G,self.Query.u,self.Query.v)
+            path_gen = nx.all_shortest_paths(nx_G,self.Query.u,self.Query.v,weight='weight')
+            maxheap = heapdict()
+            for path in path_gen:
+                if verbose: print(path)
+                if count< r:
+                    h_path = 0
+                    for j in range(len(path)-1):
+                        u,v = path[j],path[j+1]
+                        edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
+                        edge_path_index[(u,v)].append(count)
+                        if (u,v) in self.G.edict:
+                            # top_rpaths.append((u,v))
+                            h_path += h(self.G.get_prob((u,v)))
+                        else:
+                            # top_rpaths.append((v,u))
+                            h_path += h(self.G.get_prob((v,u)))
+                    # entropy_paths.append(h_path)
+                    if update_type == 'o1':
+                        maxheap[tuple(path)] = (count,-h_path) # heap priority = ( ordering of the shortest paths generated, -entropy)
+                    else:
+                        maxheap[tuple(path)] = (-h_path,count) # heap priority = (-entropy, ordering of the shortest paths generated)
+                    top_rpaths.append(tuple(path))
+                    count+=1
+                else:
+                    break
+        elif property == 'tri':
+            # print(self.G.nbrs)
+            nbrs = self.G.nbrs 
+            num_nodes = len(nbrs)
+            nodeset = [v for v in nbrs if len(nbrs[v])>=2 ]
+            nu = 100 # 1000 # prob of having good estimate is at least 99%
+            eps = 1/math.sqrt(num_nodes) # +-sqrt(n) error will be incurred during tri counting , but with prob at most 1 - ((nu -1)/nu)
+            kappa = math.ceil(math.log(2*nu)/(2*eps**2))
+            # print('approximate triangle counting: nu = ',nu,' eps = ',eps,' n = ',num_nodes, ' k = ',k)
+            V = list(nodeset) # set of nodes whose deg >=2
+            absV = len(V)
+            # approximate counting
+            num_tri = 0
+            maxheap = heapdict()
+            while num_tri < r:
+                for i in range(kappa):
+                    j = random.randint(0,absV-1)
+                    nbrs_u = nbrs[V[j]]
+                    v,w = random.sample(nbrs_u,k=2)
+                    if w in nbrs[v]:
+                        u = V[j]
+                        h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
+                        maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
+                        top_rpaths.append((u,v,w,u))
+                        edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
+                        edge_path_index[(u,v)].append(num_tri)
+                        edge_path_index[(v,w)] = edge_path_index.get((v,w),deque())
+                        edge_path_index[(v,w)].append(num_tri)
+                        edge_path_index[(w,u)] = edge_path_index.get((w,u),deque())
+                        edge_path_index[(w,u)].append(num_tri)
+                        num_tri += 1
+                    if num_tri == r:
+                        break 
+            if verbose: print('|T| = ',num_tri, ' |S|= ',kappa,' |V| = ',absV)
+        else:
+            raise Exception("invalid query type")
+            sys.exit(1)
+
+        if verbose: print('top-r paths: ',top_rpaths)
+        # print('top-r path entropies: ',entropy_paths)
+            
+        count = 0
+        while count < k and len(maxheap):
+            if verbose: print('count = ',count, ' len(heap) = ',len(maxheap))
+            toppath,(H_p,_index_toppath) = maxheap.popitem()
+            indices_of_otherpaths = set() # Because say an alternative path exist containing (u,v) and (v,w) both when top-path = u->v-w. We
+                                          # want to avoid duplicates in such cases. 
+            for j in range(len(toppath)-1):
+                u,v = toppath[j],toppath[j+1]
+                E.append((u,v))
+                self.G.edge_update(u,v, type= update_type)
+                self.Query.reset(self.G)
+                # H_up = self.measure_H0(property, algorithm, T, N)
+                count+=1
+                shared_paths = edge_path_index[(u,v)]
+                if len(shared_paths)>1:
+                    for others in shared_paths:
+                        indices_of_otherpaths.add(others)
+                if count >= k:   break 
+            # Update entropy of any other path that shares an edge with the toppath at current round
+            for _index_another_path in indices_of_otherpaths:
+                if _index_another_path != _index_toppath:
+                    another_path = top_rpaths[_index_another_path]
+                    h_path = 0
+                    for j in range(len(another_path)-1):
+                        u,v = another_path[j],another_path[j+1]
+                        if (u,v) in self.G.edict:
+                            h_path += h(self.G.get_prob((u,v)))
+                        else:
+                            h_path += h(self.G.get_prob((v,u)))
+                    if verbose:
+                        print('update heap: ',another_path, '(before) : ',maxheap[another_path])
+                    maxheap[another_path] = h_path 
+                    if verbose:
+                        print('update heap: ',another_path, '(after) : ',h_path)
+        # H_up = self.measure_H0(property, algorithm, T, N)
+        # print('H0  = ',H0)
+        # print('H_up = ',H_up)
+        # print('reduction: ',H0 - H_up)
+        e_tm = time() - start_execution_time
+        self.algostat['MCalgo'] = algorithm
+        self.algostat['result']['edges'] = E
+        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N)
+        self.algostat['execution_time']= e_tm
+        self.algostat['support'] = ''
+        self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+        self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+        self.algostat['history_deltaH'] = []
         return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
 
     def compute_Pr_up_zero(self):
@@ -1428,7 +1828,7 @@ class ApproximateAlgorithm:
             for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
                 DeltaHe2 = 0 # H - H^{e}_{up}
                 H_up = 0
-                p_e = self.G.edict[e]
+                p_e = self.G.edict.get_prob(e)
                 for omega in self.Query.phiInv:
                     # if Pr_Omega[omega] == 0:
                     #     h0 = 0
@@ -1467,7 +1867,7 @@ class ApproximateAlgorithm:
             E.append(estar)
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
             history_Hk.append(minima[minima_index])
-            previous_pe.append(self.G.edict[estar])
+            previous_pe.append(self.G.edict.get_prob(estar))
             if update_type == 'c2':
                 if iter < k-1:
                     can_reduce_further = self.Query.adaptiveUpdateTables(estar,update_dict[estar], self.Pr_up,self.Pr_up_0)
@@ -1555,7 +1955,7 @@ class ApproximateAlgorithm:
             local_maxima = None 
             for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
                 g_copy = deepcopy(self.G)
-                pe = self.G.edict[e]
+                pe = self.G.edict.get_prob(e)
                 if property == 'reach':
                     # Reach = self.compute_approx_reach(self.Query.u,self.Query.v,\
                     #                                    self.Query.p_graph, N*T)
