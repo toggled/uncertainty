@@ -6,7 +6,7 @@ from src.algorithm import Algorithm,ApproximateAlgorithm
 from src.query import Query,wQuery,multiGraphQuery,multiGraphwQuery
 import pandas as pd
 from datetime import datetime
-
+import math
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-d", "--dataset", type=str, default="papers")
@@ -121,6 +121,25 @@ def singleQuery_singleRun(G,Query):
                       update_dict = cr_dict,\
                      N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                     update_type=args.utype, verbose = args.verbose)
+    elif args.algo == 'greedyp': #
+        a = ApproximateAlgorithm(G,Query, debug = args.debug)
+        assert len(cr_dict) != 0
+        if args.queryf is not None:
+            q = int(args.queryf.split('.')[0].split('_')[-1])
+        else:
+            q = 2   
+        if Query.qtype == 'tri':
+            r = math.ceil(args.k/3)
+        else:
+            r = math.ceil(args.k/q)  
+        print('r = ',r)
+        # a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 
+        #              N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+        #             update_type=args.utype, verbose = args.verbose)
+        a.crowd_greedyp(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, r = r,\
+                      update_dict = cr_dict,\
+                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                    update_type=args.utype, verbose = args.verbose)
     # elif args.algo == 'greedymem_re':
     #     raise ValueError("do not use this option.")
     #     a = ApproximateAlgorithm(G,Query)
@@ -177,7 +196,7 @@ def singleQuery_singleRun(G,Query):
         # print(pd.DataFrame(output,index = [0]).head())
         result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
         result.to_csv(csv_name, header=True, index=False)
-        print(result.head(10))
+        print(result.head(20))
     # if args.debug:
     #     print(output['M'])
 

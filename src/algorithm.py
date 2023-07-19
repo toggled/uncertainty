@@ -1907,6 +1907,184 @@ class ApproximateAlgorithm:
         if self.debug: self.algostat['M'] = M
         return E,self.algostat['result']['H*'], self.algostat['result']['H0']- self.algostat['result']['H*']
 
+    def crowd_greedyp(self, property, algorithm, k, K, r, update_dict, N=1,T=1, update_type = 'c1', verbose = False, track_H = False):
+        """ Greedy+p in crowdsourced setting """
+        ZERO = 10**(-13)
+        def h(x):
+            absx = abs(x)
+            if absx <= ZERO:
+                return 0
+            elif (1-absx) <= ZERO:
+                return 0
+            else:
+                try:
+                    p = log2(x)
+                except:
+                    print(x)
+            return -x*log2(x)
+        
+        def weightFn(e, type = 'log'): # type = `log` (-p(e)logp(e)), `hx` (H(e)), None (1), orig (w(e))
+            if type is None:
+                return 1
+            else:
+                x = self.G.get_prob(e)
+                if type == 'log':
+                    return h(x) # -p(e)log p(e)
+                elif type == 'hx':
+                    return h(x)+h(1-x) # Entropy(e)
+                elif type == 'orig':
+                    return self.G.weights[e]
+                
+        print(['adaptive','non-adaptive'][update_type == 'c1'], ' setting')
+        assert k>=1 and update_type!='o1'
+        self.algostat['result']['H0'] = self.measure_H0(property,algorithm,T,N)
+        start_execution_time = time()
+        E = []
+        Estar = copy(self.G.edict)
+        top_rpaths = []
+        edge_path_index = {}
+        if property == 'reach' or property=='reach_d' or property == 'sp':
+            nx_G = self.G.nx_format
+            edges_with_weights = [(e[0],e[1],weightFn(e,type=None)) for e in self.G.Edges]
+            nx_G.add_weighted_edges_from(edges_with_weights)
+            # nx_G.add_edges_from(self.G.edict.keys())
+            if verbose: print(nx_G.edges(data=True))
+            # entropy_paths = []
+            count = 0
+            # for path in nx.all_simple_paths(nx_G,self.Query.u,self.Query.v):
+            #     print(path)
+            # path_gen = nx.all_simple_paths(nx_G,self.Query.u,self.Query.v)
+            path_gen = nx.all_shortest_paths(nx_G,self.Query.u,self.Query.v,weight='weight')
+            maxheap = heapdict()
+            for path in path_gen:
+                if verbose: print(path)
+                if count< r:
+                    h_path = 0
+                    for j in range(len(path)-1):
+                        u,v = path[j],path[j+1]
+                        edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
+                        edge_path_index[(u,v)].append(count)
+                        if (u,v) in self.G.edict:
+                            # top_rpaths.append((u,v))
+                            h_path += h(self.G.get_prob((u,v)))
+                        else:
+                            # top_rpaths.append((v,u))
+                            h_path += h(self.G.get_prob((v,u)))
+                    # entropy_paths.append(h_path)
+                    if update_type == 'o1':
+                        maxheap[tuple(path)] = (count,-h_path) # heap priority = ( ordering of the shortest paths generated, -entropy)
+                    else:
+                        maxheap[tuple(path)] = (-h_path,count) # heap priority = (-entropy, ordering of the shortest paths generated)
+                    top_rpaths.append(tuple(path))
+                    count+=1
+                else:
+                    break
+        elif property == 'tri':
+            # print(self.G.nbrs)
+            nbrs = self.G.nbrs 
+            num_nodes = len(nbrs)
+            nodeset = [v for v in nbrs if len(nbrs[v])>=2 ]
+            nu = 100 # 1000 # prob of having good estimate is at least 99%
+            eps = 1/math.sqrt(num_nodes) # +-sqrt(n) error will be incurred during tri counting , but with prob at most 1 - ((nu -1)/nu)
+            kappa = math.ceil(math.log(2*nu)/(2*eps**2))
+            # print('approximate triangle counting: nu = ',nu,' eps = ',eps,' n = ',num_nodes, ' k = ',k)
+            V = list(nodeset) # set of nodes whose deg >=2
+            absV = len(V)
+            # approximate counting
+            num_tri = 0
+            maxheap = heapdict()
+            while num_tri < r:
+                for i in range(kappa):
+                    j = random.randint(0,absV-1)
+                    nbrs_u = nbrs[V[j]]
+                    v,w = random.sample(nbrs_u,k=2)
+                    if w in nbrs[v]:
+                        u = V[j]
+                        h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
+                        maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
+                        top_rpaths.append((u,v,w,u))
+                        edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
+                        edge_path_index[(u,v)].append(num_tri)
+                        edge_path_index[(v,w)] = edge_path_index.get((v,w),deque())
+                        edge_path_index[(v,w)].append(num_tri)
+                        edge_path_index[(w,u)] = edge_path_index.get((w,u),deque())
+                        edge_path_index[(w,u)].append(num_tri)
+                        num_tri += 1
+                    if num_tri == r:
+                        break 
+            if verbose: print('|T| = ',num_tri, ' |S|= ',kappa,' |V| = ',absV)
+        else:
+            raise Exception("invalid query type")
+            sys.exit(1)
+
+        if verbose: print('top-r paths: ',top_rpaths)
+        # print('top-r path entropies: ',entropy_paths)
+            
+        count = 0
+        while count < k and len(maxheap):
+            if verbose: print('count = ',count, ' len(heap) = ',len(maxheap))
+            toppath,(H_p,_index_toppath) = maxheap.popitem()
+            indices_of_otherpaths = set() # Because say an alternative path exist containing (u,v) and (v,w) both when top-path = u->v-w. We
+                                          # want to avoid duplicates in such cases. 
+            for j in range(len(toppath)-1):
+                u,v = toppath[j],toppath[j+1]
+                E.append((u,v))
+                if update_type == 'c2':
+                    # self.G.edge_update(u,v, type= update_type)
+                    if (u,v) in update_dict:
+                        cr_pe = update_dict[(u,v)]
+                    else:
+                        cr_pe = update_dict[(v,u)]
+                    self.G.update_edge_prob(u,v,cr_pe)
+                    self.Query.reset(self.G)
+                # H_up = self.measure_H0(property, algorithm, T, N)
+                count+=1
+                shared_paths = edge_path_index[(u,v)]
+                if len(shared_paths)>1:
+                    for others in shared_paths:
+                        indices_of_otherpaths.add(others)
+                if count >= k:   break 
+            # Update entropy of any other path that shares an edge with the toppath at current round
+            for _index_another_path in indices_of_otherpaths:
+                if _index_another_path != _index_toppath:
+                    another_path = top_rpaths[_index_another_path]
+                    h_path = 0
+                    for j in range(len(another_path)-1):
+                        u,v = another_path[j],another_path[j+1]
+                        if (u,v) in self.G.edict:
+                            h_path += h(self.G.get_prob((u,v)))
+                        else:
+                            h_path += h(self.G.get_prob((v,u)))
+                    if verbose:
+                        print('update heap: ',another_path, '(before) : ',maxheap[another_path])
+                    maxheap[another_path] = h_path 
+                    if verbose:
+                        print('update heap: ',another_path, '(after) : ',h_path)
+        if update_type == 'c1':
+            for e in E:
+                if (u,v) in update_dict:
+                    cr_pe = update_dict[(u,v)]
+                else:
+                    cr_pe = update_dict[(v,u)]
+                self.G.update_edge_prob(e[0],e[1],cr_pe)
+            self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
+
+        e_tm = time() - start_execution_time
+        self.algostat['algorithm'] = 'greedy+P'
+        self.algostat['MCalgo'] = algorithm
+        self.algostat['k'] = k
+        self.algostat['result']['edges'] = E
+        # self.Query.eval()
+        # self.algostat['result']['H*'] = self.algostat['result']['H0']-history[-1]
+        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N)
+        self.algostat['execution_time'] = e_tm
+        # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
+        self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
+        self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
+        self.algostat['history_deltaH'] = []
+        return E,self.algostat['result']['H*'], self.algostat['result']['H0']- self.algostat['result']['H*']
+
+
     def compute_approx_reach(self, s,t,probGraph, numsamples):
         random.seed()
         sid = random.randint(0,1000000)
