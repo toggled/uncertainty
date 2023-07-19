@@ -29,9 +29,9 @@ for k in "${arr[@]}"; do
    # done
    # python reduce_main_crowd.py -k $k  -pr reach  -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/restaurant_pair.true -mq $mq -dh 0 &
    # python reduce_main_crowd.py -k $k  -pr reach  -a greedy -K $K -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/restaurant_pair.true -mq $mq -dh 0 &
-   python reduce_main_crowd.py -k $k -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/restaurant_pair.true -mq $mq -dh 0 &
-   python reduce_main_crowd.py -k $k -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/restaurant_pair.true -u c2 -mq $mq -dh 0 &
-   python reduce_main_crowd.py -k $k -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/restaurant_pair.true -mq $mq -dh 0 &
-   python reduce_main_crowd.py -k $k -pr reach -a greedymem -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/restaurant_pair.true -u c2 -mq $mq -dh 0 &
+   python reduce_main_crowd.py -k $k -pr reach -a greedyp -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/restaurant_pair.true -mq $mq -dh 0 &
+   python reduce_main_crowd.py -k $k -pr reach -a greedyp -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_2.queries" -cr data/large/crowd/restaurant_pair.true -u c2 -mq $mq -dh 0 &
+   python reduce_main_crowd.py -k $k -pr reach -a greedyp -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/restaurant_pair.true -mq $mq -dh 0 &
+   python reduce_main_crowd.py -k $k -pr reach -a greedyp -ea mcbfs -d $dataset -q "data/queries/"$dataset"/"$dataset"_4.queries" -cr data/large/crowd/restaurant_pair.true -u c2 -mq $mq -dh 0 &
 done
 #######################
