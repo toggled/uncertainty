@@ -16,10 +16,10 @@ SEED = 123456
 random.seed(SEED)
 MAX_EDGE_LENGTH = 1000
 # dist = list(range(5,21,5))
-dist = list(range(1,6))
-
+#dist = [1,3,5] #list(range(1,4))
+dist = [3,5]# [2,4,6]
 datasets_wgraph = ['maniu_demow','brain_a1','brain_h1','rome']
-datasets_unwgraph = ['maniu_demo','flickr','biomine']
+datasets_unwgraph = ['maniu_demo','flickr','biomine', 'products', 'papers','restaurants']
 
 # Another option to (faster) generate queries, but here the pairs won't be picked uniformly at random
 # First a start vertex is picked uniformly at random and then the end vertex is picked uniformly at random from
@@ -67,12 +67,11 @@ def generate_queries_skewed(g, filename, distances = [1],queries_per_category = 
             backups.update([(s,v) for v in t_options if v != t])
 
         while queries_so_far < queries_per_category and backups:
-            s, t = random.choice(backups)
+            s, t = random.choice(list(backups))
             backups.discard((s,t))
             queries[h].add((s,t))
 
-        print("Done for {} hops".format(h))
-
+        print("Done for {} hops".format(h)); print(len(queries[h]))
         if(len(queries[h])):
             with open(filename+"_"+str(h)+".queries", "w") as q:
                 # q.write("{} {}\n".format(hops, len(queries[hops])))
@@ -107,7 +106,8 @@ if __name__ == "__main__":
         os.mkdir(dir_name)
     
     g = get_dataset(args.dataset).get_unweighted_simple_graph_rep()
-    generate_queries_skewed(g,"data/"+args.dataset+"/"+args.dataset,distances = dist)
+    generate_queries_skewed(g,"data/"+args.dataset+"/"+args.dataset,distances = dist,queries_per_category = 100)
+    #generate_queries_skewed(g,"data/"+args.dataset+"/"+args.dataset,distances = dist,queries_per_category = 5)
 
 
 
