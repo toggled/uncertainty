@@ -170,7 +170,7 @@ def singleQuery_singleRun(G,Query):
     output['algorithm'] = args.algo
     output['setting'] = ['adaptive','non-adaptive'][args.utype == 'c1']
     output['K'] = ["None",args.K][args.algo == 'greedy' or args.algo.startswith('greedymem')]
-
+    output['qset'] = int(args.queryf.split('.')[0].split('_')[-1])
     for k in a.algostat['result']:
         if k == 'edges':
             output[k] = str(a.algostat['result'][k])
