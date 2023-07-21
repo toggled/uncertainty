@@ -27,7 +27,7 @@ parser.add_argument("-db",'--debug', action = 'store_true')
 parser.add_argument('-cr','--cr', type = str, default = 'data/large/crowd/paper_pair.true')
 parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
-parser.add_argument("-r",'--r',type = int, default = -1) # <d-hop reach
+parser.add_argument("-r",'--r',type = int, default = -1) 
 
 opt_N_dict = {
     'default': {'reach': 100,'sp': 100},
