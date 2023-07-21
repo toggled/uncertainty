@@ -27,6 +27,7 @@ parser.add_argument("-dh",'--hop',type = int, default = -1) # <d-hop reach
 parser.add_argument("-db",'--debug', action = 'store_true')
 parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
 parser.add_argument("-th",'--trackH', action = 'store_true')
+parser.add_argument("-r",'--r',type = int, default = -1) 
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
 save_dir = 'reduce_main'
 # save_dir = 'baseline'
@@ -123,15 +124,18 @@ def singleQuery_singleRun(G,Query):
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         print("Greedy path selection algorithm (w/o mem.): ")
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
-        if args.queryf is not None:
-            q = int(args.queryf.split('.')[0].split('_')[-1])
+        if args.r >0:
+            r = args.r 
         else:
-            q = 2   
-        if Query.qtype == 'tri':
-            r = math.ceil(args.k/3)
-        else:
-            r = math.ceil(args.k/q)  
-        print('r = ',r)
+            if args.queryf is not None:
+                q = int(args.queryf.split('.')[0].split('_')[-1])
+            else:
+                q = 2   
+            if Query.qtype == 'tri':
+                r = math.ceil(args.k/3)
+            else:
+                r = math.ceil(args.k/q)  
+            print('r = ',r)
         a.greedyP(property = Query.qtype, algorithm = args.est_algo, k = args.k, r = r, \
                      N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                      update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
