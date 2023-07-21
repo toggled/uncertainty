@@ -17,4 +17,5 @@ for q in "${q_arr[@]}"; do
       python reduce_main_crowd.py -k $k -pr reach -a greedyp -ea mcbfs -d $dataset -q "data/queries100/"$dataset"/"$dataset"_"$q".queries" -dh 0 -cr data/large/crowd/product_pair.true -mq $mq -r $r &
       python reduce_main_crowd.py -k $k -pr reach -a greedyp -ea mcbfs -d $dataset -q "data/queries100/"$dataset"/"$dataset"_"$q".queries" -dh 0 -cr data/large/crowd/product_pair.true -u c2 -mq $mq -r $r &
    done
+   wait
 done
