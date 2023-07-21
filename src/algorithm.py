@@ -2055,7 +2055,7 @@ class ApproximateAlgorithm:
                             h_path += h(self.G.get_prob((u,v)))
                         else:
                             h_path += h(self.G.get_prob((v,u)))
-                    if len(maxheap)>0:
+                    if another_path in maxheap:
                         if verbose:
                             print('update heap: ',another_path, '(before) : ',maxheap[another_path])
                         # update priority
