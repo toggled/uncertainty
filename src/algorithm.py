@@ -1909,8 +1909,8 @@ class ApproximateAlgorithm:
 
     def crowd_greedyp(self, property, algorithm, k, K, r, update_dict, N=1,T=1, update_type = 'c1', verbose = False, track_H = False):
         """ Greedy+p in crowdsourced setting """
-        N = 2*N
-        T = 2*T 
+        # N = 2*N
+        # T = 2*T 
         ZERO = 10**(-13)
         def h(x):
             absx = abs(x)
