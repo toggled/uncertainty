@@ -139,7 +139,9 @@ def singleQuery_singleRun(G,Query):
         a.greedyP(property = Query.qtype, algorithm = args.est_algo, k = args.k, r = r, \
                      N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                      update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
-         
+        a.algostat['r'] = r
+        if args.queryf is not None:
+            a.algostat['qset'] = int(args.queryf.split('.')[0].split('_')[-1])
     elif args.algo == 'greedymem': #
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 
