@@ -2055,21 +2055,22 @@ class ApproximateAlgorithm:
                             h_path += h(self.G.get_prob((u,v)))
                         else:
                             h_path += h(self.G.get_prob((v,u)))
-                    if verbose:
-                        print('update heap: ',another_path, '(before) : ',maxheap[another_path])
-                    # update priority
-                    if property == 'reach' or property=='reach_d' or property == 'sp':
-                        if update_type == 'o1':
-                            _count,_hp = maxheap[another_path]  # heap priority = ( ordering of the shortest paths generated, -entropy)
-                            maxheap[another_path] = (_count,h_path) 
+                    if len(maxheap)>0:
+                        if verbose:
+                            print('update heap: ',another_path, '(before) : ',maxheap[another_path])
+                        # update priority
+                        if property == 'reach' or property=='reach_d' or property == 'sp':
+                            if update_type == 'o1':
+                                _count,_hp = maxheap[another_path]  # heap priority = ( ordering of the shortest paths generated, -entropy)
+                                maxheap[another_path] = (_count,h_path) 
+                            else:
+                                _hp,_count = maxheap[another_path] 
+                                maxheap[another_path] = (h_path,_count) 
                         else:
                             _hp,_count = maxheap[another_path] 
                             maxheap[another_path] = (h_path,_count) 
-                    else:
-                        _hp,_count = maxheap[another_path] 
-                        maxheap[another_path] = (h_path,_count) 
-                    if verbose:
-                        print('update heap: ',another_path, '(after) : ',h_path)
+                        if verbose:
+                            print('update heap: ',another_path, '(after) : ',maxheap[another_path])
         if update_type == 'c1':
             for e in E:
                 if (u,v) in update_dict:
