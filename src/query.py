@@ -252,7 +252,7 @@ class Query:
             # nx_G = nx.Graph()
             # nx_G.add_edges_from(G)
             nx_G = G.nx_format
-            print(type(nx_G))
+            # print(type(nx_G))
             sp_len = INFINITY
             if (u in nx_G) and (v in nx_G):
                 if (nx.has_path(nx_G,u,v)):
@@ -284,8 +284,8 @@ class Query:
 
     def compute_entropy(self, base = 2):
         """ Given a base for logarithm, returns the entropy of the Property_value distribution. """
-        print('distr: ',self.get_distribution())
-        print('edict: ',self.p_graph.edict)
+        # print('distr: ',self.get_distribution())
+        # print('edict: ',self.p_graph.edict)
         if str(base) == 'e':
             return entropy([j for i,j in self.get_distribution()])
         return entropy([j for i,j in self.get_distribution()], base = base)
@@ -555,7 +555,7 @@ class Query:
         
         if (verbose):
             self.G = {} 
-        print(self.qtype)
+        # print(self.qtype)
         if 'time_seed' in os.environ:
             # random.seed()
             s = random.randint(0,1000000)
@@ -670,7 +670,7 @@ class Query:
                     self.index[i] = {}
                     for e in G[0].nx_format.edges:
                         _e = (min(e[0],e[1]),max(e[0],e[1]))
-                        print(_e)
+                        # print(_e)
                         self.index[i][_e] = 1
                         self.hatp[_e] += 1.0/K
                         
@@ -682,7 +682,7 @@ class Query:
                     #         if nx.shortest_path_length(nx_G, source=u, target=v) <= d:
                     #             reachable = 1 
                     reachable = G[0].dhop_reachable(u,v,d)
-                    print(d,'-hop reachable: ',reachable)
+                    # print(d,'-hop reachable: ',reachable)
                     if reachable not in self.phiInv:
                         self.phiInv[reachable] = [i]
                     else:
@@ -879,29 +879,32 @@ class multiGraphQuery(Query):
         """ Function to evaluate a given possible world G (multigraph)"""
         # print('Multigraph eval.')
         # assert isinstance(G,list)
-        if self.qtype == 'reach': # Reachability
-            u = self.u 
-            v = self.v
-            assert (u != None and v != None)
-            # nx_G = nx.MultiGraph()
-            # nx_G.add_edges_from(G)
-            nx_G = G.nx_format
-            # print(type(nx_G))
-            reachable = 0
-            if (u in nx_G) and (v in nx_G):
-                if (nx.has_path(nx_G,u,v)):
-                    reachable = 1 
+        # if self.qtype == 'reach': # Reachability
+        #     u = self.u 
+        #     v = self.v
+        #     assert (u != None and v != None)
+        #     # nx_G = nx.MultiGraph()
+        #     # nx_G.add_edges_from(G)
+        #     nx_G = G.nx_format
+        #     # print(type(nx_G))
+        #     reachable = 0
+        #     if (u in nx_G) and (v in nx_G):
+        #         if (nx.has_path(nx_G,u,v)):
+        #             reachable = 1 
 
-            return reachable
+        #     return reachable
 
         if self.qtype == 'sp': # length of shortest path
             u = self.u 
             v = self.v
             assert (u != None and v != None)
-            
+            nx_G = G.simplify(construct_nx = True)
+            assert isinstance(nx_G,nx.Graph)
+            # print(nx_G.number_of_edges(), ' ',nx_G.number_of_nodes())
             # nx_G = nx.MultiGraph()
             # nx_G.add_edges_from(G)
-            nx_G = G.nx_format
+            # print(type(G), ' ',type(nx_G))
+            # nx_G = G.nx_format
             sp_len = INFINITY
             if (u in nx_G) and (v in nx_G):
                 if (nx.has_path(nx_G,u,v)):

@@ -167,7 +167,7 @@ else: # Run algorithms for all the queries
             if args.property == 'reach':
                 if isinstance(G, UMultiGraph):
                     Q = multiGraphQuery(G,'reach',{'u':s,'v':t})
-                else:
+                else: 
                     Q = Query(G,'reach',{'u':s,'v':t})
             if args.property == 'sp' and isinstance(G,UMultiGraph):
                 if is_weightedGraph(args.dataset):

@@ -305,6 +305,9 @@ class UGraph:
                 nbrs = optimiseargs['nbrs']
         else:
             nbrs = self.construct_nbrs()
+        if source not in nbrs or target not in nbrs:
+            return nbrs, [], 0, INFINITY
+        
         reached_target = 0
         # if verbose:
         sample = [] # No need this.
@@ -780,7 +783,7 @@ class UMultiGraph(UGraph):
         super().__init__()
         self.nx_format = nx.MultiGraph()
     
-    def simplify(self):
+    def simplify(self, construct_nx = False):
         """ 
         Makes the graph simple by removing repeated edges while keeping
         only the edge with smallest weight.
@@ -795,13 +798,22 @@ class UMultiGraph(UGraph):
                         sg.update_edge_prob(u,v,self.edict[(u,v,_id)])
                         sg.weights[(u,v)] = w_uv
                     else:
-                        sg.add_edge(u,v,self.edict[(u,v,_id)],w_uv,construct_nbr=True)
+                        if construct_nx:
+                            sg.add_edge(u,v,self.edict[(u,v,_id)],w_uv,construct_nx=True)
+                        else:
+                            sg.add_edge(u,v,self.edict[(u,v,_id)],w_uv,construct_nbr=True)
                     _small[(u,v)] = w_uv
             else:
                 w_uv = self.weights[(u,v,_id)]
                 _small[(u,v)] = w_uv
-                sg.add_edge(u,v,self.edict[(u,v,_id)],w_uv,construct_nbr=True)
-        return sg
+                if construct_nx:
+                    sg.add_edge(u,v,self.edict[(u,v,_id)],w_uv,construct_nx=True)
+                else:
+                    sg.add_edge(u,v,self.edict[(u,v,_id)],w_uv,construct_nbr=True)
+        if construct_nx:
+            return sg.nx_format
+        else:
+            return sg
 
     def get_prob(self, e):
         u,v = min(e[0],e[1]),max(e[0],e[1]) 
@@ -884,26 +896,22 @@ class UMultiGraph(UGraph):
             nbrs = self.nbrs
         return nbrs 
     
-    # def get_sample(self, seed = 1, verbose = False):
-    #     """ Returns a random possible world (as a networkx Graph) instance. """
-    #     print('MC sample multigraph')
-    #     start_execution_time = time()
-    #     random.seed(seed)
-    #     poss_world = UMultiGraph()
-    #     poss_world_prob = 1
-    #     for e in self.Edges:
-    #         p = self.edict[e]
-    #         # print(e,p)
-    #         if random.random() < p:
-    #             # nx_graph.add_edge(*e,weight = p)
-    #             # poss_world.append(e)
-    #             poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
-    #             # poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
+    def get_sample(self, seed = 1, verbose = False):
+        """ Returns a random possible world instance. """
+        # print('MC sample multigraph')
+        start_execution_time = time()
+        random.seed(seed)
+        poss_world = UMultiGraph()
+        poss_world_prob = 1
+        for e in self.Edges:
+            p = self.edict[e]
+            # print(e,p)
+            if random.random() < p:
+                poss_world.add_edge(e[0],e[1],p,self.weights[e])
+        sample_tm = time() - start_execution_time
+        self.total_sample_tm += sample_tm
+        return (poss_world,poss_world_prob) 
 
-    #     sample_tm = time() - start_execution_time
-    #     # self.sample_time_list.append(sample_tm)
-    #     self.total_sample_tm += sample_tm
-    #     return (poss_world,poss_world_prob) 
     # def bfs_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
     #     """ For Reachability query. """
     #     print('bfs_sample multigraph')
@@ -962,7 +970,7 @@ class UMultiGraph(UGraph):
     def dijkstra_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
-        print('dijkstra sample multigraph')
+        # print('dijkstra sample multigraph')
         start_execution_time = time()
         assert len(self.nbrs)>0
         if optimiseargs is not None:
@@ -972,33 +980,39 @@ class UMultiGraph(UGraph):
                 nbrs = optimiseargs['nbrs']
         else:
             nbrs = self.construct_nbrs()
+        if source not in nbrs or target not in nbrs:
+            return nbrs, [], 0, INFINITY
         reached_target = 0
         sample = []
         prob_sample = 1.0
         random.seed(seed)
-        seen = {source:0}
+        # seen = {source:0}
+        # seen = {}
         dists = {}
         heap = []
         heappush(heap,(0,source))
         while len(heap) and reached_target == 0: # MC+BFS loop
             dist_u, u = heappop(heap)
-            if u in dists:
-                continue 
-            dists[u] = dist_u
-            # visited[u] = True
             if u == target:
                 reached_target = 1
                 break
+            if u in dists and dists[u]<dist_u:
+                continue 
+            dists[u] = dist_u
+            # seen[u] = True
+            
             for v,eid in nbrs.get(u,[]):
                 (uu,vv) = (min(u,v),max(u,v))
-                dist_uv = dists[u] + self.weights[(uu,vv,eid)]
+                
                 p = self.edict.get((uu,vv,eid),-1)
                 if p == -1: # unexpected edge.
                     # print(sample,'\n',(uu,vv),' ',u) 
                     continue 
                 if random.random() < p:
-                    if (v not in seen) or (dist_uv < seen[v]):
-                        seen[v] = dist_uv
+                    dist_uv = dists[u] + self.weights[(uu,vv,eid)]
+                    if dist_uv < dists.get(v,INFINITY):
+                        # seen[v] = dist_uv
+                        # dists[v] = dist_uv
                         if verbose:
                             sample.append((uu,vv))
                             prob_sample *= p 
