@@ -160,28 +160,33 @@ else: # Run algorithms for all the queries
             if (not os.path.isfile(subpath)):
                 raise Exception('representative subgraph: ',subpath,' missing!')
             G = get_decompGraph(args.dataset,None,None,subpath)
-            # print('decomp graph: ',G)
+            if args.property == 'reach':
+                G = G.simplify()
+                print('decomp graph: ',type(G),' |ProbTree V| = ',G.nx_format.number_of_nodes(),' |ProbTree E|=',G.nx_format.number_of_edges())
             s,t = q
             if args.property == 'reach':
-                Query = multiGraphQuery(G,'reach',{'u':s,'v':t})
-            if args.property == 'sp':
-                if is_weightedGraph(args.dataset):
-                    Query = multiGraphwQuery(G,'sp',{'u':s,'v':t}) # only SP requires weighted multigraph query
+                if isinstance(G, UMultiGraph):
+                    Q = multiGraphQuery(G,'reach',{'u':s,'v':t})
                 else:
-                    Query = multiGraphQuery(G,'sp',{'u':s,'v':t})
-            if args.property == 'tri':
-                Query = multiGraphQuery(G,'tri')
-                Query.bucketing = args.bucketing 
+                    Q = Query(G,'reach',{'u':s,'v':t})
+            if args.property == 'sp' and isinstance(G,UMultiGraph):
+                if is_weightedGraph(args.dataset):
+                    Q = multiGraphwQuery(G,'sp',{'u':s,'v':t}) # only SP requires weighted multigraph query
+                else:
+                    Q = multiGraphQuery(G,'sp',{'u':s,'v':t})
+            if args.property == 'tri' and isinstance(G,UMultiGraph):
+                Q = multiGraphQuery(G,'tri')
+                Q.bucketing = args.bucketing 
             if args.precomputed:
                 os.environ['precomp'] = old
                 if args.property == 'sp' or args.property == 'reach':
-                    os.environ['precomp'] += ("_"+args.algo+"_"+str(args.property)+"_"+str(Query.u)+"_"+str(Query.v))
+                    os.environ['precomp'] += ("_"+args.algo+"_"+str(args.property)+"_"+str(Q.u)+"_"+str(Q.v))
                 if args.property == 'tri':
                     os.environ['precomp']+='_'+args.algo+'_tri'
                 os.system('mkdir -p '+os.environ["precomp"])
                 print('precomputed support value location: ',os.environ['precomp'])  
-            singleRun(G, Query)
-            Query.clear()
+            singleRun(G, Q)
+            Q.clear()
     else:
         if args.property == 'tri':
             print('#Triangles')

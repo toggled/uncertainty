@@ -57,7 +57,6 @@ class UGraph:
             nbrs = self.nbrs
         return nbrs 
     
-    
     def count_tri_approx(self, sample_edges):
         num_nodes = 0 # total number of nodes in the possible worlds
         nodeset = set() # set of nodes with deg >=2
@@ -781,6 +780,29 @@ class UMultiGraph(UGraph):
         super().__init__()
         self.nx_format = nx.MultiGraph()
     
+    def simplify(self):
+        """ 
+        Makes the graph simple by removing repeated edges while keeping
+        only the edge with smallest weight.
+        """
+        sg = UGraph()
+        _small = {}
+        for u,v,_id in self.Edges:
+            if (u,v) in _small:
+                if _small[(u,v)] > self.weights[(u,v,_id)]:
+                    w_uv = self.weights[(u,v,_id)]
+                    if (u,v) in sg.edict:
+                        sg.update_edge_prob(u,v,self.edict[(u,v,_id)])
+                        sg.weights[(u,v)] = w_uv
+                    else:
+                        sg.add_edge(u,v,self.edict[(u,v,_id)],w_uv,construct_nbr=True)
+                    _small[(u,v)] = w_uv
+            else:
+                w_uv = self.weights[(u,v,_id)]
+                _small[(u,v)] = w_uv
+                sg.add_edge(u,v,self.edict[(u,v,_id)],w_uv,construct_nbr=True)
+        return sg
+
     def get_prob(self, e):
         u,v = min(e[0],e[1]),max(e[0],e[1]) 
         return self.edict[(u,v,e[2])]
@@ -862,83 +884,85 @@ class UMultiGraph(UGraph):
             nbrs = self.nbrs
         return nbrs 
     
-    def get_sample(self, seed = 1, verbose = False):
-        """ Returns a random possible world (as a networkx Graph) instance. """
-        start_execution_time = time()
-        random.seed(seed)
-        poss_world = UMultiGraph()
-        poss_world_prob = 1
-        for e in self.Edges:
-            p = self.edict[e]
-            # print(e,p)
-            if random.random() < p:
-                # nx_graph.add_edge(*e,weight = p)
-                # poss_world.append(e)
-                poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
-                # poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
+    # def get_sample(self, seed = 1, verbose = False):
+    #     """ Returns a random possible world (as a networkx Graph) instance. """
+    #     print('MC sample multigraph')
+    #     start_execution_time = time()
+    #     random.seed(seed)
+    #     poss_world = UMultiGraph()
+    #     poss_world_prob = 1
+    #     for e in self.Edges:
+    #         p = self.edict[e]
+    #         # print(e,p)
+    #         if random.random() < p:
+    #             # nx_graph.add_edge(*e,weight = p)
+    #             # poss_world.append(e)
+    #             poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
+    #             # poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
 
-        sample_tm = time() - start_execution_time
-        # self.sample_time_list.append(sample_tm)
-        self.total_sample_tm += sample_tm
-        return (poss_world,poss_world_prob) 
-    def bfs_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
-        """ For Reachability query. """
-        # print('bfs_sample multigraph')
-        # print(self.Edges)
-        start_execution_time = time()
-        assert len(self.nbrs)>0
-        if optimiseargs is not None:
-            if optimiseargs['nbrs'] is None:
-                nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
-            else:
-                nbrs = optimiseargs['nbrs']
-        else:
-            nbrs = self.construct_nbrs()
-        # print(nbrs)
-        queue = deque([source])
-        reached_target = 0
-        sample = []
-        prob_sample = 1.0
-        random.seed(seed)
-        visited = {}
-        while len(queue) and reached_target == 0: # MC+BFS loop
-            # u = queue.pop(0)
-            u = queue.popleft()
-            # print('pop: ',u)
-            # visited[u] = True
-            if u == target:
-                reached_target = 1
-                break
-            for v, eid in nbrs.get(u,[]):
-                # print('traversing ',v,' via ',eid)
-                (uu,vv) = (min(u,v),max(u,v))
-                p = self.edict.get((uu,vv,eid),-1)
-                if p == -1: #
-                    # print(sample,'\n',(uu,vv),' ',u) 
-                    continue 
-                if random.random() < p:
-                    if (not visited.get(eid,False)):
-                        visited[eid] = True
-                        if verbose: 
-                            sample.append((uu,vv))
-                            # print('added ',(uu,vv),' into poss world')
-                            prob_sample *= p 
-                        queue.append(v)
-                        if v == target:
-                            reached_target = 1
-                            break 
-                else:
-                    if verbose:     prob_sample *= (1-p)
-                # print(visited)
-        support_value = reached_target
-        sample_tm = time() - start_execution_time
-        self.total_sample_tm += sample_tm
-        # print(source,target,sample,support_value)
-        return nbrs, sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
+    #     sample_tm = time() - start_execution_time
+    #     # self.sample_time_list.append(sample_tm)
+    #     self.total_sample_tm += sample_tm
+    #     return (poss_world,poss_world_prob) 
+    # def bfs_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
+    #     """ For Reachability query. """
+    #     print('bfs_sample multigraph')
+    #     # print(self.Edges)
+    #     start_execution_time = time()
+    #     assert len(self.nbrs)>0
+    #     if optimiseargs is not None:
+    #         if optimiseargs['nbrs'] is None:
+    #             nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
+    #         else:
+    #             nbrs = optimiseargs['nbrs']
+    #     else:
+    #         nbrs = self.construct_nbrs()
+    #     # print(nbrs)
+    #     queue = deque([source])
+    #     reached_target = 0
+    #     sample = []
+    #     prob_sample = 1.0
+    #     random.seed(seed)
+    #     visited = {}
+    #     while len(queue) and reached_target == 0: # MC+BFS loop
+    #         # u = queue.pop(0)
+    #         u = queue.popleft()
+    #         # print('pop: ',u)
+    #         # visited[u] = True
+    #         if u == target:
+    #             reached_target = 1
+    #             break
+    #         for v, eid in nbrs.get(u,[]):
+    #             # print('traversing ',v,' via ',eid)
+    #             (uu,vv) = (min(u,v),max(u,v))
+    #             p = self.edict.get((uu,vv,eid),-1)
+    #             if p == -1: #
+    #                 # print(sample,'\n',(uu,vv),' ',u) 
+    #                 continue 
+    #             if random.random() < p:
+    #                 if (not visited.get(eid,False)):
+    #                     visited[eid] = True
+    #                     if verbose: 
+    #                         sample.append((uu,vv))
+    #                         # print('added ',(uu,vv),' into poss world')
+    #                         prob_sample *= p 
+    #                     queue.append(v)
+    #                     if v == target:
+    #                         reached_target = 1
+    #                         break 
+    #             else:
+    #                 if verbose:     prob_sample *= (1-p)
+    #             # print(visited)
+    #     support_value = reached_target
+    #     sample_tm = time() - start_execution_time
+    #     self.total_sample_tm += sample_tm
+    #     # print(source,target,sample,support_value)
+    #     return nbrs, sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
 
     def dijkstra_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
+        print('dijkstra sample multigraph')
         start_execution_time = time()
         assert len(self.nbrs)>0
         if optimiseargs is not None:
@@ -991,200 +1015,202 @@ class UMultiGraph(UGraph):
         # print(source,target,sample,support_value,dists)
         return nbrs, sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
     
-    def dhop_reach_sample(self,source,target, seed = 1, dhop = None, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
-        """ For SP query (unweighted graph). """
-        # print(self.Edges)
-        assert len(self.nbrs)>0
-        start_execution_time = time()
-        if optimiseargs is not None:
-            if optimiseargs['nbrs'] is None:
-                nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
-            else:
-                nbrs = optimiseargs['nbrs']
-        else:
-            nbrs = self.construct_nbrs()
+    # def dhop_reach_sample(self,source,target, seed = 1, dhop = None, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
+    #     """ For d-hop reach query (multi graph). """
+    #     # print(self.Edges)
+    #     print('d-hop reachability sample multigraph')
+    #     assert len(self.nbrs)>0
+    #     start_execution_time = time()
+    #     if optimiseargs is not None:
+    #         if optimiseargs['nbrs'] is None:
+    #             nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
+    #         else:
+    #             nbrs = optimiseargs['nbrs']
+    #     else:
+    #         nbrs = self.construct_nbrs()
         
-        if dhop is None:
-            max_d = INFINITY
-        else:
-            max_d = dhop 
+    #     if dhop is None:
+    #         max_d = INFINITY
+    #     else:
+    #         max_d = dhop 
             
-        reached_target = 0
-        sample = []
-        prob_sample = 1.0
-        # print('seed: ',seed)
-        random.seed(seed)
-        seen = {source:0}
-        dists = {}
-        heap = []
-        heappush(heap,(0,source))
-        while len(heap) and reached_target == 0: # MC+BFS loop
-            dist_u, u = heappop(heap)
-            if u in dists:
-                continue 
-            dists[u] = dist_u
-            if u == target and dist_u <= max_d:
-                reached_target = 1
-                break
-            for v,eid in nbrs.get(u,[]):
-                (uu,vv) = (min(u,v),max(u,v))
-                dist_uv = dists[u] + self.weights[(uu,vv,eid)]
-                p = self.edict.get((uu,vv,eid),-1)
-                if p == -1: # unexpected edge.
-                    # print(sample,'\n',(uu,vv),' ',u) 
-                    continue 
-                if random.random() < p:
-                    if (v not in seen) or (dist_uv < seen[v]):
-                        seen[v] = dist_uv
-                        if verbose:
-                            sample.append((uu,vv))
-                            prob_sample *= p 
-                        heappush(heap,(dist_uv,v))
-                        if v == target and dist_uv <= max_d:
-                            reached_target = 1
-                            dists[v] = dist_uv
-                            break 
-                else:
-                    if verbose: prob_sample *= (1-p)
-        support_value = reached_target
-        # print(source,target,sample,support_value,dists)
-        # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
-        sample_tm = time() - start_execution_time
-        self.total_sample_tm += sample_tm
-        return nbrs, sample, prob_sample,support_value 
+    #     reached_target = 0
+    #     sample = []
+    #     prob_sample = 1.0
+    #     # print('seed: ',seed)
+    #     random.seed(seed)
+    #     seen = {source:0}
+    #     dists = {}
+    #     heap = []
+    #     heappush(heap,(0,source))
+    #     while len(heap) and reached_target == 0: # MC+BFS loop
+    #         dist_u, u = heappop(heap)
+    #         if u in dists:
+    #             continue 
+    #         dists[u] = dist_u
+    #         if u == target and dist_u <= max_d:
+    #             reached_target = 1
+    #             break
+    #         for v,eid in nbrs.get(u,[]):
+    #             (uu,vv) = (min(u,v),max(u,v))
+    #             dist_uv = dists[u] + self.weights[(uu,vv,eid)]
+    #             p = self.edict.get((uu,vv,eid),-1)
+    #             if p == -1: # unexpected edge.
+    #                 # print(sample,'\n',(uu,vv),' ',u) 
+    #                 continue 
+    #             if random.random() < p:
+    #                 if (v not in seen) or (dist_uv < seen[v]):
+    #                     seen[v] = dist_uv
+    #                     if verbose:
+    #                         sample.append((uu,vv))
+    #                         prob_sample *= p 
+    #                     heappush(heap,(dist_uv,v))
+    #                     if v == target and dist_uv <= max_d:
+    #                         reached_target = 1
+    #                         dists[v] = dist_uv
+    #                         break 
+    #             else:
+    #                 if verbose: prob_sample *= (1-p)
+    #     support_value = reached_target
+    #     # print(source,target,sample,support_value,dists)
+    #     # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
+    #     sample_tm = time() - start_execution_time
+    #     self.total_sample_tm += sample_tm
+    #     return nbrs, sample, prob_sample,support_value 
     
-    def find_rel_rss(self,T, source,target,seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
-        # print('source: ',source, ' target: ',target)
-        kRecursiveSamplingThreshold = 5
-        states = ["0001","0010","0011","0100","0101",\
-                  "0110","0111","1000","1001","1010",\
-                 "1011","1100","1101","1110","1111",\
-                "0000"]
-        start_execution_time = time()
-        assert len(self.nbrs)>0
-        if optimiseargs is not None:
-            if optimiseargs['nbrs'] is None:
-                nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
-            else:
-                nbrs = optimiseargs['nbrs']
-        else:
-            nbrs = self.construct_nbrs()
-        if (source not in nbrs) or (target not in nbrs):
-            return 0.0,nbrs
-        # print(nbrs)
-        sv_map = set([source])
-        si_queue = [(source,t,eid) for t,eid in nbrs[source]]
-        # print('si_q: ',si_queue, ': ',nbrs[source])
-        random.seed(seed)
-        def samplingR_RSS(sv_map, si_queue):
-            temp_q = []
-            while len(si_queue):
-                e = si_queue.pop(0)
-                p = self.get_prob(e)
-                if e[1] in sv_map:
-                    continue 
-                if random.random() < p:
-                    if e[1] == target:
-                        return 1 
-                    sv_map.add(e[1])
-                    temp_q.append(e[1])
-            while len(temp_q):
-                v = temp_q.pop(0)
-                nbrs_v = nbrs[v]
-                if len(nbrs_v):
-                    for w,eid in nbrs_v:
-                        p_vw = self.get_prob((v,w,eid))
-                        if random.random() < p_vw:
-                            if w == target:
-                                return 1 
-                            if w not in sv_map:
-                                sv_map.add(w)
-                                temp_q.append(w)
-            return 0 
+    # def find_rel_rss(self,T, source,target,seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
+    #     # print('source: ',source, ' target: ',target)
+    #     print('rss sample multigraph')
+    #     kRecursiveSamplingThreshold = 5
+    #     states = ["0001","0010","0011","0100","0101",\
+    #               "0110","0111","1000","1001","1010",\
+    #              "1011","1100","1101","1110","1111",\
+    #             "0000"]
+    #     start_execution_time = time()
+    #     assert len(self.nbrs)>0
+    #     if optimiseargs is not None:
+    #         if optimiseargs['nbrs'] is None:
+    #             nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
+    #         else:
+    #             nbrs = optimiseargs['nbrs']
+    #     else:
+    #         nbrs = self.construct_nbrs()
+    #     if (source not in nbrs) or (target not in nbrs):
+    #         return 0.0,nbrs
+    #     # print(nbrs)
+    #     sv_map = set([source])
+    #     si_queue = [(source,t,eid) for t,eid in nbrs[source]]
+    #     # print('si_q: ',si_queue, ': ',nbrs[source])
+    #     random.seed(seed)
+    #     def samplingR_RSS(sv_map, si_queue):
+    #         temp_q = []
+    #         while len(si_queue):
+    #             e = si_queue.pop(0)
+    #             p = self.get_prob(e)
+    #             if e[1] in sv_map:
+    #                 continue 
+    #             if random.random() < p:
+    #                 if e[1] == target:
+    #                     return 1 
+    #                 sv_map.add(e[1])
+    #                 temp_q.append(e[1])
+    #         while len(temp_q):
+    #             v = temp_q.pop(0)
+    #             nbrs_v = nbrs[v]
+    #             if len(nbrs_v):
+    #                 for w,eid in nbrs_v:
+    #                     p_vw = self.get_prob((v,w,eid))
+    #                     if random.random() < p_vw:
+    #                         if w == target:
+    #                             return 1 
+    #                         if w not in sv_map:
+    #                             sv_map.add(w)
+    #                             temp_q.append(w)
+    #         return 0 
         
-        def findReliability_RHH_forRSS(sv_map, si_queue, n, flag, node):
-            # print('->', sv_map,si_queue, n, flag, node)
-            if flag:
-                if node == target:
-                    return 1 
-                sv_map.add(node)
-                si_queue += [(node,t,eid) for t,eid in nbrs[node]]
-            if len(si_queue)==0:
-                return 0
-            if len(si_queue)>4:
-                findReliability_RSS(sv_map,si_queue,n,15,[])
-            if n <= kRecursiveSamplingThreshold:
-                if n == 0:
-                    return 0 
-                rhh = 0
-                for i in range(n):
-                    r = samplingR_RSS(deepcopy(sv_map),deepcopy(si_queue))
-                    # print(i,' : ',r)
-                    rhh += r
-                return rhh/n
-            e = si_queue.pop(0)
-            while (e[1] in sv_map):
-                if len(si_queue) == 0:
-                    return 0 
-                e = si_queue.pop(0)
-            # print('->',e)
-            pe = self.get_prob(e)
-            # print(' ->-> ', math.floor(n*pe), n- math.floor(n*pe))
-            return pe * findReliability_RHH_forRSS(deepcopy(sv_map),deepcopy(si_queue),floor(n*pe),True,e[1]) + \
-            (1- pe)* findReliability_RHH_forRSS(deepcopy(sv_map),deepcopy(si_queue), n - floor(n*pe),False,e[1]) 
+    #     def findReliability_RHH_forRSS(sv_map, si_queue, n, flag, node):
+    #         # print('->', sv_map,si_queue, n, flag, node)
+    #         if flag:
+    #             if node == target:
+    #                 return 1 
+    #             sv_map.add(node)
+    #             si_queue += [(node,t,eid) for t,eid in nbrs[node]]
+    #         if len(si_queue)==0:
+    #             return 0
+    #         if len(si_queue)>4:
+    #             findReliability_RSS(sv_map,si_queue,n,15,[])
+    #         if n <= kRecursiveSamplingThreshold:
+    #             if n == 0:
+    #                 return 0 
+    #             rhh = 0
+    #             for i in range(n):
+    #                 r = samplingR_RSS(deepcopy(sv_map),deepcopy(si_queue))
+    #                 # print(i,' : ',r)
+    #                 rhh += r
+    #             return rhh/n
+    #         e = si_queue.pop(0)
+    #         while (e[1] in sv_map):
+    #             if len(si_queue) == 0:
+    #                 return 0 
+    #             e = si_queue.pop(0)
+    #         # print('->',e)
+    #         pe = self.get_prob(e)
+    #         # print(' ->-> ', math.floor(n*pe), n- math.floor(n*pe))
+    #         return pe * findReliability_RHH_forRSS(deepcopy(sv_map),deepcopy(si_queue),floor(n*pe),True,e[1]) + \
+    #         (1- pe)* findReliability_RHH_forRSS(deepcopy(sv_map),deepcopy(si_queue), n - floor(n*pe),False,e[1]) 
         
-        def findReliability_RSS(sv_map, si_queue, n, flag, nodes):
-            for i in range(4):
-                if (states[flag][i] == '1'):
-                    if (nodes[i] == target):
-                        return 1           
-                    sv_map.add(nodes[i])
-                    si_queue += [(nodes[i],t,eid) for t,eid in nbrs[nodes[i]]]
-            if len(si_queue)==0:
-                return 0
+    #     def findReliability_RSS(sv_map, si_queue, n, flag, nodes):
+    #         for i in range(4):
+    #             if (states[flag][i] == '1'):
+    #                 if (nodes[i] == target):
+    #                     return 1           
+    #                 sv_map.add(nodes[i])
+    #                 si_queue += [(nodes[i],t,eid) for t,eid in nbrs[nodes[i]]]
+    #         if len(si_queue)==0:
+    #             return 0
             
-            if n <= kRecursiveSamplingThreshold:
-                if (n <= 0):
-                    return 0
-                rhh = 0
-                for i in range(n): #Run n times
-                    rhh += samplingR_RSS(deepcopy(sv_map), deepcopy(si_queue))
-                return rhh*1.0 / n
-            # print('si_quue: ',si_queue)
-            nodes = []
-            edges= []
-            while len(nodes) < 4:
-                if len(si_queue) == 0:
-                    si_queue += [e for e in edges]
-                    # print(si_queue, sv_map, nodes,target)
-                    return findReliability_RHH_forRSS(deepcopy(sv_map), deepcopy(si_queue), n, False, target)
-                e = si_queue.pop(0)
-                if e[1] in sv_map:
-                    continue 
-                else:
-                    nodes.append(e[1])
-                    edges.append(e)
+    #         if n <= kRecursiveSamplingThreshold:
+    #             if (n <= 0):
+    #                 return 0
+    #             rhh = 0
+    #             for i in range(n): #Run n times
+    #                 rhh += samplingR_RSS(deepcopy(sv_map), deepcopy(si_queue))
+    #             return rhh*1.0 / n
+    #         # print('si_quue: ',si_queue)
+    #         nodes = []
+    #         edges= []
+    #         while len(nodes) < 4:
+    #             if len(si_queue) == 0:
+    #                 si_queue += [e for e in edges]
+    #                 # print(si_queue, sv_map, nodes,target)
+    #                 return findReliability_RHH_forRSS(deepcopy(sv_map), deepcopy(si_queue), n, False, target)
+    #             e = si_queue.pop(0)
+    #             if e[1] in sv_map:
+    #                 continue 
+    #             else:
+    #                 nodes.append(e[1])
+    #                 edges.append(e)
 
-            reliablity= 0
-            temp_n = n 
-            temp_prob = 1.0 
-            probs = []
-            for i in range(4):
-                probs.append(self.get_prob(edges[i]))
-            for i in range(16):
-                if i == 15:
-                    reliablity += temp_prob * findReliability_RSS(deepcopy(sv_map), deepcopy(si_queue), temp_n, 15, nodes)
-                    break 
-                prob = 1.0
-                for j in range(4):
-                    if states[i][j] == '1':
-                        prob = prob * probs[j]
-                    else:
-                        prob = prob * (1-probs[j])
-                this_n = floor(n*prob)
-                temp_n -= this_n 
-                temp_prob -= prob 
-                reliablity += (prob * findReliability_RSS(deepcopy(sv_map), deepcopy(si_queue), this_n, i, nodes))
-            return reliablity
+    #         reliablity= 0
+    #         temp_n = n 
+    #         temp_prob = 1.0 
+    #         probs = []
+    #         for i in range(4):
+    #             probs.append(self.get_prob(edges[i]))
+    #         for i in range(16):
+    #             if i == 15:
+    #                 reliablity += temp_prob * findReliability_RSS(deepcopy(sv_map), deepcopy(si_queue), temp_n, 15, nodes)
+    #                 break 
+    #             prob = 1.0
+    #             for j in range(4):
+    #                 if states[i][j] == '1':
+    #                     prob = prob * probs[j]
+    #                 else:
+    #                     prob = prob * (1-probs[j])
+    #             this_n = floor(n*prob)
+    #             temp_n -= this_n 
+    #             temp_prob -= prob 
+    #             reliablity += (prob * findReliability_RSS(deepcopy(sv_map), deepcopy(si_queue), this_n, i, nodes))
+    #         return reliablity
     
-        return findReliability_RSS(sv_map,si_queue, n = T,flag = 15, nodes = []), nbrs
+    #     return findReliability_RSS(sv_map,si_queue, n = T,flag = 15, nodes = []), nbrs

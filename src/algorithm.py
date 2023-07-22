@@ -430,6 +430,7 @@ class ApproximateAlgorithm:
                     else:
                         s = i
                     for g in self.G.get_Ksample(T,seed=s):
+                        # print(g[0].Edges)
                         start_tm = time()
                         omega = self.Query.evalG(g[0])
                         query_evaluation_times.append(time()-start_tm)
