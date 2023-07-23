@@ -41,7 +41,7 @@ opt_N_dict = {
     'flickr': {'tri': 76},
     'papers': {'reach': 71},
     'products': {'reach': 46},
-    'restaurants': {'reach': 156}
+    'restaurants': {'reach': 156,'tri': 25}
 }
 opt_T_dict = {
     'default': {'reach': 10,'sp':10, 'tri': 10},
@@ -51,7 +51,7 @@ opt_T_dict = {
     'flickr': {'tri': 51},
     'papers': {'reach': 10},
     'products': {'reach': 4},
-    'restaurants': {'reach': 6}
+    'restaurants': {'reach': 6,'tri':20}
 }
 # Demo usages:
 # Reachability query from x to u in default dataset using sampling: N = 10, T = 10
@@ -126,14 +126,14 @@ def singleQuery_singleRun(G,Query):
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
         if args.r >0:
             r = args.r 
-        else:
-            if args.queryf is not None:
-                q = int(args.queryf.split('.')[0].split('_')[-1])
-            else:
-                q = 2   
+        else: 
             if Query.qtype == 'tri':
                 r = math.ceil(args.k/3)
             else:
+                if args.queryf is not None:
+                    q = int(args.queryf.split('.')[0].split('_')[-1])
+                else:
+                    q = 2  
                 r = math.ceil(args.k/q)  
             print('r = ',r)
         a.greedyP(property = Query.qtype, algorithm = args.est_algo, k = args.k, r = r, \

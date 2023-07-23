@@ -84,7 +84,7 @@ class UGraph:
                     nodeset.add(v)
             _tmp.append(u)
             nbrs[v] = _tmp 
-        
+        # print(nbrs)
         # Construct parameter value for approximation algorithm 
         nu = 100 # 1000 # prob of having good estimate is at least 99%
         eps = 1/sqrt(num_nodes) # +-sqrt(n) error will be incurred during tri counting , but with prob at most 1 - ((nu -1)/nu)
@@ -93,6 +93,7 @@ class UGraph:
 
         V = list(nodeset) # set of nodes whose deg >=2
         absV = len(V)
+        # print('deg > 2 = ',absV)
         # approximate counting
         num_tri = 0
         for i in range(k):

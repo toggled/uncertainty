@@ -766,9 +766,14 @@ class ApproximateAlgorithm:
         if len(precomp)==0:
             for i in range(N):
                 if self.Query.bucketing: # buckeing & no-pre
+                    if 'time_seed' in os.environ:
+                        random.seed()
+                        s = random.randint(0,1000000)
+                    else:
+                        s = i
                     hat_Pr = {}
                     j = 0
-                    for g in self.G.get_Ksample(T,seed=i):
+                    for g in self.G.get_Ksample(T,seed=s):
                         start_tm = time()
                         omega = self.G.count_tri_approx(g[0])
                         query_evaluation_times.append(time()-start_tm)
@@ -798,17 +803,25 @@ class ApproximateAlgorithm:
                     hat_Pr = bucket_distr
                     print([(self.buckets[_index],bucket_distr[_index]) for _index in bucket_distr])
                 else: # non-bucketing & no-pre
+                    if 'time_seed' in os.environ:
+                        random.seed()
+                        s = random.randint(0,1000000)
+                    else:
+                        s = i
                     hat_Pr = {}
                     j = 0
-                    for g in self.G.get_Ksample(T,seed=i):
+                    for g in self.G.get_Ksample(T,seed=s):
                         start_tm = time()
-                        omega = self.G.count_tri_approx(g[0])
+                        # omega = self.G.count_tri_approx(g[0])
+                        omega = self.G.count_tri_approx(g[0].nx_format.edges)
+                        # omega = sum(nx.triangles(g[0].nx_format).values()) / 3
                         query_evaluation_times.append(time()-start_tm)
                         hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
                         support_observed.append(omega)
                         if os.environ['precomp']:
                             save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
                             j+=1
+                    print(i,' => ',hat_Pr)
                 hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
@@ -1570,6 +1583,7 @@ class ApproximateAlgorithm:
         """
         Bruteforce algorithm that shows the search Tree of edges.
         """
+        assert update_type=='o1'
         ZERO = 10**(-13)
         def h(x):
             absx = abs(x)
@@ -1595,7 +1609,7 @@ class ApproximateAlgorithm:
                     return h(x)+h(1-x) # Entropy(e)
                 elif type == 'orig':
                     return self.G.weights[e]
-        self.algostat['algorithm'] = 'greedy+P'
+        self.algostat['algorithm'] = 'greedy+struct'
         self.algostat['k'] = k
         H0 = self.measure_H0(property,algorithm,T, N)
         self.algostat['result']['H0'] = H0
@@ -1643,38 +1657,73 @@ class ApproximateAlgorithm:
                     break
         elif property == 'tri':
             # print(self.G.nbrs)
-            nbrs = self.G.nbrs 
-            num_nodes = len(nbrs)
-            nodeset = [v for v in nbrs if len(nbrs[v])>=2 ]
-            nu = 100 # 1000 # prob of having good estimate is at least 99%
-            eps = 1/math.sqrt(num_nodes) # +-sqrt(n) error will be incurred during tri counting , but with prob at most 1 - ((nu -1)/nu)
-            kappa = math.ceil(math.log(2*nu)/(2*eps**2))
-            # print('approximate triangle counting: nu = ',nu,' eps = ',eps,' n = ',num_nodes, ' k = ',k)
-            V = list(nodeset) # set of nodes whose deg >=2
-            absV = len(V)
-            # approximate counting
+            #------
+            # nbrs = self.G.nbrs 
+            # num_nodes = len(nbrs)
+            # nodeset = [v for v in nbrs if len(nbrs[v])>=2 ]
+            # nu = 100 # 1000 # prob of having good estimate is at least 99%
+            # eps = 1/math.sqrt(num_nodes) # +-sqrt(n) error will be incurred during tri counting , but with prob at most 1 - ((nu -1)/nu)
+            # kappa = math.ceil(math.log(2*nu)/(2*eps**2))
+            # # print('approximate triangle counting: nu = ',nu,' eps = ',eps,' n = ',num_nodes, ' k = ',k)
+            # V = list(nodeset) # set of nodes whose deg >=2
+            # absV = len(V)
+            # # approximate triangle enumeration
+            # num_tri = 0
+            # maxheap = heapdict()
+            # while num_tri < r:
+            #     for i in range(kappa):
+            #         j = random.randint(0,absV-1)
+            #         nbrs_u = nbrs[V[j]]
+            #         v,w = random.sample(nbrs_u,k=2)
+            #         if w in nbrs[v]:
+            #             u = V[j]
+            #             h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
+            #             maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
+            #             top_rpaths.append((u,v,w,u))
+            #             edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
+            #             edge_path_index[(u,v)].append(num_tri)
+            #             edge_path_index[(v,w)] = edge_path_index.get((v,w),deque())
+            #             edge_path_index[(v,w)].append(num_tri)
+            #             edge_path_index[(w,u)] = edge_path_index.get((w,u),deque())
+            #             edge_path_index[(w,u)].append(num_tri)
+            #             num_tri += 1
+            #         if num_tri == r:
+            #             break 
+                    #-------
+            
+            # exact triangle enumeration
             num_tri = 0
             maxheap = heapdict()
-            while num_tri < r:
-                for i in range(kappa):
-                    j = random.randint(0,absV-1)
-                    nbrs_u = nbrs[V[j]]
-                    v,w = random.sample(nbrs_u,k=2)
-                    if w in nbrs[v]:
-                        u = V[j]
-                        h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
-                        maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
-                        top_rpaths.append((u,v,w,u))
-                        edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
-                        edge_path_index[(u,v)].append(num_tri)
-                        edge_path_index[(v,w)] = edge_path_index.get((v,w),deque())
-                        edge_path_index[(v,w)].append(num_tri)
-                        edge_path_index[(w,u)] = edge_path_index.get((w,u),deque())
-                        edge_path_index[(w,u)].append(num_tri)
-                        num_tri += 1
-                    if num_tri == r:
-                        break 
-            if verbose: print('|T| = ',num_tri, ' |S|= ',kappa,' |V| = ',absV)
+            # stop = False 
+            for uu in self.G.nbrs:
+                # if stop:
+                #     break
+                nbr_u = set(self.G.nbrs[uu])
+                if len(nbr_u)<2:    continue 
+                for vv in nbr_u:
+                    # if stop:
+                    #     break
+                    nbr_v = set(self.G.nbrs[vv])
+                    if len(nbr_v) < 2:  continue 
+                    tris = nbr_u.intersection(nbr_v)
+                    for ww in tris:
+                        u,v,w = sorted([uu,vv,ww])
+                        if (u,v,w,u) not in maxheap:
+                            h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
+                            maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
+                            top_rpaths.append((u,v,w,u))
+                            edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
+                            edge_path_index[(u,v)].append(num_tri)
+                            edge_path_index[(v,w)] = edge_path_index.get((v,w),deque())
+                            edge_path_index[(v,w)].append(num_tri)
+                            edge_path_index[(w,u)] = edge_path_index.get((w,u),deque())
+                            edge_path_index[(w,u)].append(num_tri)
+                            num_tri += 1
+                        # if num_tri == r:
+                        #     stop = True
+                        #     break 
+            # if verbose: print('|T| = ',num_tri, ' |S|= ',kappa,' |V| = ',absV)
+            print('total #tri: ',num_tri)
         else:
             raise Exception("invalid query type")
             sys.exit(1)
@@ -1703,14 +1752,19 @@ class ApproximateAlgorithm:
             # Update entropy of any other path that shares an edge with the toppath at current round
             for _index_another_path in indices_of_otherpaths:
                 if _index_another_path != _index_toppath:
-                    another_path = top_rpaths[_index_another_path]
-                    h_path = 0
-                    for j in range(len(another_path)-1):
-                        u,v = another_path[j],another_path[j+1]
-                        if (u,v) in self.G.edict:
-                            h_path += h(self.G.get_prob((u,v)))
-                        else:
-                            h_path += h(self.G.get_prob((v,u)))
+                    if property == 'reach' or property=='reach_d' or property == 'sp':
+                        another_path = top_rpaths[_index_another_path]
+                        h_path = 0
+                        for j in range(len(another_path)-1):
+                            u,v = another_path[j],another_path[j+1]
+                            if (u,v) in self.G.edict:
+                                h_path += h(self.G.get_prob((u,v)))
+                            else:
+                                h_path += h(self.G.get_prob((v,u)))
+                    else:
+                        another_path = top_rpaths[_index_another_path]
+                        u,v,w,_ = another_path
+                        h_path = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
                     # if verbose:
                     #     print('update heap: ',another_path, '(before) : ',maxheap[another_path])
                     # maxheap[another_path] = h_path 
@@ -1721,10 +1775,10 @@ class ApproximateAlgorithm:
                             print('update heap: ',another_path, '(before) : ',maxheap[another_path])
                         # update priority
                         if property == 'reach' or property=='reach_d' or property == 'sp':
-                            if update_type == 'o1':
+                            if update_type == 'o1': # U1
                                 _count,_ = maxheap[another_path]  # heap priority = ( ordering of the shortest paths generated, -entropy)
                                 maxheap[another_path] = (_count,-h_path) 
-                            else:
+                            else: # U2(adaptive/non-adaptive)
                                 _,_count = maxheap[another_path] 
                                 maxheap[another_path] = (-h_path,_count) 
                         else:

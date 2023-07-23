@@ -931,7 +931,7 @@ class multiGraphQuery(Query):
             # g = nx.MultiGraph()
             # g.add_edges_from(G)
             nx_G = G.nx_format
-            num_triangles = sum(nx.triangles(g).values()) / 3
+            num_triangles = sum(nx.triangles(nx_G).values()) / 3
             return num_triangles
 
 class multiGraphwQuery(multiGraphQuery):
