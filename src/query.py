@@ -898,7 +898,8 @@ class multiGraphQuery(Query):
             u = self.u 
             v = self.v
             assert (u != None and v != None)
-            nx_G = G.simplify(construct_nx = True)
+            nx_G = G
+            # nx_G = G.simplify(construct_nx = True)
             assert isinstance(nx_G,nx.Graph)
             # print(nx_G.number_of_edges(), ' ',nx_G.number_of_nodes())
             # nx_G = nx.MultiGraph()
@@ -908,7 +909,7 @@ class multiGraphQuery(Query):
             sp_len = INFINITY
             if (u in nx_G) and (v in nx_G):
                 if (nx.has_path(nx_G,u,v)):
-                    sp_len = nx.shortest_path_length(nx_G, source=u, target=v)
+                    sp_len = nx.shortest_path_length(nx_G, source=u, target=v,weight='weight')
             return sp_len
 
         # if self.qtype =="diam":

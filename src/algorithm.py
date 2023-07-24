@@ -1657,42 +1657,44 @@ class ApproximateAlgorithm:
                     break
         elif property == 'tri':
             method = 'opt2'
-            # print(self.G.nbrs)
-            #------
-            # nbrs = self.G.nbrs 
-            # num_nodes = len(nbrs)
-            # nodeset = [v for v in nbrs if len(nbrs[v])>=2 ]
-            # nu = 100 # 1000 # prob of having good estimate is at least 99%
-            # eps = 1/math.sqrt(num_nodes) # +-sqrt(n) error will be incurred during tri counting , but with prob at most 1 - ((nu -1)/nu)
-            # kappa = math.ceil(math.log(2*nu)/(2*eps**2))
-            # # print('approximate triangle counting: nu = ',nu,' eps = ',eps,' n = ',num_nodes, ' k = ',k)
-            # V = list(nodeset) # set of nodes whose deg >=2
-            # absV = len(V)
-            # # approximate triangle enumeration
-            # num_tri = 0
-            # maxheap = heapdict()
-            # while num_tri < r:
-            #     for i in range(kappa):
-            #         j = random.randint(0,absV-1)
-            #         nbrs_u = nbrs[V[j]]
-            #         v,w = random.sample(nbrs_u,k=2)
-            #         if w in nbrs[v]:
-            #             u = V[j]
-            #             h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
-            #             maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
-            #             top_rpaths.append((u,v,w,u))
-            #             edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
-            #             edge_path_index[(u,v)].append(num_tri)
-            #             edge_path_index[(v,w)] = edge_path_index.get((v,w),deque())
-            #             edge_path_index[(v,w)].append(num_tri)
-            #             edge_path_index[(w,u)] = edge_path_index.get((w,u),deque())
-            #             edge_path_index[(w,u)].append(num_tri)
-            #             num_tri += 1
-            #         if num_tri == r:
-            #             break 
-                    #-------
+            weight_type = 'log'
+            self.algostat['method'] = method
+            self.algostat['weight_type'] = weight_type
             num_tri = 0
             maxheap = heapdict()
+            if method == 'apprx':
+                nbrs = self.G.nbrs 
+                num_nodes = len(nbrs)
+                nodeset = [v for v in nbrs if len(nbrs[v])>=2 ]
+                nu = 100 # 1000 # prob of having good estimate is at least 99%
+                eps = 1/math.sqrt(num_nodes) # +-sqrt(n) error will be incurred during tri counting , but with prob at most 1 - ((nu -1)/nu)
+                kappa = math.ceil(math.log(2*nu)/(2*eps**2))
+                # print('approximate triangle counting: nu = ',nu,' eps = ',eps,' n = ',num_nodes, ' k = ',k)
+                V = list(nodeset) # set of nodes whose deg >=2
+                absV = len(V)
+                # approximate triangle enumeration
+                num_tri = 0
+                maxheap = heapdict()
+                while num_tri < r:
+                    for i in range(kappa):
+                        j = random.randint(0,absV-1)
+                        nbrs_u = nbrs[V[j]]
+                        v,w = random.sample(nbrs_u,k=2)
+                        if w in nbrs[v]:
+                            u = V[j]
+                            h_uvw = weightFn((u,v),weight_type) + weightFn((v,w),weight_type) + weightFn((w,u),weight_type)
+                            if (u,v,w,u) not in maxheap:
+                                maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
+                                top_rpaths.append((u,v,w,u))
+                                edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
+                                edge_path_index[(u,v)].append(num_tri)
+                                edge_path_index[(v,w)] = edge_path_index.get((v,w),deque())
+                                edge_path_index[(v,w)].append(num_tri)
+                                edge_path_index[(w,u)] = edge_path_index.get((w,u),deque())
+                                edge_path_index[(w,u)].append(num_tri)
+                                num_tri += 1
+                        if num_tri == r:
+                            break 
             # exact triangle enumeration -- ver1: enumerate all triangles. Compute triangle-entropies and keep them on a max-heap.
             if method=='opt1':
                 for uu in self.G.nbrs:
@@ -1705,7 +1707,7 @@ class ApproximateAlgorithm:
                         for ww in tris:
                             u,v,w = sorted([uu,vv,ww])
                             if (u,v,w,u) not in maxheap:
-                                h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
+                                h_uvw = weightFn((u,v),weight_type) + weightFn((v,w),weight_type) + weightFn((w,u),weight_type)
                                 maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
                                 top_rpaths.append((u,v,w,u))
                                 edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
@@ -1719,7 +1721,7 @@ class ApproximateAlgorithm:
             # exact triangle enumeration -- ver2: we keep only top-r triangles in heap based on entropy.
             if method == 'opt2':
                 minheap = heapdict()
-                edges_with_weights = sorted([(e[0],e[1],weightFn(e,type='log')) for e in self.G.Edges],key=lambda x: -x[2])
+                edges_with_weights = sorted([(e[0],e[1],weightFn(e,type=weight_type)) for e in self.G.Edges],key=lambda x: -x[2])
                 # print(edges_with_weights)
                 for uu,vv,wt in edges_with_weights:
                     nbr_u = set(self.G.nbrs[uu])
@@ -1729,7 +1731,7 @@ class ApproximateAlgorithm:
                         for ww in tris:
                             u,v,w = sorted([uu,vv,ww])
                             if (u,v,w,u) not in maxheap:
-                                h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
+                                h_uvw = weightFn((u,v),weight_type) + weightFn((v,w),weight_type) + weightFn((w,u),weight_type)
                                 if len(maxheap) < r:
                                     minheap[(u,v,w,u)] = (h_uvw,0) # dummy 0
                                     # num_tri += 1
@@ -1755,7 +1757,8 @@ class ApproximateAlgorithm:
         else:
             raise Exception("invalid query type")
             sys.exit(1)
-
+        # for key in maxheap:
+        #     print(key,' => ',maxheap[key])
         if verbose: print('top-r paths: ',top_rpaths)
         # print('top-r path entropies: ',entropy_paths)
             
@@ -1763,6 +1766,7 @@ class ApproximateAlgorithm:
         while count < k and len(maxheap):
             if verbose: print('count = ',count, ' len(heap) = ',len(maxheap))
             toppath,(H_p,_index_toppath) = maxheap.popitem()
+            print(toppath,' => ',H_p)
             indices_of_otherpaths = set() # Because say an alternative path exist containing (u,v) and (v,w) both when top-path = u->v-w. We
                                           # want to avoid duplicates in such cases. 
             for j in range(len(toppath)-1):
@@ -1792,7 +1796,7 @@ class ApproximateAlgorithm:
                     else:
                         another_path = top_rpaths[_index_another_path]
                         u,v,w,_ = another_path
-                        h_path = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
+                        h_path = weightFn((u,v),weight_type) + weightFn((v,w),weight_type) + weightFn((w,u),weight_type)
                     # if verbose:
                     #     print('update heap: ',another_path, '(before) : ',maxheap[another_path])
                     # maxheap[another_path] = h_path 

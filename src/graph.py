@@ -297,6 +297,7 @@ class UGraph:
     def dijkstra_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
+        print('simple graph dijkstra')
         start_execution_time = time()
         assert len(self.nbrs) > 0
         if optimiseargs is not None:
@@ -897,18 +898,29 @@ class UMultiGraph(UGraph):
             nbrs = self.nbrs
         return nbrs 
     
-    def get_sample(self, seed = 1, verbose = False):
+    def get_sample(self, seed = 1, verbose = False, simplify = True):
         """ Returns a random possible world instance. """
         # print('MC sample multigraph')
         start_execution_time = time()
         random.seed(seed)
-        poss_world = UMultiGraph()
+        if simplify:
+            poss_world = nx.Graph()
+        else:
+            poss_world = UMultiGraph()
         poss_world_prob = 1
         for e in self.Edges:
             p = self.edict[e]
             # print(e,p)
             if random.random() < p:
-                poss_world.add_edge(e[0],e[1],p,self.weights[e])
+                if simplify:
+                    u,v = min(e[0],e[1]),max(e[0],e[1])
+                    if poss_world.has_edge(u,v): # parallel edge to an already added edge
+                        if poss_world[u][v]['weight'] > self.weights[e]:
+                            poss_world[u][v]['weight'] = self.weights[e]
+                    else:
+                        poss_world.add_edge(u, v, weight=self.weights[e])
+                else:
+                    poss_world.add_edge(e[0],e[1],p,self.weights[e])
         sample_tm = time() - start_execution_time
         self.total_sample_tm += sample_tm
         return (poss_world,poss_world_prob) 
@@ -971,7 +983,7 @@ class UMultiGraph(UGraph):
     def dijkstra_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
-        # print('dijkstra sample multigraph')
+        print('dijkstra sample multigraph')
         start_execution_time = time()
         assert len(self.nbrs)>0
         if optimiseargs is not None:
