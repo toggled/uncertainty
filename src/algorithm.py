@@ -1634,7 +1634,7 @@ class ApproximateAlgorithm:
             maxheap = heapdict()
             for path in path_gen:
                 if verbose: print(path)
-                if count< r:
+                if count < r:
                     h_path = 0
                     for j in range(len(path)-1):
                         u,v = path[j],path[j+1]
@@ -1656,7 +1656,7 @@ class ApproximateAlgorithm:
                 else:
                     break
         elif property == 'tri':
-            method = 'opt1'
+            method = 'opt2'
             # print(self.G.nbrs)
             #------
             # nbrs = self.G.nbrs 
@@ -1819,7 +1819,7 @@ class ApproximateAlgorithm:
         e_tm = time() - start_execution_time
         self.algostat['MCalgo'] = algorithm
         self.algostat['result']['edges'] = E
-        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N)
+        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N, seed = r)
         self.algostat['execution_time']= e_tm
         self.algostat['support'] = ''
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
