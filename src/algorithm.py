@@ -357,7 +357,7 @@ class ApproximateAlgorithm:
         self.algostat['algorithm'] = ''
         # self.algostat['peak_memB'] = []
     
-    def measure_uncertainty(self, N=1, T=10):
+    def measure_uncertainty(self, N=1, T=10, seed = 1):
         """
         Alg 2 
         """
@@ -428,7 +428,7 @@ class ApproximateAlgorithm:
                         random.seed()
                         s = random.randint(0,1000000)
                     else:
-                        s = i
+                        s = seed + i
                     for g in self.G.get_Ksample(T,seed=s):
                         # print(g[0].Edges)
                         start_tm = time()
@@ -925,14 +925,14 @@ class ApproximateAlgorithm:
                                 
                 self.Pr_up[omega][e] = _sumPrG
                         
-    def measure_H0(self, property, algorithm, K, N = 1):
+    def measure_H0(self, property, algorithm, K, N = 1, seed = 1):
         if algorithm == 'exact':
             # print('exact')
             # self.Query.reset(self.G)
             self.Query.eval()
             H = self.Query.compute_entropy() # Initial entropy. Kept outside of time() because H0 is not needed in contr table and computed only for logging.
         elif algorithm == 'appr':
-            H = self.measure_uncertainty(N=N, T = K)
+            H = self.measure_uncertainty(N=N, T = K, seed = seed)
         elif (algorithm == 'mcbfs' or algorithm == 'pTmcbfs'):
             if property == 'reach':
                 assert (property == 'reach')
@@ -1656,6 +1656,7 @@ class ApproximateAlgorithm:
                 else:
                     break
         elif property == 'tri':
+            method = 'opt1'
             # print(self.G.nbrs)
             #------
             # nbrs = self.G.nbrs 
@@ -1690,40 +1691,67 @@ class ApproximateAlgorithm:
             #         if num_tri == r:
             #             break 
                     #-------
-            
-            # exact triangle enumeration
             num_tri = 0
             maxheap = heapdict()
-            # stop = False 
-            for uu in self.G.nbrs:
-                # if stop:
-                #     break
-                nbr_u = set(self.G.nbrs[uu])
-                if len(nbr_u)<2:    continue 
-                for vv in nbr_u:
-                    # if stop:
-                    #     break
+            # exact triangle enumeration -- ver1: enumerate all triangles. Compute triangle-entropies and keep them on a max-heap.
+            if method=='opt1':
+                for uu in self.G.nbrs:
+                    nbr_u = set(self.G.nbrs[uu])
+                    if len(nbr_u)<2:    continue 
+                    for vv in nbr_u:
+                        nbr_v = set(self.G.nbrs[vv])
+                        if len(nbr_v) < 2:  continue 
+                        tris = nbr_u.intersection(nbr_v)
+                        for ww in tris:
+                            u,v,w = sorted([uu,vv,ww])
+                            if (u,v,w,u) not in maxheap:
+                                h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
+                                maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
+                                top_rpaths.append((u,v,w,u))
+                                edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
+                                edge_path_index[(u,v)].append(num_tri)
+                                edge_path_index[(v,w)] = edge_path_index.get((v,w),deque())
+                                edge_path_index[(v,w)].append(num_tri)
+                                edge_path_index[(w,u)] = edge_path_index.get((w,u),deque())
+                                edge_path_index[(w,u)].append(num_tri)
+                                num_tri += 1
+
+            # exact triangle enumeration -- ver2: we keep only top-r triangles in heap based on entropy.
+            if method == 'opt2':
+                minheap = heapdict()
+                edges_with_weights = sorted([(e[0],e[1],weightFn(e,type='log')) for e in self.G.Edges],key=lambda x: -x[2])
+                # print(edges_with_weights)
+                for uu,vv,wt in edges_with_weights:
+                    nbr_u = set(self.G.nbrs[uu])
                     nbr_v = set(self.G.nbrs[vv])
-                    if len(nbr_v) < 2:  continue 
-                    tris = nbr_u.intersection(nbr_v)
-                    for ww in tris:
-                        u,v,w = sorted([uu,vv,ww])
-                        if (u,v,w,u) not in maxheap:
-                            h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
-                            maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
-                            top_rpaths.append((u,v,w,u))
-                            edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
-                            edge_path_index[(u,v)].append(num_tri)
-                            edge_path_index[(v,w)] = edge_path_index.get((v,w),deque())
-                            edge_path_index[(v,w)].append(num_tri)
-                            edge_path_index[(w,u)] = edge_path_index.get((w,u),deque())
-                            edge_path_index[(w,u)].append(num_tri)
-                            num_tri += 1
-                        # if num_tri == r:
-                        #     stop = True
-                        #     break 
+                    if len(nbr_u)>=2 and len(nbr_v)>=2:
+                        tris = nbr_u.intersection(nbr_v)
+                        for ww in tris:
+                            u,v,w = sorted([uu,vv,ww])
+                            if (u,v,w,u) not in maxheap:
+                                h_uvw = weightFn((u,v),'log') + weightFn((v,w),'log') + weightFn((w,u),'log')
+                                if len(maxheap) < r:
+                                    minheap[(u,v,w,u)] = (h_uvw,0) # dummy 0
+                                    # num_tri += 1
+                                else: # kick-out 
+                                    minheap.popitem()
+                                    minheap[(u,v,w,u)] = (h_uvw, 0) #dummy 0
+                                    # num_tri+=1
+                for key in minheap:
+                    u,v,w,u = key 
+                    value = minheap[key]
+                    maxheap[key] = (-value[0],num_tri)
+                    top_rpaths.append((u,v,w,u))
+                    edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
+                    edge_path_index[(u,v)].append(num_tri)
+                    edge_path_index[(v,w)] = edge_path_index.get((v,w),deque())
+                    edge_path_index[(v,w)].append(num_tri)
+                    edge_path_index[(w,u)] = edge_path_index.get((w,u),deque())
+                    edge_path_index[(w,u)].append(num_tri)
+                    num_tri += 1
+
             # if verbose: print('|T| = ',num_tri, ' |S|= ',kappa,' |V| = ',absV)
-            print('total #tri: ',num_tri)
+            # print('total #tri: ',num_tri)
         else:
             raise Exception("invalid query type")
             sys.exit(1)
