@@ -194,7 +194,8 @@ def singleQuery_singleRun(G,Query):
         if args.queryf:
             csv_name = save_dir+'/reduce_k_'+str(args.k)+"_K_"+str(args.K)+"_" + args.dataset + "_" + args.algo + "_" + Query.qtype + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
         else:
-            csv_name = save_dir+'/res_k'+str(args.k)+'.csv'
+            # csv_name = save_dir+'/res_k'+str(args.k)+'.csv'
+            csv_name=save_dir+'/'+args.dataset+'_'+args.algo+'_'+Query.qtype+'.csv'
         if os.path.exists(csv_name):
             result_df = pd.read_csv(csv_name)
         else:
