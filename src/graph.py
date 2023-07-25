@@ -999,33 +999,29 @@ class UMultiGraph(UGraph):
         sample = []
         prob_sample = 1.0
         random.seed(seed)
-        # seen = {source:0}
+        seen = {source:0}
         # seen = {}
         dists = {}
         heap = []
         heappush(heap,(0,source))
         while len(heap) and reached_target == 0: # MC+BFS loop
             dist_u, u = heappop(heap)
+            if u in dists:
+                continue 
+            dists[u] = dist_u
             if u == target:
                 reached_target = 1
                 break
-            if u in dists and dists[u]<dist_u:
-                continue 
-            dists[u] = dist_u
-            # seen[u] = True
-            
             for v,eid in nbrs.get(u,[]):
                 (uu,vv) = (min(u,v),max(u,v))
-                
                 p = self.edict.get((uu,vv,eid),-1)
                 if p == -1: # unexpected edge.
                     # print(sample,'\n',(uu,vv),' ',u) 
                     continue 
                 if random.random() < p:
                     dist_uv = dists[u] + self.weights[(uu,vv,eid)]
-                    if dist_uv < dists.get(v,INFINITY):
-                        # seen[v] = dist_uv
-                        # dists[v] = dist_uv
+                    if (v not in seen) or (dist_uv < seen[v]):
+                        seen[v] = dist_uv
                         if verbose:
                             sample.append((uu,vv))
                             prob_sample *= p 

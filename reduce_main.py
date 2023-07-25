@@ -22,7 +22,7 @@ parser.add_argument('-pr','--property',type = str, default = 'reach_d', help = "
 parser.add_argument("-K",'--K',type = int, default = 10, help='#of Possible world samples')
 parser.add_argument("-ea", "--est_algo", type=str, default="mcbfs") # exact/appr/eappr/mcbfs/pTmcbfs/mcdij/pTmcdij/rss/pTrss/mcapproxtri 
 parser.add_argument('-q','--queryf', type=str,help='query file',default = None) # 'data/queries/ER/ER_15_22_2.queries'
-parser.add_argument('-b','--bucketing',type = int, help='Whether to compute bucketed entropy or not', default = 0) # only tri query is supported
+parser.add_argument('-b','--bucketing',action = 'store_true') # only tri query is supported
 parser.add_argument("-dh",'--hop',type = int, default = -1) # <d-hop reach
 parser.add_argument("-db",'--debug', action = 'store_true')
 parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, maximum = -1 means All queries',default=-1)
@@ -33,6 +33,7 @@ save_dir = 'reduce_main'
 # save_dir = 'baseline'
 opt_N_dict = {
     'default': {'reach': 100,'sp': 100, 'tri': 100},
+    'default2': {'reach': 100,'sp': 100, 'tri': 100},
     'ER_15_22': 
         {'reach': 161, 'sp': 286, 'tri': 466},
     'ER_15_22p': 
@@ -45,6 +46,7 @@ opt_N_dict = {
 }
 opt_T_dict = {
     'default': {'reach': 10,'sp':10, 'tri': 10},
+    'default2': {'reach': 10,'sp':10, 'tri': 10},
     'ER_15_22': {'reach': 6, 'sp': 11, 'tri': 11},
     'ER_15_22p': {'reach': 6, 'sp': 11, 'tri': 11},
     'biomine': {'reach': 10},
@@ -267,6 +269,7 @@ if __name__== '__main__':
         if args.property == 'tri':
             print('#Triangles')
             Query = Query(G,'tri')
+            Query.bucketing = args.bucketing 
         singleQuery_singleRun(G, Query)
         # Query = Query(G,'reach',{'u':'a','v':'c'})
         # Query.eval()

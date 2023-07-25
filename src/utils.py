@@ -9,7 +9,7 @@ from math import log2
 #             'biomine':,\
 #             'rome':  }
 datasets_wgraph = ['maniu_demow','brain_a1','brain_h1','rome','brno','porto','sanfrancisco','test']
-datasets_unwgraph = ['maniu_demo','flickr','biomine', 'ER_15_22','papers','products','restaurants', 'default', 'ER_15_22p']
+datasets_unwgraph = ['maniu_demo','flickr','biomine', 'ER_15_22','papers','products','restaurants', 'default', 'default2','ER_15_22p']
 
 # decompdataset_to_filename = {
 #             "maniu_demo_1_4": "decomp/maniu/demo_1_4.txt",
@@ -30,7 +30,7 @@ dataset_to_filename = {
             # "flickr_s" : "data/Flickr.txt",
             # "twitter_s" : "data/twitter.txt",
             "default" : "data/test.txt",
-            # "default2": "data/test2.txt",
+            "default2": "data/test2.txt",
             # 'ER_5_7': 'data/ER/ER_5_7.graph',
             # 'ER_10_15': 'data/ER/ER_10_15.graph',
             'test': 'test_graph_TKDE.txt',

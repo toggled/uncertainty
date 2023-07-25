@@ -387,13 +387,14 @@ class ApproximateAlgorithm:
         if len(precomp)==0: # no pre
             for i in range(N):
                 if self.Query.bucketing: # buckeing & no-pre
+                    support_observed = []
                     hat_Pr = {}
                     j = 0
                     if 'time_seed' in os.environ:
                         random.seed()
                         s = random.randint(0,1000000)
                     else:
-                        s = i
+                        s = seed + i
                     # print('seed: ',s)
                     for g in self.G.get_Ksample(T,seed=s):
                         start_tm = time()
@@ -405,22 +406,33 @@ class ApproximateAlgorithm:
                             j+=1
                     #bucketing 
                     S = support_observed
+                    # S = list(set(support_observed))
                     _min,_max = min(S),max(S)
                     if _min == _max:
                         index_ub = 1
                         self.buckets = [(_min,_max)]
+                        bucket_distr = {0: 0}
                     else:
+                        # delta = math.floor(math.sqrt(len(set(S))))
                         delta = math.floor(math.sqrt(T))
+                        # print('max = ',_max,' min= ',_min,' delta = ',delta)
                         index_ub = math.ceil((_max-_min)/delta)
                         self.buckets = [(_min+i*delta, _min+(i+1)*delta) for i in range(index_ub)]
                         # print(self.buckets)
                         bucket_distr = {i: 0 for i in range(index_ub)}
                     for s in S:
                         omega_i = (1.0/T)
-                        _index = math.floor((s - _min)/delta)
-                        bucket_distr[_index] += omega_i
+                        if len(bucket_distr) == 1:
+                            bucket_distr[0] += omega_i 
+                        else:
+                            _index = math.floor((s - _min)/delta)
+                            bucket_distr[_index] = bucket_distr.get(_index,0) + omega_i
+                    
                     hat_Pr = bucket_distr
                     # print([(self.buckets[_index],bucket_distr[_index]) for _index in bucket_distr])
+                    # print('--- ',hat_Pr)
+                    # print('-- ', S)
+                    # print('buckets = ',self.buckets)
                 else: # non-bucketing & no-pre
                     hat_Pr = {}
                     j = 0
@@ -439,7 +451,8 @@ class ApproximateAlgorithm:
                         if os.environ['precomp']:
                             save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
                             j+=1
-                hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+                # hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+                hat_H = entropy([j for i,j in hat_Pr.items()], base = 2)
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
         else:
@@ -454,7 +467,7 @@ class ApproximateAlgorithm:
                         # hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
                         support_observed.append(omega)
                     #bucketing 
-                    print(support_observed)
+                    # print(support_observed)
                     S = support_observed
                     _min,_max = min(S),max(S)
                     if _min == _max:
@@ -464,7 +477,7 @@ class ApproximateAlgorithm:
                         delta = math.floor(math.sqrt(T))
                         index_ub = math.ceil((_max-_min)/delta)
                         self.buckets = [(_min+i*delta, _min+(i+1)*delta) for i in range(index_ub)]
-                    # print(self.buckets)
+                    # print('Buckets: ',self.buckets)
                     bucket_distr = {i: 0 for i in range(index_ub)}
                     for s in S:
                         omega_i = (1.0/T)
@@ -1708,7 +1721,7 @@ class ApproximateAlgorithm:
                             u,v,w = sorted([uu,vv,ww])
                             if (u,v,w,u) not in maxheap:
                                 h_uvw = weightFn((u,v),weight_type) + weightFn((v,w),weight_type) + weightFn((w,u),weight_type)
-                                maxheap[(u,v,w,u)] = (-h_uvw,num_tri)
+                                maxheap[(u,v,w,u)] = (h_uvw,num_tri)
                                 top_rpaths.append((u,v,w,u))
                                 edge_path_index[(u,v)] = edge_path_index.get((u,v),deque())
                                 edge_path_index[(u,v)].append(num_tri)
@@ -1757,8 +1770,9 @@ class ApproximateAlgorithm:
         else:
             raise Exception("invalid query type")
             sys.exit(1)
-        # for key in maxheap:
-        #     print(key,' => ',maxheap[key])
+        if verbose:
+            for key in maxheap:
+                print(key,' => ',maxheap[key])
         if verbose: print('top-r paths: ',top_rpaths)
         # print('top-r path entropies: ',entropy_paths)
             
@@ -1766,11 +1780,11 @@ class ApproximateAlgorithm:
         if property == 'tri':
             hist_triH = []
         while len(maxheap):
-            if property == 'reach' or property=='reach_d' or property == 'sp':
-                if (count>k): break
+            # if property == 'reach' or property=='reach_d' or property == 'sp':
+            if (count>=k): break
             if verbose: print('count = ',count, ' len(heap) = ',len(maxheap))
             toppath,(H_p,_index_toppath) = maxheap.popitem()
-            #print(toppath,' => ',H_p)
+            if verbose: print(toppath,' => ',H_p)
             indices_of_otherpaths = set() # Because say an alternative path exist containing (u,v) and (v,w) both when top-path = u->v-w. We
                                           # want to avoid duplicates in such cases. 
             for j in range(len(toppath)-1):
@@ -1787,6 +1801,7 @@ class ApproximateAlgorithm:
                     if count >= k:   break 
             if property == 'tri':
                 H_up = self.measure_H0(property, algorithm, T, N, seed = random.randint(0,1000))
+                print('after cleaning ',E[-3:],' H_up = ',H_up)
                 hist_triH.append(H0-H_up)
             # Update entropy of any other path that shares an edge with the toppath at current round
             for _index_another_path in indices_of_otherpaths:
@@ -1835,7 +1850,10 @@ class ApproximateAlgorithm:
         self.algostat['support'] = ''
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
         self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
-        self.algostat['history_deltaH'] = hist_triH
+        if property == 'tri':
+            self.algostat['history_deltaH'] = hist_triH
+        else:
+            self.algostat['history_deltaH'] = []
         return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
 
     def compute_Pr_up_zero(self):
