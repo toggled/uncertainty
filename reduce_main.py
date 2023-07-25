@@ -41,7 +41,7 @@ opt_N_dict = {
     'flickr': {'tri': 76},
     'papers': {'reach': 71},
     'products': {'reach': 46},
-    'restaurants': {'reach': 156,'tri': 25}
+    'restaurants': {'reach': 156,'tri': 80}
 }
 opt_T_dict = {
     'default': {'reach': 10,'sp':10, 'tri': 10},
@@ -51,7 +51,7 @@ opt_T_dict = {
     'flickr': {'tri': 51},
     'papers': {'reach': 10},
     'products': {'reach': 4},
-    'restaurants': {'reach': 6,'tri':20}
+    'restaurants': {'reach': 6,'tri':50}
 }
 # Demo usages:
 # Reachability query from x to u in default dataset using sampling: N = 10, T = 10
@@ -98,6 +98,7 @@ print(args)
     # print(a.algostat)
 def singleQuery_singleRun(G,Query):
     if args.algo == 'exact': #
+        os.environ['time_seed'] = 'True' 
         a = Algorithm(G,Query)
         print("Exact algorithm:")
         a.Bruteforce(k = args.k, update_type=args.utype, verbose = args.verbose)
@@ -106,6 +107,7 @@ def singleQuery_singleRun(G,Query):
     #     print("Greedy algorithm (w/ exact mem.): ")
         # a.algorithm5(k = args.k, update_type=args.utype, verbose = args.verbose)
     elif args.algo == 'greedy': #
+        os.environ['time_seed'] = 'True' 
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         print("Greedy algorithm (w/o mem.): ")
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)

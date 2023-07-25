@@ -540,7 +540,7 @@ class ApproximateAlgorithm:
         self.algostat['total_sample_tm'] = self.G.total_sample_tm
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
 
-    def measure_uncertainty_bfs(self, N=1, T=10, optimise = False):
+    def measure_uncertainty_bfs(self, N=1, T=10, optimise = False, seed = 1):
         """
         MC + BFS 
         """
@@ -576,7 +576,7 @@ class ApproximateAlgorithm:
                     random.seed()
                     s = random.randint(0,1000000)
                 else:
-                    s = i
+                    s = seed
                 precomputed_nbrs_path = os.path.join('_'.join(os.environ['precomp'].split('_')[:-2])+"_nbr.pre")
                 if optimise and os.path.isfile(precomputed_nbrs_path):
                     print('loading precomputed nbrs file..')
@@ -625,7 +625,7 @@ class ApproximateAlgorithm:
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
         return mean_H 
     
-    def measure_uncertainty_dhopbfs(self, d = 1, N=1, T=10):
+    def measure_uncertainty_dhopbfs(self, d = 1, N=1, T=10, seed = 1):
         """
         MC + d-hop BFS 
         """
@@ -640,7 +640,7 @@ class ApproximateAlgorithm:
                 random.seed()
                 s = random.randint(0,1000000)
             else:
-                s = i
+                s = seed
             hat_Pr = {}
             func_obj = self.G.get_Ksample_dhopbfs(K = T,seed=s,\
                                         source=source,target = target, dhop = d, optimiseargs = None)
@@ -936,10 +936,10 @@ class ApproximateAlgorithm:
         elif (algorithm == 'mcbfs' or algorithm == 'pTmcbfs'):
             if property == 'reach':
                 assert (property == 'reach')
-                H = self.measure_uncertainty_bfs(N=N, T = K)
+                H = self.measure_uncertainty_bfs(N=N, T = K, seed = seed)
             else:
                 assert (property == 'reach_d')
-                H = self.measure_uncertainty_dhopbfs(d = self.Query.d, N = N, T = K)
+                H = self.measure_uncertainty_dhopbfs(d = self.Query.d, N = N, T = K, seed = seed)
         elif algorithm == 'mcdij':
             assert (property == 'sp')
             H =  self.measure_uncertainty_dij(N=N, T = K)
@@ -1656,7 +1656,7 @@ class ApproximateAlgorithm:
                 else:
                     break
         elif property == 'tri':
-            method = 'opt2'
+            method = "opt1" #"apprx"
             weight_type = 'log'
             self.algostat['method'] = method
             self.algostat['weight_type'] = weight_type
@@ -1763,10 +1763,14 @@ class ApproximateAlgorithm:
         # print('top-r path entropies: ',entropy_paths)
             
         count = 0
-        while count < k and len(maxheap):
+        if property == 'tri':
+            hist_triH = []
+        while len(maxheap):
+            if property == 'reach' or property=='reach_d' or property == 'sp':
+                if (count>k): break
             if verbose: print('count = ',count, ' len(heap) = ',len(maxheap))
             toppath,(H_p,_index_toppath) = maxheap.popitem()
-            print(toppath,' => ',H_p)
+            #print(toppath,' => ',H_p)
             indices_of_otherpaths = set() # Because say an alternative path exist containing (u,v) and (v,w) both when top-path = u->v-w. We
                                           # want to avoid duplicates in such cases. 
             for j in range(len(toppath)-1):
@@ -1774,13 +1778,16 @@ class ApproximateAlgorithm:
                 E.append((u,v))
                 self.G.edge_update(u,v, type= update_type)
                 self.Query.reset(self.G)
-                # H_up = self.measure_H0(property, algorithm, T, N)
                 count+=1
                 shared_paths = edge_path_index[(u,v)]
                 if len(shared_paths)>1:
                     for others in shared_paths:
                         indices_of_otherpaths.add(others)
-                if count >= k:   break 
+                if property == 'reach' or property=='reach_d' or property == 'sp':
+                    if count >= k:   break 
+            if property == 'tri':
+                H_up = self.measure_H0(property, algorithm, T, N, seed = random.randint(0,1000))
+                hist_triH.append(H0-H_up)
             # Update entropy of any other path that shares an edge with the toppath at current round
             for _index_another_path in indices_of_otherpaths:
                 if _index_another_path != _index_toppath:
@@ -1828,7 +1835,7 @@ class ApproximateAlgorithm:
         self.algostat['support'] = ''
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
         self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
-        self.algostat['history_deltaH'] = []
+        self.algostat['history_deltaH'] = hist_triH
         return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
 
     def compute_Pr_up_zero(self):
@@ -2035,6 +2042,10 @@ class ApproximateAlgorithm:
                     return h(x) # -p(e)log p(e)
                 elif type == 'hx':
                     return h(x)+h(1-x) # Entropy(e)
+                elif type == 'hx_cr':
+                    h_x = h(x)
+                    h_1_x = (1-h_x)
+                    return x*h_x + (1-x)*h_x+x*h_1_x + (1-x)*h_1_x # p(e) Entropy(e) + (1-p(e))*(1-ENtropy(e))
                 elif type == 'orig':
                     return self.G.weights[e]
                 
@@ -2190,7 +2201,7 @@ class ApproximateAlgorithm:
         self.algostat['result']['edges'] = E
         # self.Query.eval()
         # self.algostat['result']['H*'] = self.algostat['result']['H0']-history[-1]
-        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N)
+        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N, seed = r)
         self.algostat['execution_time'] = e_tm
         # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
