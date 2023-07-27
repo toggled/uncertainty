@@ -391,13 +391,13 @@ class UGraph:
                 break
             for v in nbrs.get(u,[]):
                 (uu,vv) = (min(u,v),max(u,v))
-                dist_uv = dists[u] + self.weights[(uu,vv)]
+                dist_uv = dists[u] + 1
                 p = self.edict.get((uu,vv),-1)
                 if p == -1: # unexpected edge.
                     # print(sample,'\n',(uu,vv),' ',u) 
                     continue 
                 if random.random() < p:
-                    if (v not in seen) or (dist_uv < seen[v]):
+                    if (v not in seen) or (dist_uv < seen.get(v,INFINITY)):
                         seen[v] = dist_uv
                         if verbose:
                             sample.append((uu,vv))
@@ -405,7 +405,7 @@ class UGraph:
                         heappush(heap,(dist_uv,v))
                         if v == target and dist_uv <= max_d:
                             reached_target = 1
-                            dists[v] = dist_uv
+                            # dists[v] = dist_uv
                             break 
                 else:
                     if verbose:     prob_sample *= (1-p)
@@ -415,6 +415,7 @@ class UGraph:
         sample_tm = time() - start_execution_time
         self.total_sample_tm += sample_tm
         # print(sample)
+        # print(support_value)
         return nbrs, sample, prob_sample,support_value 
     
     def add_edge(self,u,v,prob,weight = 1.0, construct_nbr = False, construct_nx = False):

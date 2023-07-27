@@ -54,7 +54,7 @@ cr_dict = {}
 # python measure_main.py -d default -a appr -pr reach -s x -t u -N 10 -T 10
 args = parser.parse_args()
 os.environ['precomp'] = ''
-os.environ['time_seed'] = 'True' # If we set this, each run will generate a different sequence of possible worlds from the previous run.
+# os.environ['time_seed'] = 'True' # If we set this, each run will generate a different sequence of possible worlds from the previous run.
 dhopreach = [False,True][args.hop>0] 
 runProbTree = (args.algo == 'eappr' or args.algo.startswith('pT')) # True if load precomputed ProbTree subgraph
 print(args)
@@ -109,7 +109,7 @@ def singleQuery_singleRun(G,Query):
         assert len(cr_dict) != 0
         a.crowd_kbest_greedy(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
                     update_dict = cr_dict,\
-                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                      update_type=args.utype, verbose = args.verbose)
         # raise Exception("Greedy w/o mem. is not supported for crowd-source scenario")
     elif args.algo == 'greedymem': #
@@ -120,7 +120,7 @@ def singleQuery_singleRun(G,Query):
         #             update_type=args.utype, verbose = args.verbose)
         a.crowd_kbest(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, \
                       update_dict = cr_dict,\
-                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                     update_type=args.utype, verbose = args.verbose)
     elif args.algo == 'greedyp': #
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
@@ -135,18 +135,21 @@ def singleQuery_singleRun(G,Query):
             if Query.qtype == 'tri':
                 r = math.ceil(args.k/3)
             else:
-                r = math.ceil(args.k/q)  
-        # print('r = ',r)
+                r = math.ceil(args.k/q) * 3
+        print('r = ',r)
         # a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 
-        #              N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+        #              N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
         #             update_type=args.utype, verbose = args.verbose)
         a.crowd_greedyp(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, r = r,\
                       update_dict = cr_dict,\
-                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                     update_type=args.utype, verbose = args.verbose)
         a.algostat['r'] = r
-        if args.queryf is not None:
-            a.algostat['qset'] = int(args.queryf.split('.')[0].split('_')[-1])
+        try:
+            if args.queryf is not None:
+                a.algostat['qset'] = int(args.queryf.split('.')[0].split('_')[-1])
+        except:
+            pass
     # elif args.algo == 'greedymem_re':
     #     raise ValueError("do not use this option.")
     #     a = ApproximateAlgorithm(G,Query)
@@ -236,7 +239,7 @@ if __name__== '__main__':
         assert (args.queryf is not None)
         assert (os.path.isfile(args.queryf))
         queries = get_queries(queryfile = args.queryf,maxQ = args.maxquery)
-        args.queryf
+        # args.queryf
         if runProbTree: # Efficient variant of algorithm 2 requires pre-computed Prob Tree subgraph.
             whichquery = args.queryf.split('.')[0].split('_')[-1]
             rsubgraphpaths = [ 'data/maniu/'+args.dataset+'_'+whichquery+'_subg/'+dataset_to_filename[args.dataset].split('/')[-1]+'_query_subgraph_'+s+'_'+t+'.txt' \
@@ -282,7 +285,7 @@ if __name__== '__main__':
                 Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
             elif args.property == 'reach': # For reachability query, we ignore edge weights.  
                 if dhopreach:
-                    Querylist = [Query(G,args.property,{'u':s,'v':t,'d':args.hop}) for s,t in queries]
+                    Querylist = [Query(G,'reach_d',{'u':s,'v':t,'d':args.hop}) for s,t in queries]
                 else:     
                     Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
             elif args.property == 'tri':
@@ -291,7 +294,7 @@ if __name__== '__main__':
                 Querylist = [Q]
             else:
                 raise Exception("Invalid graph property (-pr) ")  
-            for Query in Querylist:
+            for Query in Querylist[-10:]:
                 singleQuery_singleRun(G, Query)
 
 

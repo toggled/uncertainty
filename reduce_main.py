@@ -42,7 +42,9 @@ opt_N_dict = {
     'flickr': {'tri': 76},
     'papers': {'reach': 71},
     'products': {'reach': 46},
-    'restaurants': {'reach': 156,'tri': 80}
+    'restaurants': {'reach': 156,'tri': 50},
+    'ba': {'tri':50},
+    'wa': {'tri':50}
 }
 opt_T_dict = {
     'default': {'reach': 10,'sp':10, 'tri': 10},
@@ -53,7 +55,9 @@ opt_T_dict = {
     'flickr': {'tri': 51},
     'papers': {'reach': 10},
     'products': {'reach': 4},
-    'restaurants': {'reach': 6,'tri':50}
+    'restaurants': {'reach': 6,'tri':30},
+    'ba':{'tri': 40},
+    'wa': {'tri':20}
 }
 # Demo usages:
 # Reachability query from x to u in default dataset using sampling: N = 10, T = 10
@@ -114,14 +118,14 @@ def singleQuery_singleRun(G,Query):
         print("Greedy algorithm (w/o mem.): ")
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
         a.greedy(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
-                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                      update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
     elif args.algo == 'dp': #
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         print("dynamic programming algorithm (w/o mem.): ")
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
         a.dp(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
-                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                      update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
         return
     elif args.algo == 'greedyp': #
@@ -141,7 +145,7 @@ def singleQuery_singleRun(G,Query):
                 r = math.ceil(args.k/q)  
             print('r = ',r)
         a.greedyP(property = Query.qtype, algorithm = args.est_algo, k = args.k, r = r, \
-                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                      update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
         a.algostat['r'] = r
         if args.queryf is not None:
@@ -149,7 +153,7 @@ def singleQuery_singleRun(G,Query):
     elif args.algo == 'greedymem': #
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 
-                     N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                     N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                     update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
     # elif args.algo == 'greedymem_re':
     #     raise ValueError("do not use this option.")

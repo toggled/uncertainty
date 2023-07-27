@@ -589,7 +589,7 @@ class ApproximateAlgorithm:
                     random.seed()
                     s = random.randint(0,1000000)
                 else:
-                    s = seed
+                    s = seed + i
                 precomputed_nbrs_path = os.path.join('_'.join(os.environ['precomp'].split('_')[:-2])+"_nbr.pre")
                 if optimise and os.path.isfile(precomputed_nbrs_path):
                     print('loading precomputed nbrs file..')
@@ -642,6 +642,7 @@ class ApproximateAlgorithm:
         """
         MC + d-hop BFS 
         """
+        # print("MC + d-hop BFS")
         source,target = self.Query.u, self.Query.v
         start_execution_time = time()
         query_evaluation_times = []
@@ -653,7 +654,7 @@ class ApproximateAlgorithm:
                 random.seed()
                 s = random.randint(0,1000000)
             else:
-                s = seed
+                s = seed + i
             hat_Pr = {}
             func_obj = self.G.get_Ksample_dhopbfs(K = T,seed=s,\
                                         source=source,target = target, dhop = d, optimiseargs = None)
@@ -663,7 +664,7 @@ class ApproximateAlgorithm:
             hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
             hat_H_list.append(hat_H)
             sum_H += hat_H 
-
+            # print(support_observed)
         mean_H =  sum_H /N
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['algorithm'] = 'appr'
@@ -1791,6 +1792,7 @@ class ApproximateAlgorithm:
                 u,v = toppath[j],toppath[j+1]
                 E.append((u,v))
                 self.G.edge_update(u,v, type= update_type)
+                # self.G.update_edge_prob(u,v,0.0)
                 self.Query.reset(self.G)
                 count+=1
                 shared_paths = edge_path_index[(u,v)]
@@ -1800,7 +1802,7 @@ class ApproximateAlgorithm:
                 if property == 'reach' or property=='reach_d' or property == 'sp':
                     if count >= k:   break 
             if property == 'tri':
-                H_up = self.measure_H0(property, algorithm, T, N, seed = random.randint(0,1000))
+                H_up = self.measure_H0(property, algorithm, T, N, seed = time())
                 print('after cleaning ',E[-3:],' H_up = ',H_up)
                 hist_triH.append(H0-H_up)
             # Update entropy of any other path that shares an edge with the toppath at current round
@@ -2069,7 +2071,12 @@ class ApproximateAlgorithm:
                 
         print(['adaptive','non-adaptive'][update_type == 'c1'], ' setting')
         assert k>=1 and update_type!='o1'
-        self.algostat['result']['H0'] = self.measure_H0(property,algorithm,T,N)
+        if property == 'reach' or property=='reach_d' or property == 'sp':
+            init_seed = int(self.Query.u+self.Query.v)
+            print('H0 seed = ',init_seed)
+            self.algostat['result']['H0'] = self.measure_H0(property,algorithm,T,N,seed=init_seed)
+        else:
+            self.algostat['result']['H0'] = self.measure_H0(property,algorithm,T,N)
         start_execution_time = time()
         E = []
         Estar = copy(self.G.edict)
@@ -2167,8 +2174,10 @@ class ApproximateAlgorithm:
                         cr_pe = update_dict[(u,v)]
                     else:
                         cr_pe = update_dict[(v,u)]
+                    print((u,v),' => ',cr_pe,' /',self.G.get_prob((u,v)))
                     self.G.update_edge_prob(u,v,cr_pe)
                     self.Query.reset(self.G)
+                    print('--- ',self.G.get_prob((u,v)))
                 # H_up = self.measure_H0(property, algorithm, T, N)
                 count+=1
                 shared_paths = edge_path_index[(u,v)]
@@ -2219,7 +2228,7 @@ class ApproximateAlgorithm:
         self.algostat['result']['edges'] = E
         # self.Query.eval()
         # self.algostat['result']['H*'] = self.algostat['result']['H0']-history[-1]
-        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N, seed = r)
+        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N, seed = r*int(self.Query.u+self.Query.v))
         self.algostat['execution_time'] = e_tm
         # self.algostat['support'] = str(list(self.Query.phiInv.keys()))
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
