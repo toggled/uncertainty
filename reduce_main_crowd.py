@@ -294,7 +294,7 @@ if __name__== '__main__':
                 Querylist = [Q]
             else:
                 raise Exception("Invalid graph property (-pr) ")  
-            for Query in Querylist[-10:]:
+            for Query in Querylist:
                 singleQuery_singleRun(G, Query)
 
 

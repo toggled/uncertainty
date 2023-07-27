@@ -269,10 +269,12 @@ def compute_uncertainty(probGraph,s,t,d, aftercleaning = False, estar = None):
         return Q.compute_entropy()
 
 def compute_influence_set(nodes,E,G,d):
+    print('computing influence set')
+    tm_if = time()
     influence_set = {}
     for e in E:
         u,v = e[0],e[1]
-        print(u,v)
+        # print(u,v)
         length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
         length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
         for _s,_t in combinations(nodes,2):
@@ -284,8 +286,8 @@ def compute_influence_set(nodes,E,G,d):
             if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight+dt_u <= d):
                 influence_set[(u,v)] = influence_set.get((u,v),[])
                 influence_set[(u,v)].append((_s,_t))
-    print(influence_set)
-    return influence_set
+    # print(influence_set)
+    return influence_set,time() - tm_if
 
 if __name__=='__main__': 
     if args.dataset == 'test':
@@ -305,7 +307,7 @@ if __name__=='__main__':
         else:
             queries = [(args.source,args.target)]
         nodes = G.nodes()
-        print('nodes: ',nodes)
+        # print('nodes: ',nodes)
         print('queries = ', queries)
         # print(len(G.nodes), ' ',len(G.edges))
         # import sys
@@ -323,23 +325,26 @@ if __name__=='__main__':
     ecl = []
     for i,e in enumerate(probGraph.Edges): 
         ecl.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
-    start_execution_time = time()
+
     if_file = args.dataset+'_'+str(d)+'.if'
     if not os.path.isfile(if_file):
-        influence_set = compute_influence_set(nodes,ecl,G,d)
+        influence_set, if_time = compute_influence_set(nodes,ecl,G,d)
         print('saving influence_set file: ',if_file)
         save_dict(influence_set,if_file)
+        with open(if_file+'_tm','w') as wf:
+            wf.write(if_time+"\n")
     else:
         print('loading influence_set file: ',if_file)
         influence_set = load_dict(if_file)
     for s,t in queries:
-        print('s,t = ',s,t)
+        start_execution_time = time()
+        if args.verbose: print('s,t = ',s,t)
         # e_clean = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True) if e[2]['prob']<= p_max and e[2]['prob']>=p_min]
         # if args.verbose: print("Candidate edges: ", e_clean)
         # index = {}
         # e_clean = deepcopy(ecl)
         e_clean = ecl
-        print('(',s,t,'): length of influence set: ',len(influence_set))
+        if args.verbose: print('(',s,t,'): length of influence set: ',len(influence_set))
         # s=3
         # t=2
         # s = 2
@@ -428,6 +433,11 @@ if __name__=='__main__':
         a.algostat['|DeltaH|'] = abs(a.algostat['result']['H0'] - a.algostat['result']['H*'])
         a.algostat['source'] = s
         a.algostat['target'] = t
+        try:
+            if args.queryf is not None:
+                a.algostat['qset'] = int(args.queryf.split('.')[0].split('_')[-1])
+        except:
+            pass
         del a.algostat['support']
         output = {}
         for k in a.algostat['result']:
