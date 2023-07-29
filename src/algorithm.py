@@ -515,7 +515,22 @@ class ApproximateAlgorithm:
         return mean_H 
 
     def measure_uncertainty_rss(self, N=1, T=10, optimise = False):
+        precomp = {}
         source,target = self.Query.u, self.Query.v
+        if os.environ['precomp']:
+            previous_omega_files = [f for f in os.listdir(os.environ['precomp']) if f.endswith('.pre')]
+            # print(previous_omega_files)
+            if len(previous_omega_files):
+                for f in previous_omega_files:
+                    # print('f = ',f)
+                    n = f.split('.pre')[0]
+                    n = int(n)
+                    if n not in precomp:
+                        precomp[n] = f
+
+                maximum_N = max(precomp.keys())+1
+                assert N <= maximum_N, "precomputed possible worlds are insufficient"
+
         start_execution_time = time()
         query_evaluation_times = []
         hat_H_list = []
@@ -523,33 +538,47 @@ class ApproximateAlgorithm:
         sum_H = 0
         if optimise:
             precomputed_nbrs_path = os.path.join('_'.join(os.environ['precomp'].split('_')[:-2])+"_nbr.pre")
-        for i in range(N):
-            hat_Pr = {}
-            start_tm = time()
-            if 'time_seed' in os.environ:
-                random.seed()
-                s = random.randint(0,1000000)
-            else:
-                s = i
-            if optimise and os.path.isfile(precomputed_nbrs_path):
-                # print('loading precomputed nbrs file..')
-                loaded_nbrs = load_pickle(precomputed_nbrs_path)
-                prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = \
-                                                   {'nbrs':loaded_nbrs,'doopt': True})  
-            else:
-                prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = None)                    
-            query_evaluation_times.append(time()-start_tm)
-            
-            hat_Pr[1] =  prOmega
-            hat_Pr[0] =  (1-prOmega)
-            if os.environ['precomp']:
-                if not os.path.isfile(precomputed_nbrs_path):
-                    # print('saving nbrs file for the 1st time.')
-                    save_pickle(nbrs,precomputed_nbrs_path)
-            # print(entropy([hat_Pr[1] ,hat_Pr[0]]))
-            hat_H = entropy([hat_Pr[1] ,hat_Pr[0]])
-            hat_H_list.append(hat_H)
-            sum_H += hat_H 
+        if len(precomp)==0: # -pre 0
+            for i in range(N):
+                hat_Pr = {}
+                start_tm = time()
+                if 'time_seed' in os.environ:
+                    random.seed()
+                    s = random.randint(0,1000000)
+                else:
+                    s = i
+                if optimise and os.path.isfile(precomputed_nbrs_path):
+                    # print('loading precomputed nbrs file..')
+                    loaded_nbrs = load_pickle(precomputed_nbrs_path)
+                    prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = \
+                                                    {'nbrs':loaded_nbrs,'doopt': True})  
+                else:
+                    prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = None)                    
+                query_evaluation_times.append(time()-start_tm)
+                
+                hat_Pr[1] =  prOmega
+                hat_Pr[0] =  (1-prOmega)
+                if os.environ['precomp']:
+                    save_pickle(prOmega, os.path.join(os.environ['precomp'],str(i)+".pre"))
+                    if not os.path.isfile(precomputed_nbrs_path):
+                        # print('saving nbrs file for the 1st time.')
+                        save_pickle(nbrs,precomputed_nbrs_path)
+                # print(entropy([hat_Pr[1] ,hat_Pr[0]]))
+                hat_H = entropy([hat_Pr[1] ,hat_Pr[0]])
+                hat_H_list.append(hat_H)
+                sum_H += hat_H 
+        else: # -pre 1
+            for i in range(N):
+                hat_Pr = {}
+                start_tm = time()
+                precomputed_omega_file = os.path.join(os.environ['precomp'],precomp[i])
+                prOmega = load_pickle(precomputed_omega_file)
+                hat_Pr[1] =  prOmega
+                hat_Pr[0] =  (1-prOmega)
+                query_evaluation_times.append(time()-start_tm)
+                hat_H = entropy([hat_Pr[1] ,hat_Pr[0]])
+                hat_H_list.append(hat_H)
+                sum_H += hat_H 
         mean_H =  sum_H /N
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['algorithm'] = 'rss'
@@ -680,7 +709,7 @@ class ApproximateAlgorithm:
         self.algostat['query_eval_tm'] = sum(query_evaluation_times)
         return mean_H 
 
-    def measure_uncertainty_dij(self, N=1, T=10, optimise = False):
+    def measure_uncertainty_dij(self, N=1, T=10, optimise = False, seed = 1):
         """
         MC + Dijkstra
         """
@@ -712,14 +741,19 @@ class ApproximateAlgorithm:
             for i in range(N):
                 hat_Pr = {}
                 j = 0
+                if 'time_seed' in os.environ:
+                    random.seed()
+                    s = random.randint(0,1000000)
+                else:
+                    s = seed + i
                 precomputed_nbrs_path = os.path.join('_'.join(os.environ['precomp'].split('_')[:-2])+"_nbr.pre")
                 if optimise and os.path.isfile(precomputed_nbrs_path):
                     # print('loading precomputed nbrs file..')
                     loaded_nbrs = load_pickle(precomputed_nbrs_path)
-                    func_obj = self.G.get_Ksample_dij(T,seed=i,source=source,target = target, optimiseargs = \
+                    func_obj = self.G.get_Ksample_dij(T,seed=s,source=source,target = target, optimiseargs = \
                                                       {'nbrs':loaded_nbrs,'doopt': True})
                 else:
-                    func_obj = self.G.get_Ksample_dij(T,seed=i,source=source,target = target, optimiseargs = None)
+                    func_obj = self.G.get_Ksample_dij(T,seed=s,source=source,target = target, optimiseargs = None)
                 for nbrs,_, _,omega in func_obj:
                     start_tm = time()
                     # omega = self.Query.evalG(g[0])
@@ -962,7 +996,7 @@ class ApproximateAlgorithm:
                 H = self.measure_uncertainty_dhopbfs(d = self.Query.d, N = N, T = K, seed = seed)
         elif algorithm == 'mcdij':
             assert (property == 'sp')
-            H =  self.measure_uncertainty_dij(N=N, T = K)
+            H =  self.measure_uncertainty_dij(N=N, T = K,seed=seed)
         elif algorithm == 'mcapproxtri':
             assert (property == 'tri')
             H = self.measure_uncertainty_mctri(N=N, T = K)
@@ -1105,7 +1139,7 @@ class ApproximateAlgorithm:
             history_deltaH.append(local_maxima[1])
             # history_Hk.append(H_up)
             history_Hk.append(minima[minima_index])
-            previous_pe.append(self.G.edict.get_prob(estar))
+            previous_pe.append(self.G.get_prob(estar))
             # H0 = H_up
             # End of Algorithm 4
             E.append(estar)
@@ -1292,11 +1326,12 @@ class ApproximateAlgorithm:
         # Ecand = [('s','x'),('s','y')]
         # self.Query.eval()
         # H0 = self.Query.compute_entropy() # Initial entropy
+        init_seed = int(str(self.Query.u)+str(self.Query.v))
         H0 = self.measure_H0(property,algorithm,T, N)
         self.algostat['result']['H0'] = H0
         E = []
-        history_Hk = []
-        previous_pe = []
+        history_Hk = [H0]
+        previous_pe = [0]
         if (verbose):
             print('H0: ',H0)
             print('p(e): ',self.G.edict)
@@ -1327,7 +1362,7 @@ class ApproximateAlgorithm:
                 #     print('Pr[Omega]: ', self.Query.freq_distr)
                 #     # print('results: ',self.Query.results)
                 # Hi = self.Query.compute_entropy()
-                H_up = self.measure_H0(property, algorithm, T, N)
+                H_up = self.measure_H0(property, algorithm, T, N,seed=init_seed+i)
                 minima.append(H_up)
                 candidates.append(e)
                 # if local_maxima:
@@ -1351,7 +1386,7 @@ class ApproximateAlgorithm:
             estar = local_maxima[0] # assign e*
             H0 = local_maxima[1] # Assign H0 for the next iteration.
             history_Hk.append(minima[minima_index])
-            previous_pe.append(self.G.edict.get_prob(estar))
+            previous_pe.append(self.G.get_prob(estar))
             E.append(estar)
             if (verbose):
                 print('e* = ',estar)
@@ -1373,20 +1408,20 @@ class ApproximateAlgorithm:
         largest_minima_index = minima_index_list[-1]
         if verbose: print('argmin \hat{H}_k= ',min_hkhat, '. \hat{H}_k* = ',history_Hk[largest_minima_index])
         
-        for i in range(largest_minima_index+1,len(E)):
-            self.Query.p_graph.update_edge_prob(E[i][0],E[i][1],previous_pe[i])
+        # for i in range(largest_minima_index+1,len(E)):
+        #     self.Query.p_graph.update_edge_prob(E[i][0],E[i][1],previous_pe[i])
         E = E[:largest_minima_index+1] # Take edges until the argmax min(H_1,H_2,..,H_k)
         if verbose: print('H0-\hat{H}k: ',h0_hkhat)
         
         e_tm = time() - start_execution_time
         self.algostat['MCalgo'] = algorithm
         self.algostat['result']['edges'] = E
-        self.algostat['result']['H*'] = self.measure_H0(property,algorithm,T,N)
+        self.algostat['result']['H*'] =  history_Hk[largest_minima_index] #self.measure_H0(property,algorithm,T,N)
         self.algostat['execution_time']= e_tm
         self.algostat['support'] = ''
         self.algostat['DeltaH'] = self.algostat['result']['H0'] - self.algostat['result']['H*']
         self.algostat['|DeltaH|'] = abs(self.algostat['result']['H0'] - self.algostat['result']['H*'])
-        self.algostat['history_deltaH'] = history
+        self.algostat['history_Hk'] = ",".join(["{:.4f}".format(i) for i in history_Hk])
         return E,self.algostat['result']['H*'],self.algostat['result']['H0']- self.algostat['result']['H*']
 
     def dp(self,  property, algorithm, k,  N = 1, T = 1, update_type = 'o1', verbose = False, track_H = False):
@@ -1962,7 +1997,7 @@ class ApproximateAlgorithm:
             for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
                 DeltaHe2 = 0 # H - H^{e}_{up}
                 H_up = 0
-                p_e = self.G.edict.get_prob(e)
+                p_e = self.G.get_prob(e)
                 for omega in self.Query.phiInv:
                     # if Pr_Omega[omega] == 0:
                     #     h0 = 0
@@ -2001,7 +2036,7 @@ class ApproximateAlgorithm:
             E.append(estar)
             del Estar[estar] # Delete e* from dictionary s.t. next iteration is 1 less than the current.
             history_Hk.append(minima[minima_index])
-            previous_pe.append(self.G.edict.get_prob(estar))
+            previous_pe.append(self.G.get_prob(estar))
             if update_type == 'c2':
                 if iter < k-1:
                     can_reduce_further = self.Query.adaptiveUpdateTables(estar,update_dict[estar], self.Pr_up,self.Pr_up_0)
@@ -2291,7 +2326,7 @@ class ApproximateAlgorithm:
             local_maxima = None 
             for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest  H - H_{up}
                 g_copy = deepcopy(self.G)
-                pe = self.G.edict.get_prob(e)
+                pe = self.G.get_prob(e)
                 if property == 'reach':
                     # Reach = self.compute_approx_reach(self.Query.u,self.Query.v,\
                     #                                    self.Query.p_graph, N*T)
