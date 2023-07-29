@@ -28,7 +28,9 @@ parser.add_argument('-S','--stat',action='store_true')
 
 
 args = parser.parse_args()
+print(args)
 debug = (args.source is not None) and (args.target is not None)
+runProbTree = (args.algo == 'eappr' or args.algo.startswith('pT')) 
 os.environ['precomp'] = ''
 # @profile
 def singleRun(G,Query, save = True):
@@ -151,9 +153,9 @@ def singleRun(G,Query, save = True):
         result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
         if save: # Save the algorithm run statistics
             result.to_csv(csv_name, header=True, index=False)
-            print(result.head())
+            print(result.head(10))
         else:
-            print(result.head())
+            print(result.head(10))
         return result
     a = None 
     return None 
@@ -162,13 +164,13 @@ if not debug:
     queries = get_queries(queryfile = args.queryf, maxQ = args.maxquery) 
 
 # Depending on the algorithm to run get the uncertain graph
-if args.algo == 'eappr': # Efficient variant of algorithm 2 requires pre-computed representative subgraphs
+if runProbTree: # Efficient variant of algorithm 2 requires pre-computed representative subgraphs
     whichquery = args.queryf.split('.')[0].split('_')[-1]
     rsubgraphpaths = [ 'data/maniu/'+args.dataset+'_'+whichquery+'_subg/'+dataset_to_filename[args.dataset].split('/')[-1]+'_query_subgraph_'+s+'_'+t+'.txt' \
                      for s,t in queries]
 else: # Exact and normal variant of algorithm 2 requires original uncertain graph
     G = get_dataset(args.dataset)
-
+    G.name = args.dataset
 # G.plot_probabilistic_graph()
 # print(G.get_num_edges())
 # print(G.get_num_vertices())
@@ -186,9 +188,12 @@ if debug: print(args.property,' (',args.source,',',args.target,')')
 if debug:
     Query = Query(G,args.property,{'u':args.source,'v':args.target})
 else:
-    if args.algo != 'eappr':
+    if not runProbTree:
         if args.property == 'sp':
-            Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
+            if is_weightedGraph(args.dataset):
+                Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
+            else:
+                Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
         if args.property == 'reach':
             Querylist = [Query(G,args.property,{'u':s,'v':t}) for s,t in queries]
 
@@ -200,33 +205,42 @@ else:
 if debug: # Run algorithm for single query (Debugging purposes)
     singleRun(G,Query)
 else: # Run algorithms for all the queries
-    if args.algo == 'eappr':
+    if runProbTree:
         for subpath,q in zip(rsubgraphpaths,queries):
             if (not os.path.isfile(subpath)):
                 raise Exception('representative subgraph: ',subpath,' missing!')
             G = get_decompGraph(args.dataset,None,None,subpath)
             s,t = q
             if args.property == 'reach':
-                Query = multiGraphQuery(G,'reach',{'u':s,'v':t})
+                G = G.simplify()
+                print(type(G),' ',len(G.nbrs))
+                # print('decomp graph: ',type(G),' |ProbTree V| = ',G.nx_format.number_of_nodes(),' |ProbTree E|=',G.nx_format.number_of_edges())
+                # Query = multiGraphQuery(G,'reach',{'u':s,'v':t})
+            if args.property == 'reach':
+                if isinstance(G, UMultiGraph):
+                    Q = multiGraphQuery(G,'reach',{'u':s,'v':t})
+                else: 
+                    Q = Query(G,'reach',{'u':s,'v':t})
             if args.property == 'sp':
                 if is_weightedGraph(args.dataset):
-                    Query = multiGraphwQuery(G,'sp',{'u':s,'v':t}) # only SP requires weighted multigraph query
+                    Q = multiGraphwQuery(G,'sp',{'u':s,'v':t}) # only SP requires weighted multigraph query
                 else:
-                    Query = multiGraphQuery(G,'sp',{'u':s,'v':t})
+                    Q = multiGraphQuery(G,'sp',{'u':s,'v':t})
 
             if args.property == 'tri':
-                Query = multiGraphQuery(G,'tri')
-            result_df = singleRun(G, Query)
+                Q = multiGraphQuery(G,'tri')
+            result_df = singleRun(G, Q)
             # cur_mem_usage = memory_usage(-1, interval=0.01, timeout=1)[-1]
             # mem = memory_usage((singleRun,(G,Query,)),\
             #                timestamps=False, interval=0.001,max_usage = True,\
             #                 backend="psutil")
             # print('peakMem: ',mem-cur_mem_usage)
-            Query.clear()
+            Q.clear()
     else:
         if args.property == 'tri':
             print('#Triangles')
-            Querylist = [Query(G,'tri')]
+            Q = [Query(G,'tri')]
+            Querylist = [Q]
         if args.stat: result_df = None 
         for Query in Querylist:
             result_df = singleRun(G, Query)

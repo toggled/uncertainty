@@ -23,8 +23,20 @@ class UGraph:
         self.nbrs = {} # neighborlist representation.
         self.nx_format = nx.Graph()
 
+    def clear(self):
+        self.Edges = []
+        self.edict = {}
+        self.notedict = {}
+        self.weights = {}
+        del self.nbrs 
+        del self.nx_format
+        
     def __str__(self):
         return ' '.join(self.Edges)
+    
+    def __len__(self):
+        """ Returns number of edges """
+        return len(self.Edges)
     
     def get_prob(self, e):
         u,v = min(e),max(e) 
@@ -297,7 +309,7 @@ class UGraph:
     def dijkstra_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
-        print('simple graph dijkstra')
+        # print('simple graph dijkstra')
         start_execution_time = time()
         assert len(self.nbrs) > 0
         if optimiseargs is not None:
@@ -358,7 +370,8 @@ class UGraph:
         """ For SP query (unweighted graph). """
         # print(self.Edges)
         start_execution_time = time()
-        assert len(self.nbrs) > 0
+        if len(self.nbrs) == 0:
+            self.nbrs = self.construct_nbrs()
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
                 nbrs = self.construct_nbrs() # Constructs node => Nbr incidence dictionary. 
@@ -686,8 +699,8 @@ class UGraph:
             if random.random() < p:
                 # nx_graph.add_edge(*e,weight = p)
                 # poss_world.append(e)
-                poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
-                # poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
+                # poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
+                poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
                 if verbose:
                     poss_world_prob = poss_world_prob * p
             else:
@@ -696,7 +709,7 @@ class UGraph:
         if verbose:
             # print(nx_graph.nodes)
             # print(nx_graph.edges)
-            print(poss_world)
+            print(poss_world.Edges)
             print(poss_world_prob)
         sample_tm = time() - start_execution_time
         # self.sample_time_list.append(sample_tm)
@@ -984,7 +997,7 @@ class UMultiGraph(UGraph):
     def dijkstra_sample(self,source,target, seed = 1,optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For SP query (unweighted graph). """
         # print(self.Edges)
-        print('dijkstra sample multigraph')
+        # print('dijkstra sample multigraph')
         start_execution_time = time()
         assert len(self.nbrs)>0
         if optimiseargs is not None:

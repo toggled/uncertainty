@@ -13,6 +13,9 @@ import random
 from math import log2
 from networkx.exception import NetworkXNoPath
 from itertools import combinations
+from tqdm import tqdm 
+import multiprocessing as mp
+from itertools import product
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dataset", type=str, default="default")
@@ -32,6 +35,7 @@ print(args)
 
 os.environ['time_seed'] = 'True'
 opt_N_dict = {
+    'test': {'reach': 10},
     'default': {'reach': 10},
     'ER_15_22': {'reach': 11, 'sp': 26, 'tri': 6},
     'biomine': {'reach': None},
@@ -42,6 +46,7 @@ opt_N_dict = {
     'restaurants': {'reach': 156}
 }
 opt_T_dict = {
+    'test': {'reach': 10},
     'default': {'reach':10},
     'ER_15_22': {'reach': 85, 'sp': 165, 'tri': 100},
     'biomine': {'reach': 10},
@@ -63,9 +68,9 @@ ZERO = 10**(-13)
 # h = lambda x: [0,-x*log2(x)][x!=0]
 def h(x):
     absx = abs(x)
-    if absx <= ZERO:
+    if x <= ZERO or x >= 1:
         return 0
-    elif (1-absx) <= ZERO:
+    elif (1-x) <= ZERO or (1-x) >= 1:
         return 0
     else:
         try:
@@ -213,8 +218,42 @@ def doCleanto0(e_star,probGraph):
 def doCleanto1(e_star,probGraph):
     probGraph.update_edge_prob(u = e_star[0],v = e_star[1], prob = 1)
         
+# # Single edge selection, single query-pair
+# def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph): #Algorithm 2 of the paper (Greedy variant)
+#     # Single-edge selection among the candidates e_clean
+#     Uq = compute_qual_improve_UQ(G,s,t,d,e_clean,probGraph)
+#     descending_uq = sorted(list(zip(e_clean,Uq)),reverse=True, key=lambda x: x[1])
+#     eqmax = -10000000
+#     estar = None
+#     # print('Uq = ',Uq)
+#     for i in range(len(Uq)): # Simulating the loop over heap, 1st element e,second elemnet Upper bound UQ[e]
+#         # print(i)
+#         if descending_uq[i][1]<eqmax: 
+#             return descending_uq[i][0]
+#         else:
+#             e = descending_uq[i][0]  # pop from heap
+#             # e = (e[0],e[1])
+#             E_deltaQ_st_d = 0
+#             p_e = probGraph.edict[(e[0],e[1])]
+#             for (s,t) in inf_set[(e[0],e[1])]:
+#                 Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
+#                 # e = descending_uq[i][0]
+#                 pg1 = deepcopy(probGraph)
+#                 doCleanto1(e,pg1)
+#                 R_st_d_c1 = compute_approx_reach(s,t,d,probGraph=pg1)
+#                 doCleanto0(e,pg1)
+#                 R_st_d_c0 = compute_approx_reach(s,t,d,probGraph=pg1)
+#                 Q_st_d_c1 = h(R_st_d_c1) + h(1-R_st_d_c1)
+#                 Q_st_d_c0 = h(R_st_d_c0) + h(1-R_st_d_c0)
+#                 E_deltaQ_st_d += (Q_st_d  - (p_e*Q_st_d_c1 + (1-p_e)*Q_st_d_c0))
+#             # print('i = ',i, ' E_deltaQ_st_d = ',E_deltaQ_st_d)
+#             if E_deltaQ_st_d > eqmax:
+#                 eqmax = E_deltaQ_st_d
+#                 estar = e
+#     return estar
+
 # Single edge selection, single query-pair
-def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph): #Algorithm 2 of the paper (Greedy variant)
+def find_e_adaptive(G, s, t, d, e_clean, probGraph): #Algorithm 2 of the paper (Greedy variant)
     # Single-edge selection among the candidates e_clean
     Uq = compute_qual_improve_UQ(G,s,t,d,e_clean,probGraph)
     descending_uq = sorted(list(zip(e_clean,Uq)),reverse=True, key=lambda x: x[1])
@@ -230,7 +269,9 @@ def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph): #Algorithm 2 of th
             # e = (e[0],e[1])
             E_deltaQ_st_d = 0
             p_e = probGraph.edict[(e[0],e[1])]
-            for (s,t) in inf_set[(e[0],e[1])]:
+            # print('computing if set for: ',e)
+            inf_set_e = single_pair_influencce_set(G,e,d)
+            for (s,t) in inf_set_e:
                 Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
                 # e = descending_uq[i][0]
                 pg1 = deepcopy(probGraph)
@@ -268,35 +309,146 @@ def compute_uncertainty(probGraph,s,t,d, aftercleaning = False, estar = None):
         Q.eval()
         return Q.compute_entropy()
 
+def infset(_s,_t,length_v_all,length_all_u,uv_weight):
+    dv_t = length_v_all.get(_t,math.inf)
+    dv_s = length_v_all.get(_s,math.inf)
+    dt_u = length_all_u.get(_t,math.inf)
+    ds_u = length_all_u.get(_s,math.inf)
+    if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight+dt_u <= d):
+        return _s,_t
+    else:
+        return None,None
 def compute_influence_set(nodes,E,G,d):
     print('computing influence set')
     tm_if = time()
     influence_set = {}
-    for e in E:
+    #method 3 (buggy)
+    # successive_pair = lambda p,l: [p[i:i+2] for i in range(l-1)]
+    # path = dict(nx.all_pairs_dijkstra_path(G,cutoff=d))
+    # # path = dict(nx.all_simple_paths(G,cutoff=d))
+    # for u in path:
+    #     for v in path[u]:
+    #         if u<v:
+    #             uvpath = path[u][v]
+    #             uvpath_len = len(uvpath)
+    #             if (uvpath_len> (d+1)) or (uvpath_len<=1):
+    #                 continue 
+    #             else:
+    #                 if uvpath_len == 2:
+    #                     influence_set[(u,v)] = [(u,v)] # edge [uv] themeselves are their own influential pairs
+    #                 else: 
+    #                     # print('p: ',uvpath)
+    #                     for e in successive_pair(uvpath,uvpath_len):
+    #                         _s,_t = min(e[0],e[1]), max(e[0],e[1])
+    #                         print((_s,_t), ' => ',(u,v))
+    #                         influence_set[(_s,_t)] = influence_set.get((_s,_t),[])
+    #                         influence_set[(_s,_t)].append((u,v))
+                    
+    #                 otherpaths = nx.all_simple_paths(G,u,v,cutoff=d)
+    #                 for p in otherpaths:
+    #                     if len(p)<= (d+1):
+    #                         print(u,v,'--- others: ',p)
+
+    # Method 1
+    for e in tqdm(E):
         u,v = e[0],e[1]
-        # print(u,v)
         length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
         length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
         for _s,_t in combinations(nodes,2):
+            # _s,_t = infset(_s, _t,length_v_all,length_all_u,e[2])
             dv_t = length_v_all.get(_t,math.inf)
             dv_s = length_v_all.get(_s,math.inf)
             dt_u = length_all_u.get(_t,math.inf)
             ds_u = length_all_u.get(_s,math.inf)
-            uv_weight = e[2]
-            if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight+dt_u <= d):
+            if (ds_u+e[2]+dv_t<=d) or (dv_s + e[2] +dt_u <= d):
                 influence_set[(u,v)] = influence_set.get((u,v),[])
                 influence_set[(u,v)].append((_s,_t))
-    # print(influence_set)
+
+        #ver2: parallelize
+        # Step 1: Init multiprocessing.Pool()
+        # pairs = []
+        # for _s,_t in combinations(nodes,2):
+        #     _count = 0
+        #     pairs.append((_s,_t))
+        # _len_pairs = len(pairs)
+        # ncpus = mp.cpu_count()
+        # print('ncpus = ',ncpus)
+        # pool = mp.Pool(ncpus)
+        # for i in range(0,_len_pairs,ncpus):
+        #     results = [pool.apply(infset, args=(pair[0], pair[1],length_v_all,length_all_u,e[2])) for pair in pairs[i:i+ncpus]]
+        #     for (_s,_t),_r in zip(pairs[i:i+ncpus],results):
+        #         if _s is not None:
+        #             influence_set[(u,v)] = influence_set.get((u,v),[])
+        #             influence_set[(u,v)].append((_s,_t))
+        # pool.close()
+    print(influence_set)
     return influence_set,time() - tm_if
+
+def test_ifset(iset):
+    for key in sorted(iset.keys()):
+        print(key, ' => ',len(iset[key]))
+        print('--- ',iset[key])
+    # uv = ('0','13')
+    # print(uv,' => ',iset.get(uv))
+
+def single_pair_influencce_set(G,e,d):
+    influence_set = []
+    # u,v,uv_weight = e[0],e[1],e[2]
+    # length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
+    # length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
+    # for _s,_t in combinations(nodes,2):
+    #     # _s,_t = infset(_s, _t,length_v_all,length_all_u,e[2])
+    #     dv_t = length_v_all.get(_t,math.inf)
+    #     dv_s = length_v_all.get(_s,math.inf)
+    #     dt_u = length_all_u.get(_t,math.inf)
+    #     ds_u = length_all_u.get(_s,math.inf)
+    #     if (ds_u+uv_weight+dv_t<=d) or (dv_s + uv_weight +dt_u <= d):
+    #         influence_set.append((_s,_t))
+    # depth = {e:1}
+    # visited = {e[0]: 1, e[1]: 1}
+    # queue = deque([e[0],e[1]])
+    # d = 3
+    depth = {e[0]: 1, e[1]: 1}
+    nodes1 = [e[0]]
+    for edge in nx.bfs_edges(G, e[0],depth_limit=d-1):
+        u,v = edge[0],edge[1]
+        nodes1.append(v)
+    # print(nodes1)
+    nodes2 = [e[1]]
+    for edge in nx.bfs_edges(G, e[1],depth_limit=d-1):
+        u,v = edge[0],edge[1]
+        nodes2.append(v)
+    # print(nodes2)
+    # nodes = [e[0]] + [v for u, v in nx.bfs_edges(G, e[0],depth_limit=d-1)]
+    length_v_all = nx.single_source_shortest_path_length(G, e[1],cutoff=d)
+    length_all_u = dict(nx.single_target_shortest_path_length(G, e[0],cutoff=d))
+    u,v = e[0],e[1]
+    done_already = {}
+    for _s,_t in product(nodes1,nodes2):
+        if _s == _t:
+            continue 
+        if (_s,_t) not in done_already and (_t,_s) not in done_already:
+            dv_t = length_v_all.get(_t,math.inf)
+            dv_s = length_v_all.get(_s,math.inf)
+            dt_u = length_all_u.get(_t,math.inf)
+            ds_u = length_all_u.get(_s,math.inf)
+            if (ds_u+e[2]+dv_t<=d) or (dv_s + e[2] +dt_u <= d):
+                influence_set.append((_s,_t))
+            done_already[(_s,_t)] = True 
+    return influence_set
 
 if __name__=='__main__': 
     if args.dataset == 'test':
-        G=nx.read_edgelist("test_graph_TKDE.txt", delimiter=" ", create_using=nx.Graph(), nodetype=int, data=(("weight", float), ("prob", float)))
+        G=nx.read_edgelist("test_graph_TKDE.txt", delimiter=" ", create_using=nx.Graph(), nodetype=str, data=(("weight", float), ("prob", float)))
         s,t = int(s),int(t)
         Edgelist = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True)]
         probGraph = UGraph()
         for (u,v,w,p) in Edgelist:
             probGraph.add_edge(u,v,float(p),weight=float(w))
+        nodes = G.nodes()
+        queries = [(args.source,args.target)]
+        # nx.draw(G,with_labels = True)
+        # plt.show()
     else:
         probGraph = get_dataset(args.dataset)
         G = probGraph.get_weighted_graph_rep()
@@ -326,16 +478,23 @@ if __name__=='__main__':
     for i,e in enumerate(probGraph.Edges): 
         ecl.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
 
-    if_file = args.dataset+'_'+str(d)+'.if'
-    if not os.path.isfile(if_file):
-        influence_set, if_time = compute_influence_set(nodes,ecl,G,d)
-        print('saving influence_set file: ',if_file)
-        save_dict(influence_set,if_file)
-        with open(if_file+'_tm','w') as wf:
-            wf.write(if_time+"\n")
-    else:
-        print('loading influence_set file: ',if_file)
-        influence_set = load_dict(if_file)
+    # if_file = args.dataset+'_'+str(d)+'.if'
+    # if not os.path.isfile(if_file):
+    #     influence_set, if_time = compute_influence_set(nodes,ecl,G,d)
+    #     print('saving influence_set file: ',if_file)
+    #     # save_dict(influence_set,if_file)
+    #     # test_ifset(influence_set)
+    #     with open(if_file+'_tm','w') as wf:
+    #         print('influence set computation time = ',if_time)
+    #         wf.write(str(if_time))
+    # else:
+    #     print('loading influence_set file: ',if_file)
+    #     influence_set = load_dict(if_file)
+    
+    # nx.draw(G,with_labels = True)
+    # plt.show()
+    # import sys 
+    # sys.exit(1)
     for s,t in queries:
         start_execution_time = time()
         if args.verbose: print('s,t = ',s,t)
@@ -343,8 +502,9 @@ if __name__=='__main__':
         # if args.verbose: print("Candidate edges: ", e_clean)
         # index = {}
         # e_clean = deepcopy(ecl)
+        # influence_set = single_pair_influencce_set(s,t,G)
         e_clean = ecl
-        if args.verbose: print('(',s,t,'): length of influence set: ',len(influence_set))
+        # if args.verbose: print('(',s,t,'): length of influence set: ',len(influence_set))
         # s=3
         # t=2
         # s = 2
@@ -383,10 +543,11 @@ if __name__=='__main__':
             #     index[(e[0],e[1])] = i
             r0 = compute_approx_reach(s,t,d,probGraph=probGraph)
             H0 = h(r0) + h(1-r0)
-            # print('ro = ',r0)
+            # print('H0 = ',H0)
             for k in range(args.budget):
                 # print('selecting ',k,'-th edge')
-                e=find_e_adaptive(G, s, t, d, influence_set, e_clean,probGraph) 
+                # e=find_e_adaptive(G, s, t, d, influence_set, e_clean,probGraph) 
+                e=find_e_adaptive(G, s, t, d, e_clean,probGraph) 
                 e_clean.remove(e)
                 e = (e[0],e[1])
                 estar.append(e)
@@ -397,7 +558,7 @@ if __name__=='__main__':
                 # for i,edge in enumerate(e_clean): # re-index
                 #     index[edge] = i
                 # print(cr_dict)
-                # print(probGraph.edict)
+                print(probGraph.edict)
                 probGraph.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
                 # probGraph.edict[e] = cr_dict[e]
                 # print('deleting edge: ',e)

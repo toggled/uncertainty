@@ -75,7 +75,7 @@ def get_decompGraph(dataset, source, target, dataset_path = None):
     """ Load representative subgraph (maniu et al.) from Tree decomposition output """
     name = dataset+'_'+str(source)+'_'+str(target)
     G = UMultiGraph()
-
+    print('ProbTree location: ',dataset_path)
     if dataset in datasets_unwgraph:
         if dataset_path is not None:
             try:

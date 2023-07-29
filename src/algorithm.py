@@ -404,6 +404,7 @@ class ApproximateAlgorithm:
                         if os.environ['precomp']:
                             save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
                             j+=1
+                        # g[0].clear()
                     #bucketing 
                     S = support_observed
                     # S = list(set(support_observed))
@@ -435,16 +436,20 @@ class ApproximateAlgorithm:
                     # print('buckets = ',self.buckets)
                 else: # non-bucketing & no-pre
                     hat_Pr = {}
-                    j = 0
+                    # j = 0
                     if 'time_seed' in os.environ:
                         random.seed()
                         s = random.randint(0,1000000)
                     else:
                         s = seed + i
-                    for g in self.G.get_Ksample(T,seed=s):
+                    # func_obj = self.G.get_Ksample(T,seed=s)
+                    # for g in func_obj:
+                    for j in range(T):
+                        g = self.G.get_sample(seed=s)
                         # print(g[0].Edges)
                         start_tm = time()
                         omega = self.Query.evalG(g[0])
+                        # _,_,_,omega = g[0].bfs_sample(self.Query.u,self.Query.v,optimiseargs=None)
                         query_evaluation_times.append(time()-start_tm)
                         hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
                         support_observed.append(omega)
@@ -611,7 +616,8 @@ class ApproximateAlgorithm:
                             print('saving nbrs file for the 1st time.')
                             save_pickle(nbrs,precomputed_nbrs_path)
                         j+=1
-                hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+                # hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
+                hat_H = entropy([j for i,j in hat_Pr.items()], base = 2)
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
         else:
@@ -1422,13 +1428,13 @@ class ApproximateAlgorithm:
                     H_up = self.measure_H0(property, algorithm, T, N)
                     if choice not in memory:
                         memory[choice] = Node(str(choice)+'='+"{:1.3f}".format(H_up) \
-                                              +'/' +"{:1.3f}".format(h(self.G.edict.get_prob(choice[0]))), head)
+                                              +'/' +"{:1.3f}".format(h(self.G.get_prob(choice[0]))), head)
 
                 else:
                     g_copy = deepcopy(self.G)
                     H_pe = 0
                     for e in choice:
-                        H_pe += h(self.G.edict.get_prob(e))
+                        H_pe += h(self.G.get_prob(e))
                         g_copy.edge_update(e[0],e[1], type= update_type)
                     self.Query.reset(g_copy)
                     H_up = self.measure_H0(property, algorithm, T, N)

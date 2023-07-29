@@ -230,18 +230,25 @@ class Query:
         """ Function to evaluate a given possible world G"""
         # assert isinstance(G,list)
         # def has_path(G,u,v):
+        if len(G) == 0: # On an empty uncertain graph, property = 0 no matter the type
+            return 0
         if self.qtype == 'reach': # Reachability
             u = self.u 
             v = self.v
             assert (u != None and v != None)
             # nx_G = nx.Graph()
             # nx_G.add_edges_from(G)
-            nx_G = G.nx_format
-            reachable = 0
-            if (u in nx_G) and (v in nx_G):
-                if (nx.has_path(nx_G,u,v)):
-                    reachable = 1 
+            # # ---
+            # nx_G = G.nx_format
+            # reachable = 0
+            # if (u in nx_G) and (v in nx_G):
+            #     if (nx.has_path(nx_G,u,v)):
+            #         reachable = 1 
+            # # ---
+            # print(type(G))
+            _, _, _,reachable = G.bfs_sample(u,v,seed = time(),optimiseargs=None)
             # reachable = G.reachable(u,v)
+
             return reachable
 
         if self.qtype == 'sp': # length of shortest path
@@ -251,14 +258,17 @@ class Query:
             
             # nx_G = nx.Graph()
             # nx_G.add_edges_from(G)
-            nx_G = G.nx_format
-            # print(type(nx_G))
-            sp_len = INFINITY
-            if (u in nx_G) and (v in nx_G):
-                if (nx.has_path(nx_G,u,v)):
-                    sp_len = nx.shortest_path_length(nx_G, source=u, target=v)
+            # nx_G = G.nx_format
+            # # print(type(nx_G))
+            # sp_len = INFINITY
+            # if (u in nx_G) and (v in nx_G):
+            #     if (nx.has_path(nx_G,u,v)):
+            #         sp_len = nx.shortest_path_length(nx_G, source=u, target=v)
+            
+            # print(type(G))
+            _, _, _,sp_len = G.dijkstra_sample(u,v,seed = time(),optimiseargs=None)
             return sp_len
-
+        
         # if self.qtype =="diam":
         #     self.plot_properties['xlabel'] = 'Diam'
         #     self.plot_properties['ylabel'] = 'Prob.'
