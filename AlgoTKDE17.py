@@ -98,9 +98,13 @@ def compute_reach(s, t, d, probGraph = None): # According to paper it shouldn't 
     #         r+= g[1]
     return r
 
-def compute_approx_reach(s,t,d,probGraph, numsamples = None):
-    random.seed()
-    sid = random.randint(0,1000000)
+def compute_approx_reach(s,t,d,probGraph, numsamples = None, seed = None):
+    # sid = random.randint(0,1000000)
+    if seed is None:
+        random.seed()
+        sid = random.randint(0,1000000)
+    else:
+        sid = seed
     if numsamples is None:
         numsamples = N*T
     # numsamples = T
@@ -145,6 +149,7 @@ def quality_Q_st(Rstd_G):
     return h(Rstd_G) + h(1-Rstd_G)
 
 def compute_qual_improve_UQ(G, s,t,d,e_clean,probGraph):
+    # print(type(probGraph))
     path_l=list(nx.all_simple_paths(G, s, t, cutoff=d)) 
     Rstd_G = compute_approx_reach(s,t,d,probGraph=probGraph)
     # print('#paths = ',len(path_l))
@@ -154,7 +159,7 @@ def compute_qual_improve_UQ(G, s,t,d,e_clean,probGraph):
     Qstd_G = quality_Q_st(Rstd_G)
     # print('Qstd_G = ',Qstd_G)
     # print('len(e_clean) = ', len(e_clean))
-    for i in range(len(e_clean)):
+    for i in tqdm(range(len(e_clean)),"Quality UB"):
         if len(path_l) == 0:
             U_e = 0
         else:
@@ -219,41 +224,7 @@ def doCleanto1(e_star,probGraph):
     probGraph.update_edge_prob(u = e_star[0],v = e_star[1], prob = 1)
         
 # # Single edge selection, single query-pair
-# def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph): #Algorithm 2 of the paper (Greedy variant)
-#     # Single-edge selection among the candidates e_clean
-#     Uq = compute_qual_improve_UQ(G,s,t,d,e_clean,probGraph)
-#     descending_uq = sorted(list(zip(e_clean,Uq)),reverse=True, key=lambda x: x[1])
-#     eqmax = -10000000
-#     estar = None
-#     # print('Uq = ',Uq)
-#     for i in range(len(Uq)): # Simulating the loop over heap, 1st element e,second elemnet Upper bound UQ[e]
-#         # print(i)
-#         if descending_uq[i][1]<eqmax: 
-#             return descending_uq[i][0]
-#         else:
-#             e = descending_uq[i][0]  # pop from heap
-#             # e = (e[0],e[1])
-#             E_deltaQ_st_d = 0
-#             p_e = probGraph.edict[(e[0],e[1])]
-#             for (s,t) in inf_set[(e[0],e[1])]:
-#                 Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
-#                 # e = descending_uq[i][0]
-#                 pg1 = deepcopy(probGraph)
-#                 doCleanto1(e,pg1)
-#                 R_st_d_c1 = compute_approx_reach(s,t,d,probGraph=pg1)
-#                 doCleanto0(e,pg1)
-#                 R_st_d_c0 = compute_approx_reach(s,t,d,probGraph=pg1)
-#                 Q_st_d_c1 = h(R_st_d_c1) + h(1-R_st_d_c1)
-#                 Q_st_d_c0 = h(R_st_d_c0) + h(1-R_st_d_c0)
-#                 E_deltaQ_st_d += (Q_st_d  - (p_e*Q_st_d_c1 + (1-p_e)*Q_st_d_c0))
-#             # print('i = ',i, ' E_deltaQ_st_d = ',E_deltaQ_st_d)
-#             if E_deltaQ_st_d > eqmax:
-#                 eqmax = E_deltaQ_st_d
-#                 estar = e
-#     return estar
-
-# Single edge selection, single query-pair
-def find_e_adaptive(G, s, t, d, e_clean, probGraph): #Algorithm 2 of the paper (Greedy variant)
+def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph): #Algorithm 2 of the paper (Greedy variant)
     # Single-edge selection among the candidates e_clean
     Uq = compute_qual_improve_UQ(G,s,t,d,e_clean,probGraph)
     descending_uq = sorted(list(zip(e_clean,Uq)),reverse=True, key=lambda x: x[1])
@@ -269,9 +240,7 @@ def find_e_adaptive(G, s, t, d, e_clean, probGraph): #Algorithm 2 of the paper (
             # e = (e[0],e[1])
             E_deltaQ_st_d = 0
             p_e = probGraph.edict[(e[0],e[1])]
-            # print('computing if set for: ',e)
-            inf_set_e = single_pair_influencce_set(G,e,d)
-            for (s,t) in inf_set_e:
+            for (s,t) in inf_set[(e[0],e[1])]:
                 Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
                 # e = descending_uq[i][0]
                 pg1 = deepcopy(probGraph)
@@ -287,6 +256,42 @@ def find_e_adaptive(G, s, t, d, e_clean, probGraph): #Algorithm 2 of the paper (
                 eqmax = E_deltaQ_st_d
                 estar = e
     return estar
+
+# # Single edge selection, single query-pair
+# def find_e_adaptive(G, s, t, d, e_clean, probGraph, round = 1): #Algorithm 2 of the paper (Greedy variant)
+#     # Single-edge selection among the candidates e_clean
+#     Uq = compute_qual_improve_UQ(G,s,t,d,e_clean,probGraph)
+#     descending_uq = sorted(list(zip(e_clean,Uq)),reverse=True, key=lambda x: x[1])
+#     eqmax = -10000000
+#     estar = None
+#     # print('Uq = ',Uq)
+#     for i in tqdm(range(len(Uq)),' Round = '+str(round)): # Simulating the loop over heap, 1st element e,second elemnet Upper bound UQ[e]
+#         # print(i)
+#         if descending_uq[i][1]<eqmax: 
+#             return descending_uq[i][0]
+#         else:
+#             e = descending_uq[i][0]  # pop from heap
+#             # e = (e[0],e[1])
+#             E_deltaQ_st_d = 0
+#             p_e = probGraph.edict[(e[0],e[1])]
+#             # print('computing if set for: ',e)
+#             inf_set_e = single_pair_influencce_set(G,e,d)
+#             for (s,t) in inf_set_e:
+#                 Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
+#                 # e = descending_uq[i][0]
+#                 pg1 = deepcopy(probGraph)
+#                 doCleanto1(e,pg1)
+#                 R_st_d_c1 = compute_approx_reach(s,t,d,probGraph=pg1)
+#                 doCleanto0(e,pg1)
+#                 R_st_d_c0 = compute_approx_reach(s,t,d,probGraph=pg1)
+#                 Q_st_d_c1 = h(R_st_d_c1) + h(1-R_st_d_c1)
+#                 Q_st_d_c0 = h(R_st_d_c0) + h(1-R_st_d_c0)
+#                 E_deltaQ_st_d += (Q_st_d  - (p_e*Q_st_d_c1 + (1-p_e)*Q_st_d_c0))
+#             # print('i = ',i, ' E_deltaQ_st_d = ',E_deltaQ_st_d)
+#             if E_deltaQ_st_d > eqmax:
+#                 eqmax = E_deltaQ_st_d
+#                 estar = e
+#     return estar
 
 def compute_uncertainty(probGraph,s,t,d, aftercleaning = False, estar = None):
     if aftercleaning:
@@ -322,6 +327,11 @@ def compute_influence_set(nodes,E,G,d):
     print('computing influence set')
     tm_if = time()
     influence_set = {}
+    # d_hop_sphere = set()
+    # done = {}
+    # for e in E:
+    #     if e[0] not in done:
+    #         G.nbrs
     #method 3 (buggy)
     # successive_pair = lambda p,l: [p[i:i+2] for i in range(l-1)]
     # path = dict(nx.all_pairs_dijkstra_path(G,cutoff=d))
@@ -352,9 +362,10 @@ def compute_influence_set(nodes,E,G,d):
     # Method 1
     for e in tqdm(E):
         u,v = e[0],e[1]
-        length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d)
-        length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d))
-        for _s,_t in combinations(nodes,2):
+        length_v_all = nx.single_source_shortest_path_length(G, v,cutoff=d-1)
+        length_all_u = dict(nx.single_target_shortest_path_length(G, u,cutoff=d-1))
+        V = set(list(length_all_u.keys())+list(length_v_all.keys()))
+        for _s,_t in combinations(V,2):
             # _s,_t = infset(_s, _t,length_v_all,length_all_u,e[2])
             dv_t = length_v_all.get(_t,math.inf)
             dv_s = length_v_all.get(_s,math.inf)
@@ -363,6 +374,7 @@ def compute_influence_set(nodes,E,G,d):
             if (ds_u+e[2]+dv_t<=d) or (dv_s + e[2] +dt_u <= d):
                 influence_set[(u,v)] = influence_set.get((u,v),[])
                 influence_set[(u,v)].append((_s,_t))
+        # print('-- ',e,'=>',len(length_all_u.keys()),' ',len(length_v_all.keys()))
 
         #ver2: parallelize
         # Step 1: Init multiprocessing.Pool()
@@ -381,7 +393,7 @@ def compute_influence_set(nodes,E,G,d):
         #             influence_set[(u,v)] = influence_set.get((u,v),[])
         #             influence_set[(u,v)].append((_s,_t))
         # pool.close()
-    print(influence_set)
+    # print(influence_set)
     return influence_set,time() - tm_if
 
 def test_ifset(iset):
@@ -420,21 +432,22 @@ def single_pair_influencce_set(G,e,d):
         nodes2.append(v)
     # print(nodes2)
     # nodes = [e[0]] + [v for u, v in nx.bfs_edges(G, e[0],depth_limit=d-1)]
-    length_v_all = nx.single_source_shortest_path_length(G, e[1],cutoff=d)
-    length_all_u = dict(nx.single_target_shortest_path_length(G, e[0],cutoff=d))
+    length_v_all = nx.single_source_shortest_path_length(G, e[1],cutoff=d-1)
+    length_all_u = dict(nx.single_target_shortest_path_length(G, e[0],cutoff=d-1))
     u,v = e[0],e[1]
     done_already = {}
     for _s,_t in product(nodes1,nodes2):
         if _s == _t:
             continue 
-        if (_s,_t) not in done_already and (_t,_s) not in done_already:
-            dv_t = length_v_all.get(_t,math.inf)
-            dv_s = length_v_all.get(_s,math.inf)
-            dt_u = length_all_u.get(_t,math.inf)
-            ds_u = length_all_u.get(_s,math.inf)
-            if (ds_u+e[2]+dv_t<=d) or (dv_s + e[2] +dt_u <= d):
-                influence_set.append((_s,_t))
-            done_already[(_s,_t)] = True 
+        if (_s,_t) in done_already or (_t,_s) not in done_already:
+            continue
+        dv_t = length_v_all.get(_t,math.inf)
+        dv_s = length_v_all.get(_s,math.inf)
+        dt_u = length_all_u.get(_t,math.inf)
+        ds_u = length_all_u.get(_s,math.inf)
+        if (ds_u+e[2]+dv_t<=d) or (dv_s + e[2] +dt_u <= d):
+            influence_set.append((_s,_t))
+        done_already[(_s,_t)] = True 
     return influence_set
 
 if __name__=='__main__': 
@@ -447,6 +460,7 @@ if __name__=='__main__':
             probGraph.add_edge(u,v,float(p),weight=float(w))
         nodes = G.nodes()
         queries = [(args.source,args.target)]
+        # print(type(probGraph))
         # nx.draw(G,with_labels = True)
         # plt.show()
     else:
@@ -502,7 +516,7 @@ if __name__=='__main__':
         # if args.verbose: print("Candidate edges: ", e_clean)
         # index = {}
         # e_clean = deepcopy(ecl)
-        # influence_set = single_pair_influencce_set(s,t,G)
+
         e_clean = ecl
         # if args.verbose: print('(',s,t,'): length of influence set: ',len(influence_set))
         # s=3
@@ -516,24 +530,29 @@ if __name__=='__main__':
 
         #pruning strategy
         #pruning by reverse shortest path
-        # for v in G.nodes():
-        #     try:
-        #         ds_v=nx.dijkstra_path_length(G, v, s, weight='weight')
-        #     except NetworkXNoPath:
-        #         ds_v = 10000000
-        #     try:
-        #         dt_v=nx.dijkstra_path_length(G, v, t, weight='weight')
-        #     except NetworkXNoPath:
-        #         dt_v = 10000000
-        #     e_copy=e_clean.copy()
-        #     if ds_v+dt_v>d:
-        #         for a, b, w, p in e_copy:
-        #             if a==v or b==v:
-        #                 e_clean.remove((a,b,w,p))
+        for v in tqdm(G.nodes(),'pruning edges'):
+            try:
+                ds_v=nx.dijkstra_path_length(G, v, s, weight='weight')
+            except NetworkXNoPath:
+                ds_v = 10000000
+            try:
+                dt_v=nx.dijkstra_path_length(G, v, t, weight='weight')
+            except NetworkXNoPath:
+                dt_v = 10000000
+            e_copy=e_clean.copy()
+            if ds_v+dt_v>d:
+                for a, b, w, p in e_copy:
+                    if a==v or b==v:
+                        e_clean.remove((a,b,w,p))
                         # print('removed: ',(a,b,w,p))
                         
 
-        # print("Candidate edges after pruning: ", e_clean)
+        print("Candidate #edges after pruning: ", len(e_clean))
+        influence_set, if_time = compute_influence_set(nodes,e_clean,G,d)
+        # for k in influence_set:
+        #     print(k,' => ',influence_set[k])
+        # nx.draw(G,with_labels = True)
+        # plt.show()
         estar = []
         if args.utype == 'c1': # Non-adaptive
             # estar = find_e_nonadaptive(G, s, t, d, e_clean, budget = budget)
@@ -541,13 +560,13 @@ if __name__=='__main__':
         else:
             # for i,e in enumerate(e_clean): # re-index
             #     index[(e[0],e[1])] = i
-            r0 = compute_approx_reach(s,t,d,probGraph=probGraph)
+            r0 = compute_approx_reach(s,t,d,probGraph=probGraph, seed = 1)
             H0 = h(r0) + h(1-r0)
-            # print('H0 = ',H0)
+            print('H0 = ',H0)
             for k in range(args.budget):
-                # print('selecting ',k,'-th edge')
-                # e=find_e_adaptive(G, s, t, d, influence_set, e_clean,probGraph) 
-                e=find_e_adaptive(G, s, t, d, e_clean,probGraph) 
+                print('selecting ',k,'-th edge')
+                e=find_e_adaptive(G, s, t, d, influence_set, e_clean,probGraph) 
+                # e=find_e_adaptive(G, s, t, d, e_clean,probGraph,round = k) 
                 e_clean.remove(e)
                 e = (e[0],e[1])
                 estar.append(e)
@@ -558,14 +577,14 @@ if __name__=='__main__':
                 # for i,edge in enumerate(e_clean): # re-index
                 #     index[edge] = i
                 # print(cr_dict)
-                print(probGraph.edict)
+                # print(probGraph.edict)
                 probGraph.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
                 # probGraph.edict[e] = cr_dict[e]
                 # print('deleting edge: ',e)
                 # print('current edgelist: ',G.edges(data=True))
                 G.remove_edge(*e)
                 
-        r_end = compute_approx_reach(s,t,d,probGraph=probGraph)
+        r_end = compute_approx_reach(s,t,d,probGraph=probGraph,seed = 2*int(str(s)+str(t)))
         # print('r_end: ',r_end)
         H_end = h(r_end) + h(1-r_end)
         # if args.verbose:

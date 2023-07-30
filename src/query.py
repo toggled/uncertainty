@@ -286,9 +286,9 @@ class Query:
         #     return diam 
             
         if self.qtype == 'tri':
-            # g = nx.Graph()
-            # g.add_edges_from(G)
-            g = G.nx_format
+            g = nx.Graph()
+            g.add_edges_from(G.Edges)
+            # g = G.nx_format
             num_triangles = sum(nx.triangles(g).values()) / 3
             return num_triangles
 

@@ -113,7 +113,7 @@ def singleQuery_singleRun(G,Query):
     #     print("Greedy algorithm (w/ exact mem.): ")
         # a.algorithm5(k = args.k, update_type=args.utype, verbose = args.verbose)
     elif args.algo == 'greedy': #
-        os.environ['time_seed'] = 'True' 
+        # os.environ['time_seed'] = 'True' 
         a = ApproximateAlgorithm(G,Query, debug = args.debug)
         print("Greedy algorithm (w/o mem.): ")
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
@@ -144,6 +144,11 @@ def singleQuery_singleRun(G,Query):
                     q = 2  
                 r = math.ceil(args.k/q)  
             print('r = ',r)
+            ## Heuristic for r on Update type U1 and s-t queries.
+            if Query.qtype == 'reach' or Query.qtype == 'reach_d' or Query.qtype == 'sp' and args.utype=='o1' and r>1:
+                # assert r == 1,"For reach/sp queries with U1 update, r should be = 1"
+                print('resetting r to ',1)
+                r = 1
         a.greedyP(property = Query.qtype, algorithm = args.est_algo, k = args.k, r = r, \
                      N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                      update_type=args.utype, verbose = args.verbose, track_H = args.trackH)

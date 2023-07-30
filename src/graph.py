@@ -257,6 +257,7 @@ class UGraph:
     def bfs_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
         """ For Reachability query. """
         # print(self.Edges)
+        # print('bfs_sample: seed = ',seed)
         start_execution_time = time()
         assert len(self.nbrs)>0
         if optimiseargs is not None:
@@ -274,6 +275,7 @@ class UGraph:
         prob_sample = 1.0
         random.seed(seed)
         visited = {source: True}
+        # verbose = True
         while len(queue) and reached_target == 0: # MC+BFS loop
             # u = queue.pop(0)
             u = queue.popleft()
@@ -302,6 +304,7 @@ class UGraph:
         support_value = reached_target
         sample_tm = time() - start_execution_time
         self.total_sample_tm += sample_tm
+        # print(sorted(sample))
         # print(source,target,sample,support_value)
         return nbrs, sample, prob_sample,support_value 
         # return sample, prob_sample,support_value # possible world G, Pr(G), Reach/Not
