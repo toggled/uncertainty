@@ -510,6 +510,8 @@ if __name__=='__main__':
     # import sys 
     # sys.exit(1)
     for s,t in tqdm(queries,'%queries processed ='):
+        r0 = compute_approx_reach(s,t,d,probGraph=probGraph, seed = 1)
+        H0 = h(r0) + h(1-r0)
         start_execution_time = time()
         if args.verbose: print('s,t = ',s,t)
         # e_clean = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True) if e[2]['prob']<= p_max and e[2]['prob']>=p_min]
@@ -560,8 +562,6 @@ if __name__=='__main__':
         else:
             # for i,e in enumerate(e_clean): # re-index
             #     index[(e[0],e[1])] = i
-            r0 = compute_approx_reach(s,t,d,probGraph=probGraph, seed = 1)
-            H0 = h(r0) + h(1-r0)
             # print('H0 = ',H0)
             for k in range(args.budget):
                 print('selecting ',k,'-th edge')
@@ -570,7 +570,7 @@ if __name__=='__main__':
                 e_clean.remove(e)
                 e = (e[0],e[1])
                 estar.append(e)
-                # print(e)
+                # print('selected edge: ',e)
                 # print('index: ',index)
                 # print(index[(e[0],e[1])])
                 # e_clean.pop(index[e])
