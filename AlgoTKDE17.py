@@ -474,7 +474,7 @@ if __name__=='__main__':
             queries = [(args.source,args.target)]
         nodes = G.nodes()
         # print('nodes: ',nodes)
-        print('queries = ', queries)
+        # print('queries = ', queries)
         # print(len(G.nodes), ' ',len(G.edges))
         # import sys
         # sys.exit(1)
@@ -509,7 +509,7 @@ if __name__=='__main__':
     # plt.show()
     # import sys 
     # sys.exit(1)
-    for s,t in queries:
+    for s,t in tqdm(queries,'%queries processed ='):
         start_execution_time = time()
         if args.verbose: print('s,t = ',s,t)
         # e_clean = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True) if e[2]['prob']<= p_max and e[2]['prob']>=p_min]
@@ -547,7 +547,7 @@ if __name__=='__main__':
                         # print('removed: ',(a,b,w,p))
                         
 
-        print("Candidate #edges after pruning: ", len(e_clean))
+        # print("Candidate #edges after pruning: ", len(e_clean))
         influence_set, if_time = compute_influence_set(nodes,e_clean,G,d)
         # for k in influence_set:
         #     print(k,' => ',influence_set[k])
@@ -562,7 +562,7 @@ if __name__=='__main__':
             #     index[(e[0],e[1])] = i
             r0 = compute_approx_reach(s,t,d,probGraph=probGraph, seed = 1)
             H0 = h(r0) + h(1-r0)
-            print('H0 = ',H0)
+            # print('H0 = ',H0)
             for k in range(args.budget):
                 print('selecting ',k,'-th edge')
                 e=find_e_adaptive(G, s, t, d, influence_set, e_clean,probGraph) 
@@ -583,7 +583,7 @@ if __name__=='__main__':
                 # print('deleting edge: ',e)
                 # print('current edgelist: ',G.edges(data=True))
                 G.remove_edge(*e)
-                
+        end_tm = time()
         r_end = compute_approx_reach(s,t,d,probGraph=probGraph,seed = 2*int(str(s)+str(t)))
         # print('r_end: ',r_end)
         H_end = h(r_end) + h(1-r_end)
@@ -608,7 +608,7 @@ if __name__=='__main__':
         a.algostat['result']['H0'] = H0
         a.algostat['result']['edges'] = estar
         a.algostat['result']['H*'] = H_end
-        a.algostat['execution_time'] = time() - start_execution_time
+        a.algostat['execution_time'] = end_tm - start_execution_time
         a.algostat['DeltaH'] = a.algostat['result']['H0'] - a.algostat['result']['H*']
         a.algostat['|DeltaH|'] = abs(a.algostat['result']['H0'] - a.algostat['result']['H*'])
         a.algostat['source'] = s
