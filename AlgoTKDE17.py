@@ -16,7 +16,7 @@ from itertools import combinations
 from tqdm import tqdm 
 import multiprocessing as mp
 from itertools import product
-
+import numpy as np
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dataset", type=str, default="default")
 parser.add_argument("-T",'--T',type = int, default = 10, help= '#of Possible worlds in MC sampling')
@@ -530,6 +530,7 @@ if __name__=='__main__':
         pG = deepcopy(probGraph)
         r0 = compute_approx_reach(s,t,d,probGraph=pG, seed = 1)
         H0 = h(r0) + h(1-r0)
+        history_Hk = [H0]
         start_execution_time = time()
         if args.verbose: print('s,t = ',s,t)
         # e_clean = [(e[0],e[1],e[2]['weight'],e[2]['prob']) for e in G.edges(data=True) if e[2]['prob']<= p_max and e[2]['prob']>=p_min]
@@ -537,7 +538,6 @@ if __name__=='__main__':
         # index = {}
         # e_clean = deepcopy(ecl)
 
-        e_clean = ecl.copy()
         # if args.verbose: print('(',s,t,'): length of influence set: ',len(influence_set))
         # s=3
         # t=2
@@ -548,26 +548,26 @@ if __name__=='__main__':
         if args.verbose: print('input: source = ',s,' target = ',t,' #hops <= ',d,' budget: ',budget)
         # print(G.nodes())
 
-        #pruning strategy
-        #pruning by reverse shortest path
-        for v in tqdm(G.nodes(),'pruning edges'):
-            try:
-                ds_v=nx.dijkstra_path_length(G, v, s, weight='weight')
-            except NetworkXNoPath:
-                ds_v = 10000000
-            try:
-                dt_v=nx.dijkstra_path_length(G, v, t, weight='weight')
-            except NetworkXNoPath:
-                dt_v = 10000000
-            e_copy=e_clean.copy()
-            if ds_v+dt_v>d:
-                for a, b, w, p in e_copy:
-                    if a==v or b==v:
-                        e_clean.remove((a,b,w,p))
-                        # print('removed: ',(a,b,w,p))
-                        
-
         if mode == 'me_sq':
+            #pruning strategy
+            #pruning by reverse shortest path
+            e_clean = ecl.copy()
+            for v in tqdm(G.nodes(),'pruning edges'):
+                try:
+                    ds_v=nx.dijkstra_path_length(G, v, s, weight='weight')
+                except NetworkXNoPath:
+                    ds_v = 10000000
+                try:
+                    dt_v=nx.dijkstra_path_length(G, v, t, weight='weight')
+                except NetworkXNoPath:
+                    dt_v = 10000000
+                e_copy=e_clean.copy()
+                if ds_v+dt_v>d:
+                    for a, b, w, p in e_copy:
+                        if a==v or b==v:
+                            e_clean.remove((a,b,w,p))
+                            # print('removed: ',(a,b,w,p))
+                        
             # print("Candidate #edges after pruning: ", len(e_clean))
             influence_set, if_time = compute_influence_set(nodes,e_clean,G,d)
             # for k in influence_set:
@@ -603,13 +603,49 @@ if __name__=='__main__':
                     # print('current edgelist: ',G.edges(data=True))
                     G.remove_edge(*e)
         if mode=='si_sq':
-            e_star=find_e(G, s, t, d, e_clean.copy(),probGraph=pG)
-            e = (e_star[0],e_star[1])
-            pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
-        end_tm = time()
+            estar = []
+            e_clean = ecl.copy()
+            round = 0
+            for k in range(args.budget):
+                #pruning strategy
+                #pruning by reverse shortest path
+                for v in tqdm(G.nodes(),'pruning edges'):
+                    try:
+                        ds_v=nx.dijkstra_path_length(G, v, s, weight='weight')
+                    except NetworkXNoPath:
+                        ds_v = 10000000
+                    try:
+                        dt_v=nx.dijkstra_path_length(G, v, t, weight='weight')
+                    except NetworkXNoPath:
+                        dt_v = 10000000
+                    e_copy=e_clean.copy()
+                    if ds_v+dt_v>d:
+                        for a, b, w, p in e_copy:
+                            if a==v or b==v:
+                                e_clean.remove((a,b,w,p))
+                                # print('removed: ',(a,b,w,p))
+                            
+                e_star=find_e(G, s, t, d, e_clean.copy(),probGraph=pG)
+                e = (e_star[0],e_star[1])
+                estar.append(e)
+                pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
+                if k < args.budget - 1:
+                    r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = int(str(s)+str(t))+k)
+                    # print('r_end: ',r_end)
+                    H_end = h(r_end) + h(1-r_end)
+                    history_Hk.append(H_end)
+                    e_clean = []
+                    for i,e in enumerate(probGraph.Edges): 
+                        if (e[0],e[1]) not in estar:
+                            e_clean.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
+
         r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = 2*int(str(s)+str(t)))
         # print('r_end: ',r_end)
         H_end = h(r_end) + h(1-r_end)
+        history_Hk.append(H_end)
+        end_tm = time()
+        history_Hk = np.array(history_Hk)
+        min_hkhat = np.argmin(history_Hk)
         # if args.verbose:
         #     if len(estar==1):
         #         print("Execution completed e*: (",e_star[0][0],", ",e_star[0][1], ")")
@@ -629,13 +665,14 @@ if __name__=='__main__':
         a.algostat['k'] = budget
         a.algostat['algorithm'] = 'TKDE17'
         a.algostat['result']['H0'] = H0
-        a.algostat['result']['edges'] = str((e_star[0],e_star[1]))
-        a.algostat['result']['H*'] = H_end
+        a.algostat['result']['edges'] = [estar[:min_hkhat],[]][min_hkhat==0]
+        a.algostat['result']['H*'] = history_Hk[min_hkhat] #H_end
         a.algostat['execution_time'] = end_tm - start_execution_time
-        a.algostat['DeltaH'] = H0 - H_end
-        a.algostat['|DeltaH|'] = abs(H0 - H_end)
+        a.algostat['DeltaH'] = H0 -  a.algostat['result']['H*']
+        a.algostat['|DeltaH|'] = abs(H0 -  a.algostat['result']['H*'])
         a.algostat['source'] = s
         a.algostat['target'] = t
+        a.algostat['history_Hk'] = ",".join(["{:.4f}".format(i) for i in history_Hk])
         try:
             if args.queryf is not None:
                 a.algostat['qset'] = int(args.queryf.split('.')[0].split('_')[-1])
