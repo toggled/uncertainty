@@ -29,6 +29,18 @@ def load_pickle(fname):
         ob = pickle.load(f)
         return ob
 
+def get_sample(G, seed):
+    random.seed(seed)
+    poss_world = Graph()
+    for e in G.Edges:
+        p = G.edict[e]
+        if random.random() < p:
+            poss_world.add_edge(e[0],e[1],p,G.weights[e],construct_nbr=True)
+    # sample_tm = time() - start_execution_time
+    # self.sample_time_list.append(sample_tm)
+    # self.total_sample_tm += sample_tm
+    return (poss_world,0) 
+
 class Algorithm:
     """ A generic Algorithm class that implmenets all the Exact algorithms in the paper."""
     def __init__(self, g, query, debug = False) -> None:
@@ -453,7 +465,7 @@ class ApproximateAlgorithm:
                     # func_obj = self.G.get_Ksample(T,seed=s)
                     # for g in func_obj:
                     for j in range(T):
-                        g,_ = self.G.get_sample(seed=s)
+                        g,_ = get_sample(self.G,seed=s)
                         # print(g[0].Edges)
                         start_tm = time()
                         # omega = self.Query.evalG(g)
