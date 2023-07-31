@@ -467,6 +467,7 @@ def single_pair_influencce_set(G,e,d):
     return influence_set
 
 if __name__=='__main__': 
+    mode = 'si_sq' # se_sq = single edge selection, single query/ me_sq = multiple edge selection, single query
     if args.dataset == 'test':
         G=nx.read_edgelist("test_graph_TKDE.txt", delimiter=" ", create_using=nx.Graph(), nodetype=str, data=(("weight", float), ("prob", float)))
         s,t = int(s),int(t)
@@ -526,7 +527,8 @@ if __name__=='__main__':
     # import sys 
     # sys.exit(1)
     for s,t in tqdm(queries,'%queries processed ='):
-        r0 = compute_approx_reach(s,t,d,probGraph=probGraph, seed = 1)
+        pG = deepcopy(probGraph)
+        r0 = compute_approx_reach(s,t,d,probGraph=pG, seed = 1)
         H0 = h(r0) + h(1-r0)
         start_execution_time = time()
         if args.verbose: print('s,t = ',s,t)
@@ -535,7 +537,7 @@ if __name__=='__main__':
         # index = {}
         # e_clean = deepcopy(ecl)
 
-        e_clean = ecl
+        e_clean = ecl.copy()
         # if args.verbose: print('(',s,t,'): length of influence set: ',len(influence_set))
         # s=3
         # t=2
@@ -565,42 +567,47 @@ if __name__=='__main__':
                         # print('removed: ',(a,b,w,p))
                         
 
-        # print("Candidate #edges after pruning: ", len(e_clean))
-        influence_set, if_time = compute_influence_set(nodes,e_clean,G,d)
-        # for k in influence_set:
-        #     print(k,' => ',influence_set[k])
-        # nx.draw(G,with_labels = True)
-        # plt.show()
-        estar = []
-        if args.utype == 'c1': # Non-adaptive
-            # estar = find_e_nonadaptive(G, s, t, d, e_clean, budget = budget)
-            raise Exception("Non-adaptive query not supported")
-        else:
-            # for i,e in enumerate(e_clean): # re-index
-            #     index[(e[0],e[1])] = i
-            # print('H0 = ',H0)
-            for k in range(args.budget):
-                print('selecting ',k,'-th edge')
-                e=find_e_adaptive(G, s, t, d, influence_set, e_clean,probGraph) 
-                # e=find_e_adaptive(G, s, t, d, e_clean,probGraph,round = k) 
-                e_clean.remove(e)
-                e = (e[0],e[1])
-                estar.append(e)
-                # print('selected edge: ',e)
-                # print('index: ',index)
-                # print(index[(e[0],e[1])])
-                # e_clean.pop(index[e])
-                # for i,edge in enumerate(e_clean): # re-index
-                #     index[edge] = i
-                # print(cr_dict)
-                # print(probGraph.edict)
-                probGraph.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
-                # probGraph.edict[e] = cr_dict[e]
-                # print('deleting edge: ',e)
-                # print('current edgelist: ',G.edges(data=True))
-                G.remove_edge(*e)
+        if mode == 'me_sq':
+            # print("Candidate #edges after pruning: ", len(e_clean))
+            influence_set, if_time = compute_influence_set(nodes,e_clean,G,d)
+            # for k in influence_set:
+            #     print(k,' => ',influence_set[k])
+            # nx.draw(G,with_labels = True)
+            # plt.show()
+            estar = []
+            if args.utype == 'c1': # Non-adaptive
+                # estar = find_e_nonadaptive(G, s, t, d, e_clean, budget = budget)
+                raise Exception("Non-adaptive query not supported")
+            else:
+                # for i,e in enumerate(e_clean): # re-index
+                #     index[(e[0],e[1])] = i
+                # print('H0 = ',H0)
+                for k in range(args.budget):
+                    print('selecting ',k,'-th edge')
+                    e=find_e_adaptive(G, s, t, d, influence_set, e_clean,probGraph= pG) 
+                    # e=find_e_adaptive(G, s, t, d, e_clean,pG,round = k) 
+                    e_clean.remove(e)
+                    e = (e[0],e[1])
+                    estar.append(e)
+                    # print('selected edge: ',e)
+                    # print('index: ',index)
+                    # print(index[(e[0],e[1])])
+                    # e_clean.pop(index[e])
+                    # for i,edge in enumerate(e_clean): # re-index
+                    #     index[edge] = i
+                    # print(cr_dict)
+                    # print(pG.edict)
+                    pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
+                    # pG.edict[e] = cr_dict[e]
+                    # print('deleting edge: ',e)
+                    # print('current edgelist: ',G.edges(data=True))
+                    G.remove_edge(*e)
+        if mode=='si_sq':
+            e_star=find_e(G, s, t, d, e_clean.copy(),probGraph=pG)
+            e = (e_star[0],e_star[1])
+            pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
         end_tm = time()
-        r_end = compute_approx_reach(s,t,d,probGraph=probGraph,seed = 2*int(str(s)+str(t)))
+        r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = 2*int(str(s)+str(t)))
         # print('r_end: ',r_end)
         H_end = h(r_end) + h(1-r_end)
         # if args.verbose:
@@ -613,20 +620,20 @@ if __name__=='__main__':
             # nx.draw(G,with_labels = True)
             # plt.savefig('graph_TKDE.png')
         if args.verbose:
-            print('Uncertainty before cleaning: ',compute_uncertainty(probGraph,s,t,d))
-            print('Uncertainty after cleaning: ',compute_uncertainty(probGraph,s,t,d,aftercleaning=True,estar=estar))
+            print('Uncertainty before cleaning: ',compute_uncertainty(pG,s,t,d))
+            print('Uncertainty after cleaning: ',compute_uncertainty(pG,s,t,d,aftercleaning=True,estar=estar))
         
-        a = ApproximateAlgorithm(probGraph,Query(probGraph, qtype='reach_d',args = {'u':s,'v':t, 'd':d}))
+        a = ApproximateAlgorithm(pG,Query(pG, qtype='reach_d',args = {'u':s,'v':t, 'd':d}))
         a.algostat['execution_time'] = 0
         a.algostat['result'] = {}
         a.algostat['k'] = budget
         a.algostat['algorithm'] = 'TKDE17'
         a.algostat['result']['H0'] = H0
-        a.algostat['result']['edges'] = estar
+        a.algostat['result']['edges'] = str((e_star[0],e_star[1]))
         a.algostat['result']['H*'] = H_end
         a.algostat['execution_time'] = end_tm - start_execution_time
-        a.algostat['DeltaH'] = a.algostat['result']['H0'] - a.algostat['result']['H*']
-        a.algostat['|DeltaH|'] = abs(a.algostat['result']['H0'] - a.algostat['result']['H*'])
+        a.algostat['DeltaH'] = H0 - H_end
+        a.algostat['|DeltaH|'] = abs(H0 - H_end)
         a.algostat['source'] = s
         a.algostat['target'] = t
         try:
