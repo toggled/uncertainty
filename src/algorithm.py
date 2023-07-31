@@ -31,15 +31,53 @@ def load_pickle(fname):
 
 def get_sample(G, seed):
     random.seed(seed)
-    poss_world = Graph()
+    poss_world = {}
     for e in G.Edges:
         p = G.edict[e]
         if random.random() < p:
-            poss_world.add_edge(e[0],e[1],p,G.weights[e],construct_nbr=True)
+            u,v = e[0],e[1]
+            # poss_world.add_edge(e[0],e[1],p,G.weights[e],construct_nbr=True)
+            _tmp = poss_world.get(u,[])
+            _tmp.append(v)
+            poss_world[u] = _tmp 
+            _tmp = poss_world.get(v,[])
+            _tmp.append(u)
+            poss_world[v] = _tmp
     # sample_tm = time() - start_execution_time
     # self.sample_time_list.append(sample_tm)
     # self.total_sample_tm += sample_tm
     return (poss_world,0) 
+
+def bfs_sample(nbrs,edict, source,target, seed = 1):
+        """ For Reachability query. """
+        
+        if source not in nbrs or target not in nbrs:
+            return 0
+        
+        queue = deque([source]) # Should be deque()
+        reached_target = 0
+        random.seed(seed)
+        visited = {source: True}
+        while len(queue) and reached_target == 0: # MC+BFS loop
+            u = queue.popleft()
+            if u == target:
+                reached_target = 1
+                break
+            for v in nbrs.get(u,[]):
+                (uu,vv) = (min(u,v),max(u,v))
+                p = edict.get((uu,vv),-1)
+                if p == -1: #
+                    # print(sample,'\n',(uu,vv),' ',u) 
+                    continue 
+                if random.random() < p:
+                    if (not visited.get(v,False)):
+                        visited[v] = True
+                        
+                        queue.append(v)
+                        if v == target:
+                            reached_target = 1
+                            break 
+        return reached_target 
 
 class Algorithm:
     """ A generic Algorithm class that implmenets all the Exact algorithms in the paper."""
@@ -466,14 +504,16 @@ class ApproximateAlgorithm:
                     # for g in func_obj:
                     for j in range(T):
                         g,_ = get_sample(self.G,seed=s)
-                        # print(g[0].Edges)
+                        # print('--',len(g[0].Edges))
                         start_tm = time()
                         # omega = self.Query.evalG(g)
                         if self.Query.qtype == 'reach':
-                            if len(g.Edges) == 0:
+                            # if len(g.Edges) == 0:
+                            if len(g) == 0:
                                 omega = 0
                             else:
-                                _, _, _,omega = g.bfs_sample(self.Query.u,self.Query.v,seed = s,optimiseargs=None)
+                                # _, _, _,omega = bfs_sample(g.nbrs, self.Query.u,self.Query.v,seed = s,optimiseargs=None)
+                                omega = bfs_sample(g, self.G.edict, self.Query.u,self.Query.v,seed = s)
                         elif self.Query.qtype == 'sp':
                             if len(g.Edges) == 0:
                                 omega = 0

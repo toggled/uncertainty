@@ -47,7 +47,7 @@ def singleRun(G,Query, save = True):
     elif (args.algo == 'appr' or args.algo=='eappr'):
         # tracemalloc.reset_peak()
         a = ApproximateAlgorithm(G,Query)
-        gc.collect()
+        # gc.collect()
         tracemalloc.start()
         # tracemalloc.clear_traces()
         # tracemalloc.reset_peak()
