@@ -102,11 +102,11 @@ def dijkstra_sample(nbrs, edict, weights, source,target, seed = 1):
             reached_target = 1
             break
         for v in nbrs.get(u,[]):
+            (uu,vv) = (min(u,v),max(u,v))
             if ((uu,vv)) in weights:
                 w = weights[(uu,vv)]
             else:
                 w = weights[((vv,uu))]
-            (uu,vv) = (min(u,v),max(u,v))
             dist_uv = dists[u] + w
             p = edict.get((uu,vv),-1)
             if p == -1: 
