@@ -485,12 +485,21 @@ if __name__=='__main__':
         # nx.draw(G,with_labels = True)
         # plt.show()
     else:
-        probGraph = get_dataset(args.dataset)
+        import src.utils as utils
+        # probGraph = get_dataset(args.dataset)
+        probGraph = UGraph()
+        with open(utils.dataset_to_filename[args.dataset]) as f:
+            for line in f:
+                u,v,p = line.split()
+                probGraph.add_edge(int(u),int(v),float(p),construct_nbr=True) 
         G = probGraph.get_weighted_graph_rep()
         # print(type(G))
         # print(G.isconnected())
         if (args.source is None and args.target is None):
-            queries = get_queries(queryfile = args.queryf,maxQ = args.maxquery)
+            queries = []
+            for q in get_queries(queryfile = args.queryf,maxQ = args.maxquery):
+                queries.append((int(q[0]),int(q[1])))
+            print(len(queries))
         else:
             queries = [(args.source,args.target)]
         nodes = G.nodes()
