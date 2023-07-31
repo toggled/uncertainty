@@ -627,12 +627,15 @@ if __name__=='__main__':
                 #pruning strategy
                 #pruning by reverse shortest path
                 e_star=find_e(G, s, t, d, e_clean.copy(),probGraph=pG)
+                print(k,' => ',e_star)
                 try:
-                    e_clean.remove(e_star)
-                except:
-                    print(e_clean)
-                    print(e_star)
-                    raise Exception
+                    if e_star in e_clean:
+                        e_clean.remove(e_star)
+                except Exception as e:
+                    # print(e_clean)
+                    # print(e_star)
+                    print(estar,' not in e_clean')
+                    raise e
                 e = (e_star[0],e_star[1])
                 estar.append(e)
                 pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
