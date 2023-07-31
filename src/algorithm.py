@@ -990,7 +990,7 @@ class ApproximateAlgorithm:
         elif algorithm == 'appr':
             H = self.measure_uncertainty(N=N, T = K, seed = seed)
         elif (algorithm == 'mcbfs' or algorithm == 'pTmcbfs'):
-            # print('seed = ',seed)
+            print('seed = ',seed)
             if property == 'reach':
                 assert (property == 'reach')
                 H = self.measure_uncertainty_bfs(N=N, T = K, seed = seed)
@@ -2149,11 +2149,32 @@ class ApproximateAlgorithm:
                 else:
                     path_prob *= self.G.get_prob((v,u))
             return h(path_prob)+h(1-path_prob)
+        
+        def compute_approx_reach(s,t,d,probGraph, N, T, seed):
+            numsamples = N*T
+            # numsamples = T
+            # print('num of samples: ',numsamples)
+            func_obj = probGraph.get_Ksample_dhopbfs(K = numsamples,seed=seed,\
+                                        source=s,target = t, dhop = d, optimiseargs = None)
+            hat_Pr = {}
+            for _,_, _,omega in func_obj:
+                hat_Pr[omega] = hat_Pr.get(omega,0) + (1.0/numsamples)
+            return hat_Pr.get(1,0)
+
+        def d_hop_entropy(seed):
+            r = compute_approx_reach(self.Query.u,self.Query.v,self.Query.d,self.G, N,T,seed)
+            return h(r) + h(1-r)
+        
         print(['adaptive','non-adaptive'][update_type == 'c1'], ' setting')
         assert k>=1 and update_type!='o1'
         if property!='tri':
             init_seed = int(str(self.Query.u)+str(self.Query.v))
-        H0 = self.measure_H0(property,algorithm,T,N, seed = 1)
+        if property=='reach_d':
+            H0 = d_hop_entropy(1)
+            # H0 = self.measure_H0(property,algorithm,T,N, seed = 1)
+        else:
+            H0 = self.measure_H0(property,algorithm,T,N, seed = 1)
+
         self.algostat['result']['H0'] = H0
 
         start_execution_time = time()
@@ -2279,9 +2300,11 @@ class ApproximateAlgorithm:
                                     for j in range(toppath_len-1)]
                 edges_in_top_path.sort(key = lambda x: -x[-1])
             
-                print('selecting ',k,'-best edges')
-                while count < k:
-                    u,v,edge_entropy = edges_in_top_path[count]
+                # print('selecting ',k,'-best edges')
+                for u,v,edge_entropy in edges_in_top_path:
+                    if count>=k:
+                        break
+                    # u,v,edge_entropy = edges_in_top_path[count]
                     # print(u,v,' => ',edge_entropy)
                     count+=1
                     E.append((u,v))
@@ -2318,9 +2341,18 @@ class ApproximateAlgorithm:
                 structure_len.append(toppath_len -1 +structure_len[-1])
             round += 1
             if update_type == 'c2':
-                H_up = self.measure_H0(property, algorithm, T, N, seed = init_seed+round)
+                if len(E) == k:
+                    sid = 2*int(str(self.Query.u)+str(self.Query.v))
+                else:
+                    sid = init_seed+round
+                if property=='reach_d':
+                    H_up = d_hop_entropy(sid)
+                    # H_up = self.measure_H0(property,algorithm,T,N, seed = sid)
+                else:
+                    H_up = self.measure_H0(property,algorithm,T,N, seed = sid)
+                # H_up = self.measure_H0(property, algorithm, T, N, seed = sid)
                 history_Hk.append(H_up)
-                print('H_up = ',H_up)
+                print('round ',round,' => H_up = ',H_up)
             
             if update_type == 'c1':
                 assert len(indices_of_otherpaths) == 0
@@ -2357,7 +2389,7 @@ class ApproximateAlgorithm:
                     cr_pe = update_dict[(v,u)]
                 self.G.update_edge_prob(e[0],e[1],cr_pe)
             self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
-            H_up = self.measure_H0(property, algorithm, T, N, seed = init_seed+round)
+            H_up = self.measure_H0(property, algorithm, T, N, seed = 2*int(str(self.Query.u)+str(self.Query.v)))
             history_Hk.append(H_up)
         history_Hk = np.array(history_Hk)
         min_hkhat = np.argmin(history_Hk)
