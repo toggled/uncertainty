@@ -231,6 +231,9 @@ def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph): #Algorithm 2 of th
     eqmax = -10000000
     estar = None
     # print('Uq = ',Uq)
+    _memory = {}
+    _memory0 = {}
+    _memory1 = {}
     for i in tqdm(range(len(Uq)),'loop over edges: '): # Simulating the loop over heap, 1st element e,second elemnet Upper bound UQ[e]
         # print(i)
         if descending_uq[i][1]<eqmax: 
@@ -241,13 +244,26 @@ def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph): #Algorithm 2 of th
             E_deltaQ_st_d = 0
             p_e = probGraph.edict[(e[0],e[1])]
             for (s,t) in tqdm(inf_set[(e[0],e[1])],'influence set: '):
-                Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
+                if (s,t) not in _memory:
+                    Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
+                    _memory[(s,t)] = Q_st_d
+                else:
+                    Q_st_d = _memory[(s,t)]
                 # e = descending_uq[i][0]
-                pg1 = deepcopy(probGraph)
-                doCleanto1(e,pg1)
-                R_st_d_c1 = compute_approx_reach(s,t,d,probGraph=pg1)
-                doCleanto0(e,pg1)
-                R_st_d_c0 = compute_approx_reach(s,t,d,probGraph=pg1)
+                if (s,t) not in _memory1:
+                    pg1 = deepcopy(probGraph)
+                    doCleanto1(e,pg1)
+                    R_st_d_c1 = compute_approx_reach(s,t,d,probGraph=pg1)
+                    _memory1[(s,t)] = R_st_d_c1
+                else:
+                    R_st_d_c1 = _memory1[(s,t)]
+                
+                if (s,t) not in _memory0:
+                    doCleanto0(e,pg1)
+                    R_st_d_c0 = compute_approx_reach(s,t,d,probGraph=pg1)
+                    _memory0[(s,t)] = R_st_d_c0
+                else:
+                    R_st_d_c0 =  _memory0[(s,t)]
                 Q_st_d_c1 = h(R_st_d_c1) + h(1-R_st_d_c1)
                 Q_st_d_c0 = h(R_st_d_c0) + h(1-R_st_d_c0)
                 E_deltaQ_st_d += (Q_st_d  - (p_e*Q_st_d_c1 + (1-p_e)*Q_st_d_c0))
