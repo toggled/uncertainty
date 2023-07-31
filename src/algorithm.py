@@ -17,7 +17,10 @@ from pptree import *
 from heapdict import heapdict 
 from collections import deque 
 import sys 
-import gc
+from heapq import heappush, heappop
+from networkx.algorithms.bipartite.matching import INFINITY
+
+
 def save_pickle(ob, fname):
     with open (fname, 'wb') as f:
         #Use the dump function to convert Python objects into binary object files
@@ -29,24 +32,24 @@ def load_pickle(fname):
         ob = pickle.load(f)
         return ob
 
-def get_sample(G, seed):
-    random.seed(seed)
-    poss_world = {}
-    for e in G.Edges:
-        p = G.edict[e]
-        if random.random() < p:
-            u,v = e[0],e[1]
-            # poss_world.add_edge(e[0],e[1],p,G.weights[e],construct_nbr=True)
-            _tmp = poss_world.get(u,[])
-            _tmp.append(v)
-            poss_world[u] = _tmp 
-            _tmp = poss_world.get(v,[])
-            _tmp.append(u)
-            poss_world[v] = _tmp
-    # sample_tm = time() - start_execution_time
-    # self.sample_time_list.append(sample_tm)
-    # self.total_sample_tm += sample_tm
-    return (poss_world,0) 
+# def get_sample(G, seed):
+#     random.seed(seed)
+#     poss_world = {}
+#     for e in G.Edges:
+#         p = G.edict[e]
+#         if random.random() < p:
+#             u,v = e[0],e[1]
+#             # poss_world.add_edge(e[0],e[1],p,G.weights[e],construct_nbr=True)
+#             _tmp = poss_world.get(u,[])
+#             _tmp.append(v)
+#             poss_world[u] = _tmp 
+#             _tmp = poss_world.get(v,[])
+#             _tmp.append(u)
+#             poss_world[v] = _tmp
+#     # sample_tm = time() - start_execution_time
+#     # self.sample_time_list.append(sample_tm)
+#     # self.total_sample_tm += sample_tm
+#     return (poss_world,0) 
 
 def bfs_sample(nbrs,edict, source,target, seed = 1):
         """ For Reachability query. """
@@ -78,6 +81,42 @@ def bfs_sample(nbrs,edict, source,target, seed = 1):
                             reached_target = 1
                             break 
         return reached_target 
+
+def dijkstra_sample(nbrs, edict, weights, source,target, seed = 1):
+    """ For SP query (unweighted graph). """
+    if source not in nbrs or target not in nbrs:
+        return  INFINITY
+    
+    reached_target = 0
+    random.seed(seed)
+    seen = {source:0}
+    dists = {}
+    heap = []
+    heappush(heap,(0,source))
+    while len(heap) and reached_target == 0: # MC+BFS loop
+        dist_u, u = heappop(heap)
+        if u in dists:
+            continue 
+        dists[u] = dist_u
+        if u == target:
+            reached_target = 1
+            break
+        for v in nbrs.get(u,[]):
+            (uu,vv) = (min(u,v),max(u,v))
+            dist_uv = dists[u] + weights[(uu,vv)]
+            p = edict.get((uu,vv),-1)
+            if p == -1: 
+                continue 
+            if random.random() < p:
+                if (v not in seen) or (dist_uv < seen[v]):
+                    seen[v] = dist_uv
+                    heappush(heap,(dist_uv,v))
+                    if v == target:
+                        reached_target = 1
+                        dists[v] = dist_uv
+                        break 
+    support_value = dists.get(target,INFINITY)
+    return support_value 
 
 class Algorithm:
     """ A generic Algorithm class that implmenets all the Exact algorithms in the paper."""
@@ -503,11 +542,24 @@ class ApproximateAlgorithm:
                     # func_obj = self.G.get_Ksample(T,seed=s)
                     # for g in func_obj:
                     for j in range(T):
-                        g,_ = get_sample(self.G,seed=s)
-                        # print('--',len(g[0].Edges))
+                        # g,_ = get_sample(self.G,seed=s)
+                        
                         start_tm = time()
                         # omega = self.Query.evalG(g)
                         if self.Query.qtype == 'reach':
+                            random.seed(s)
+                            g = {}
+                            for e in self.G.Edges:
+                                p = self.G.edict[e]
+                                if random.random() < p:
+                                    u,v = e[0],e[1]
+                                    # poss_world.add_edge(e[0],e[1],p,G.weights[e],construct_nbr=True)
+                                    _tmp = g.get(u,[])
+                                    _tmp.append(v)
+                                    g[u] = _tmp 
+                                    _tmp = g.get(v,[])
+                                    _tmp.append(u)
+                                    g[v] = _tmp
                             # if len(g.Edges) == 0:
                             if len(g) == 0:
                                 omega = 0
@@ -515,11 +567,25 @@ class ApproximateAlgorithm:
                                 # _, _, _,omega = bfs_sample(g.nbrs, self.Query.u,self.Query.v,seed = s,optimiseargs=None)
                                 omega = bfs_sample(g, self.G.edict, self.Query.u,self.Query.v,seed = s)
                         elif self.Query.qtype == 'sp':
-                            if len(g.Edges) == 0:
+                            random.seed(s)
+                            g = {}
+                            for e in self.G.Edges:
+                                p = self.G.edict[e]
+                                if random.random() < p:
+                                    u,v = e[0],e[1]
+                                    # poss_world.add_edge(e[0],e[1],p,G.weights[e],construct_nbr=True)
+                                    _tmp = g.get(u,[])
+                                    _tmp.append(v)
+                                    g[u] = _tmp 
+                                    _tmp = g.get(v,[])
+                                    _tmp.append(u)
+                                    g[v] = _tmp
+                            if len(g) == 0:
                                 omega = 0
                             else:
-                                _, _, _,omega = g.dijkstra_sample(self.Query.u,self.Query.v, seed = s,optimiseargs=None)
+                                omega = dijkstra_sample(g,self.G.edict, self.G.weights, self.Query.u,self.Query.v, seed = s)
                         elif self.Query.qtype == 'tri':
+                            g,_ = self.G.get_sample(seed=s)
                             if len(g.Edges)<3:
                                 omega = 0
                             else:
@@ -2241,6 +2307,7 @@ class ApproximateAlgorithm:
             return hat_Pr.get(1,0)
 
         def d_hop_entropy(seed):
+            print('d-hop seed = ',seed)
             r = compute_approx_reach(self.Query.u,self.Query.v,self.Query.d,self.G, N,T,seed)
             return h(r) + h(1-r)
         
