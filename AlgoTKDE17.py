@@ -240,7 +240,7 @@ def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph): #Algorithm 2 of th
             # e = (e[0],e[1])
             E_deltaQ_st_d = 0
             p_e = probGraph.edict[(e[0],e[1])]
-            for (s,t) in inf_set[(e[0],e[1])]:
+            for (s,t) in tqdm(inf_set[(e[0],e[1])],'influence set: '):
                 Q_st_d = compute_approx_reach(s,t,d,probGraph=probGraph)
                 # e = descending_uq[i][0]
                 pg1 = deepcopy(probGraph)
