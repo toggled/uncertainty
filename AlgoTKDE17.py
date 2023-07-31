@@ -631,7 +631,7 @@ if __name__=='__main__':
                     e = (e_star[0],e_star[1])
                     estar.append(e)
                     pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
-                    
+                    G.remove_edge(*e)
                     if k < args.budget - 1:
                         r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = int(str(s)+str(t))+k)
                         # print('r_end: ',r_end)
