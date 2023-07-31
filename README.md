@@ -2,13 +2,25 @@ Codes for Uncertainty of Uncertain graphs
 -----------
 <h> Requirements: </h>
  * Python 3.8
- * Networkx
- * Matplotlib
- * Scipy
+ * networkx
+ * matplotlib
+ * scipy
+ * pandas
+ * pptree
+ * heapdict
 
 
 <h> Experiments: </h>
-TO DO
+1. Measuring uncertainty:
+   - python measure_main.py -d [DATASET] -a [ALGORITHM] -pr [PROPERTY] -q [QUERYFILE] -N [N] -T [T]
+  
+2. Reducing uncertainty with U1 update:
+   - python reduce_main.py -d [DATASET] -a [ALGORITHM] -k [BUDGET] -ea [UNCERTAINTY_ESTIMATE_METHOD] -pr [PROPERTY] -q [QUERYFILE] -dh [HOP_DISTANCE_FOR_dhop_REACH]
+  
+3. Reducing uncertainty with U2 update (Adaptive):
+   -  python reduce_main_crowd.py -d [DATASET] -a [ALGORITHM] -k [BUDGET] -ea [UNCERTAINTY_ESTIMATE_METHOD] -pr [PROPERTY] -q [QUERYFILE] -dh [HOP_DISTANCE_FOR_dhop_REACH] -cr [GROUNDTRUTH_CLEAN_FILE] -u c2
+4. Reducing uncertainty with U2 update (Non-adaptive):
+   - python reduce_main_crowd.py -d [DATASET] -a [ALGORITHM] -k [BUDGET] -ea [UNCERTAINTY_ESTIMATE_METHOD] -pr [PROPERTY] -q [QUERYFILE] -dh [HOP_DISTANCE_FOR_dhop_REACH] -cr [GROUNDTRUTH_CLEAN_FILE]
 
 <h> Demo: </h>
 TO DO
