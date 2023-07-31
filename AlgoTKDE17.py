@@ -212,7 +212,8 @@ def find_e(G, s, t, d, e_clean, probGraph= None): #Algorithm 1 of the paper
         if Pstar_ed>Pmax:
             e=ed
             Pmax=Pstar_ed
-            
+        if ed[3] == 0:
+            print(ed,' is zero')
         if en[3]/ed[3]<Pmax: 
             f=False
         
