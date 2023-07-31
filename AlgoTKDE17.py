@@ -641,11 +641,12 @@ if __name__=='__main__':
                 e_star=find_e(G, s, t, d, e_clean.copy(),probGraph=pG)
                 print(k,' => ',e_star)
                 try:
-                    if e_star in e_clean:
-                        e_clean.remove(e_star)
+                    e_clean.remove(e_star)
                 except Exception as e:
                     # print(e_clean)
-                    # print(e_star)
+                    for e in e_clean:
+                        print(e)
+                    print(e_star)
                     print(estar,' not in e_clean')
                     raise e
                 e = (e_star[0],e_star[1])
