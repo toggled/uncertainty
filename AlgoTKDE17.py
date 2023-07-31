@@ -586,6 +586,7 @@ if __name__=='__main__':
                     print('selecting ',k,'-th edge')
                     e=find_e_adaptive(G, s, t, d, influence_set, e_clean,probGraph= pG) 
                     # e=find_e_adaptive(G, s, t, d, e_clean,pG,round = k) 
+                    
                     e_clean.remove(e)
                     e = (e[0],e[1])
                     estar.append(e)
@@ -626,7 +627,12 @@ if __name__=='__main__':
                 #pruning strategy
                 #pruning by reverse shortest path
                 e_star=find_e(G, s, t, d, e_clean.copy(),probGraph=pG)
-                e_clean.remove(e_star)
+                try:
+                    e_clean.remove(e_star)
+                except:
+                    print(e_clean)
+                    print(e_star)
+                    raise Exception
                 e = (e_star[0],e_star[1])
                 estar.append(e)
                 pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
