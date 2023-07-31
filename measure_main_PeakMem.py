@@ -46,7 +46,6 @@ def singleRun(G,Query, save = True):
     
     elif (args.algo == 'appr' or args.algo=='eappr'):
         # tracemalloc.reset_peak()
-        
         a = ApproximateAlgorithm(G,Query)
         tracemalloc.start()
         # tracemalloc.clear_traces()
@@ -171,6 +170,8 @@ if runProbTree: # Efficient variant of algorithm 2 requires pre-computed represe
 else: # Exact and normal variant of algorithm 2 requires original uncertain graph
     G = get_dataset(args.dataset)
     G.name = args.dataset
+    if (args.algo == 'appr' or args.algo=='eappr'):
+        G.nbrs = None 
 # G.plot_probabilistic_graph()
 # print(G.get_num_edges())
 # print(G.get_num_vertices())
@@ -210,6 +211,9 @@ else: # Run algorithms for all the queries
             if (not os.path.isfile(subpath)):
                 raise Exception('representative subgraph: ',subpath,' missing!')
             G = get_decompGraph(args.dataset,None,None,subpath)
+            if (args.algo == 'appr' or args.algo=='eappr'):
+                # tracemalloc.reset_peak()
+                G.nbrs = None 
             s,t = q
             if args.property == 'reach':
                 G = G.simplify()

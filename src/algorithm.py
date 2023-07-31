@@ -398,7 +398,15 @@ class ApproximateAlgorithm:
                     # print('seed: ',s)
                     for g in self.G.get_Ksample(T,seed=s):
                         start_tm = time()
-                        omega = self.Query.evalG(g[0])
+                        # omega = self.Query.evalG(g[0])
+                        if self.Query.qtype == 'reach':
+                            _, _, _,omega = g[0].bfs_sample(self.Query.u,self.Query.v,seed = s,optimiseargs=None)
+                        elif self.Query.qtype == 'sp':
+                            _, _, _,omega = g[0].dijkstra_sample(self.Query.u,self.Query.v, seed = s,optimiseargs=None)
+                        elif self.Query.qtype == 'tri':
+                            G = nx.Graph()
+                            G.add_edges_from(g[0].Edges)
+                            omega = sum(nx.triangles(G).values()) / 3
                         query_evaluation_times.append(time()-start_tm)
                         support_observed.append(omega)
                         if os.environ['precomp']:
@@ -445,17 +453,34 @@ class ApproximateAlgorithm:
                     # func_obj = self.G.get_Ksample(T,seed=s)
                     # for g in func_obj:
                     for j in range(T):
-                        g = self.G.get_sample(seed=s)
+                        g,_ = self.G.get_sample(seed=s)
                         # print(g[0].Edges)
                         start_tm = time()
-                        omega = self.Query.evalG(g[0])
+                        # omega = self.Query.evalG(g)
+                        if self.Query.qtype == 'reach':
+                            if len(g.Edges) == 0:
+                                omega = 0
+                            else:
+                                _, _, _,omega = g.bfs_sample(self.Query.u,self.Query.v,seed = s,optimiseargs=None)
+                        elif self.Query.qtype == 'sp':
+                            if len(g.Edges) == 0:
+                                omega = 0
+                            else:
+                                _, _, _,omega = g.dijkstra_sample(self.Query.u,self.Query.v, seed = s,optimiseargs=None)
+                        elif self.Query.qtype == 'tri':
+                            if len(g.Edges)<3:
+                                omega = 0
+                            else:
+                                G = nx.Graph()
+                                G.add_edges_from(g.Edges)
+                                omega = sum(nx.triangles(G).values()) / 3
                         # _,_,_,omega = g[0].bfs_sample(self.Query.u,self.Query.v,optimiseargs=None)
                         query_evaluation_times.append(time()-start_tm)
                         hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
                         support_observed.append(omega)
                         if os.environ['precomp']:
                             save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
-                            j+=1
+                            # j+=1
                 # hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
                 hat_H = entropy([j for i,j in hat_Pr.items()], base = 2)
                 hat_H_list.append(hat_H)

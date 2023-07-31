@@ -267,7 +267,9 @@ class UGraph:
                 nbrs = optimiseargs['nbrs']
         else:
             nbrs = self.construct_nbrs()
-   
+        if source not in nbrs or target not in nbrs:
+            return nbrs, [], 0, 0
+        
         queue = deque([source]) # Should be deque()
         reached_target = 0
         # if verbose:
