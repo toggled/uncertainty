@@ -122,6 +122,42 @@ def dijkstra_sample(nbrs, edict, weights, source,target, seed = 1):
     support_value = dists.get(target,INFINITY)
     return support_value 
 
+def multigraph_dijkstra_sample(nbrs, edict, weights, source,target, seed = 1):
+    """ For SP query (unweighted graph). """
+    
+    if source not in nbrs or target not in nbrs:
+        return INFINITY
+    reached_target = 0
+    random.seed(seed)
+    seen = {source:0}
+    dists = {}
+    heap = []
+    heappush(heap,(0,source))
+    while len(heap) and reached_target == 0: # MC+BFS loop
+        dist_u, u = heappop(heap)
+        if u in dists:
+            continue 
+        dists[u] = dist_u
+        if u == target:
+            reached_target = 1
+            break
+        for v,eid in nbrs.get(u,[]):
+            (uu,vv) = (min(u,v),max(u,v))
+            p = edict.get((uu,vv,eid),-1)
+            if p == -1: # unexpected edge.
+                # print(sample,'\n',(uu,vv),' ',u) 
+                continue 
+            if random.random() < p:
+                dist_uv = dists[u] + weights[(uu,vv,eid)]
+                if (v not in seen) or (dist_uv < seen[v]):
+                    seen[v] = dist_uv
+                    heappush(heap,(dist_uv,v))
+                    if v == target:
+                        reached_target = 1
+                        dists[v] = dist_uv
+                        break 
+    support_value = dists.get(target,INFINITY)
+    return support_value
 class Algorithm:
     """ A generic Algorithm class that implmenets all the Exact algorithms in the paper."""
     def __init__(self, g, query, debug = False) -> None:
