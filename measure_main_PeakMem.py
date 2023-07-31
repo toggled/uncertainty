@@ -63,7 +63,7 @@ def singleRun(G,Query, save = True):
         # print('max mem: ',mem)
         # a.algostat['algorithm'] = 'MC'
         a.algostat['algorithm'] = ['MC','PT-MC'][args.algo=='eappr']
-        print(args.algo)
+        # print(args.algo)
 
     elif (args.algo == 'mcbfs' or args.algo == 'pTmcbfs'):
         a = ApproximateAlgorithm(G,Query)

@@ -486,6 +486,7 @@ class ApproximateAlgorithm:
                                 G = nx.Graph()
                                 G.add_edges_from(g.Edges)
                                 omega = sum(nx.triangles(G).values()) / 3
+                        g = None 
                         # _,_,_,omega = g[0].bfs_sample(self.Query.u,self.Query.v,optimiseargs=None)
                         query_evaluation_times.append(time()-start_tm)
                         hat_Pr[omega] = hat_Pr.get(omega,0) + 1.0/T
