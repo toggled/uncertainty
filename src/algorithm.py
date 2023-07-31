@@ -1,4 +1,5 @@
 from src.graph import UGraph as Graph 
+from src.graph import UMultiGraph
 from copy import deepcopy,copy
 import random 
 from src.query import Query
@@ -609,21 +610,35 @@ class ApproximateAlgorithm:
                         elif self.Query.qtype == 'sp':
                             random.seed(s)
                             g = {}
-                            for e in self.G.Edges:
-                                p = self.G.edict[e]
-                                if random.random() < p:
-                                    u,v = e[0],e[1]
-                                    # poss_world.add_edge(e[0],e[1],p,G.weights[e],construct_nbr=True)
-                                    _tmp = g.get(u,[])
-                                    _tmp.append(v)
-                                    g[u] = _tmp 
-                                    _tmp = g.get(v,[])
-                                    _tmp.append(u)
-                                    g[v] = _tmp
-                            if len(g) == 0:
-                                omega = 0
+                            if isinstance(self.G, UMultiGraph):
+                                g,_ = self.G.get_sample(seed=s)
+                                omega = self.Query.evalG(g)
+                                # for e in self.G.Edges:
+                                #     p = self.G.edict[e]
+
+                                #     _tmp = g.get(u,[])
+                                #     _tmp.append((v,id))
+                                #     g[u] = _tmp 
+                                #     _tmp = g.get(v,[])
+                                #     _tmp.append((u,id))
+                                #     g[v] = _tmp
+
                             else:
-                                omega = dijkstra_sample(g,self.G.edict, self.G.weights, self.Query.u,self.Query.v, seed = s)
+                                for e in self.G.Edges:
+                                    p = self.G.edict[e]
+                                    if random.random() < p:
+                                        u,v = e[0],e[1]
+                                        # poss_world.add_edge(e[0],e[1],p,G.weights[e],construct_nbr=True)
+                                        _tmp = g.get(u,[])
+                                        _tmp.append(v)
+                                        g[u] = _tmp 
+                                        _tmp = g.get(v,[])
+                                        _tmp.append(u)
+                                        g[v] = _tmp
+                                if len(g) == 0:
+                                    omega = 0
+                                else:
+                                    omega = dijkstra_sample(g,self.G.edict, self.G.weights, self.Query.u,self.Query.v, seed = s)
                         elif self.Query.qtype == 'tri':
                             g,_ = self.G.get_sample(seed=s)
                             if len(g.Edges)<3:

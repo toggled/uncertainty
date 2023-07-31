@@ -526,7 +526,7 @@ if __name__=='__main__':
     # plt.show()
     # import sys 
     # sys.exit(1)
-    for s,t in tqdm(queries,'%queries processed ='):
+    for s,t in tqdm(queries[1:],'%queries processed ='):
         pG = deepcopy(probGraph)
         r0 = compute_approx_reach(s,t,d,probGraph=pG, seed = 1)
         H0 = h(r0) + h(1-r0)
