@@ -231,7 +231,7 @@ def find_e_adaptive(G, s, t, d, inf_set, e_clean, probGraph): #Algorithm 2 of th
     eqmax = -10000000
     estar = None
     # print('Uq = ',Uq)
-    for i in range(len(Uq)): # Simulating the loop over heap, 1st element e,second elemnet Upper bound UQ[e]
+    for i in tqdm(range(len(Uq)),'loop over edges: '): # Simulating the loop over heap, 1st element e,second elemnet Upper bound UQ[e]
         # print(i)
         if descending_uq[i][1]<eqmax: 
             return descending_uq[i][0]
