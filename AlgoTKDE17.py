@@ -602,43 +602,46 @@ if __name__=='__main__':
                     # print('deleting edge: ',e)
                     # print('current edgelist: ',G.edges(data=True))
                     G.remove_edge(*e)
-        if mode=='si_sq':
-            estar = []
-            e_clean = ecl.copy()
-            round = 0
-            for k in range(args.budget):
-                #pruning strategy
-                #pruning by reverse shortest path
-                for v in tqdm(G.nodes(),'pruning edges'):
-                    try:
-                        ds_v=nx.dijkstra_path_length(G, v, s, weight='weight')
-                    except NetworkXNoPath:
-                        ds_v = 10000000
-                    try:
-                        dt_v=nx.dijkstra_path_length(G, v, t, weight='weight')
-                    except NetworkXNoPath:
-                        dt_v = 10000000
-                    e_copy=e_clean.copy()
-                    if ds_v+dt_v>d:
-                        for a, b, w, p in e_copy:
-                            if a==v or b==v:
-                                e_clean.remove((a,b,w,p))
-                                # print('removed: ',(a,b,w,p))
-                            
-                e_star=find_e(G, s, t, d, e_clean.copy(),probGraph=pG)
-                e = (e_star[0],e_star[1])
-                estar.append(e)
-                pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
-                if k < args.budget - 1:
-                    r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = int(str(s)+str(t))+k)
-                    # print('r_end: ',r_end)
-                    H_end = h(r_end) + h(1-r_end)
-                    history_Hk.append(H_end)
-                    e_clean = []
-                    for i,e in enumerate(probGraph.Edges): 
-                        if (e[0],e[1]) not in estar:
-                            e_clean.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
-
+        try:
+            if mode=='si_sq':
+                estar = []
+                e_clean = ecl.copy()
+                round = 0
+                for k in range(args.budget):
+                    #pruning strategy
+                    #pruning by reverse shortest path
+                    for v in tqdm(G.nodes(),'pruning edges'):
+                        try:
+                            ds_v=nx.dijkstra_path_length(G, v, s, weight='weight')
+                        except NetworkXNoPath:
+                            ds_v = 10000000
+                        try:
+                            dt_v=nx.dijkstra_path_length(G, v, t, weight='weight')
+                        except NetworkXNoPath:
+                            dt_v = 10000000
+                        e_copy=e_clean.copy()
+                        if ds_v+dt_v>d:
+                            for a, b, w, p in e_copy:
+                                if a==v or b==v:
+                                    e_clean.remove((a,b,w,p))
+                                    # print('removed: ',(a,b,w,p))
+                                
+                    e_star=find_e(G, s, t, d, e_clean.copy(),probGraph=pG)
+                    e = (e_star[0],e_star[1])
+                    estar.append(e)
+                    pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
+                    if k < args.budget - 1:
+                        r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = int(str(s)+str(t))+k)
+                        # print('r_end: ',r_end)
+                        H_end = h(r_end) + h(1-r_end)
+                        history_Hk.append(H_end)
+                        e_clean = []
+                        for i,e in enumerate(probGraph.Edges): 
+                            if (e[0],e[1]) not in estar:
+                                e_clean.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
+        except:
+            print("Issues..")
+            continue
         r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = 2*int(str(s)+str(t)))
         # print('r_end: ',r_end)
         H_end = h(r_end) + h(1-r_end)
