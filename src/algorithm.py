@@ -17,7 +17,7 @@ from pptree import *
 from heapdict import heapdict 
 from collections import deque 
 import sys 
-
+import gc
 def save_pickle(ob, fname):
     with open (fname, 'wb') as f:
         #Use the dump function to convert Python objects into binary object files
@@ -494,6 +494,7 @@ class ApproximateAlgorithm:
                         if os.environ['precomp']:
                             save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
                             # j+=1
+                        # gc.collect()
                 # hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
                 hat_H = entropy([j for i,j in hat_Pr.items()], base = 2)
                 hat_H_list.append(hat_H)

@@ -7,7 +7,7 @@ from src.query import Query,wQuery,multiGraphQuery,multiGraphwQuery
 import pandas as pd
 import tracemalloc
 # from memory_profiler import memory_usage
-
+import gc
 
 parser = argparse.ArgumentParser()
 
@@ -47,6 +47,7 @@ def singleRun(G,Query, save = True):
     elif (args.algo == 'appr' or args.algo=='eappr'):
         # tracemalloc.reset_peak()
         a = ApproximateAlgorithm(G,Query)
+        gc.collect()
         tracemalloc.start()
         # tracemalloc.clear_traces()
         # tracemalloc.reset_peak()
