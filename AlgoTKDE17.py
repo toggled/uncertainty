@@ -213,7 +213,7 @@ def find_e(G, s, t, d, e_clean, probGraph= None): #Algorithm 1 of the paper
             e=ed
             Pmax=Pstar_ed
         if ed[3] == 0:
-            f = False
+            f = True
         if en[3]/ed[3]<Pmax: 
             f=False
         # except Exception as e:
