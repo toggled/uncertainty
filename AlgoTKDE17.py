@@ -538,7 +538,7 @@ if __name__=='__main__':
     # plt.show()
     # import sys 
     # sys.exit(1)
-    for s,t in tqdm(queries[1:],'%queries processed ='):
+    for s,t in tqdm(queries[4:],'%queries processed ='):
         pG = deepcopy(probGraph)
         r0 = compute_approx_reach(s,t,d,probGraph=pG, seed = 1)
         H0 = h(r0) + h(1-r0)
@@ -651,7 +651,7 @@ if __name__=='__main__':
                 e = (e_star[0],e_star[1])
                 estar.append(e)
                 pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
-                G.remove_edge(*e)
+                # G.remove_edge(*e)
                 if k < args.budget - 1:
                     r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = int(str(s)+str(t))+k)
                     # print('r_end: ',r_end)
