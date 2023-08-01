@@ -60,7 +60,8 @@ def get_queries(queryfile,maxQ = -1):
     with open(queryfile,'r') as f:
         count = 0
         for line in f:
-            queries.append(line.split())
+            u,v = line.split()
+            queries.append([int(u),int(v)])
             count += 1
             if maxQ!=-1 and count>=maxQ:
                 break
@@ -85,7 +86,8 @@ def get_decompGraph(dataset, source, target, dataset_path = None):
                         u,v,w,p = line.split()
                         # Since dataset is unweighted graph, ignore length l
                         # print('Since dataset is unweighted graph, ignore length l')
-                        G.add_edge(u,v, _id, float(p),float(w),construct_nbr=True)
+                        # G.add_edge(u,v, _id, float(p),float(w),construct_nbr=True)
+                        G.add_edge(int(u),int(v), _id, float(p),float(w),construct_nbr=True)
                         _id +=1
             except KeyError as e:
                 print("Wrong dataset name provided.")
@@ -98,7 +100,8 @@ def get_decompGraph(dataset, source, target, dataset_path = None):
                     for line in f:
                         u,v,l,w,p = line.split()
                         # Since dataset is unweighted graph, ignore length l
-                        G.add_edge(u,v, _id, float(p),float(w),construct_nbr=True)
+                        # G.add_edge(u,v, _id, float(p),float(w),construct_nbr=True)
+                        G.add_edge(int(u),int(v), _id, float(p),float(w),construct_nbr=True)
                         _id +=1
             except KeyError as e:
                 print("Wrong dataset name provided.")
@@ -112,7 +115,8 @@ def get_decompGraph(dataset, source, target, dataset_path = None):
                 for line in f:
                     u,v,l,w,p = line.split()
                     # Since dataset is weighted graph, length (l) column already contains weight of original edges + pseudo edges.
-                    G.add_edge(u,v, _id, float(p),float(l),construct_nbr=True)
+                    # G.add_edge(u,v, _id, float(p),float(l),construct_nbr=True)
+                    G.add_edge(int(u),int(v), _id, float(p),float(l),construct_nbr=True)
                     _id +=1
         except KeyError as e:
             print("Wrong dataset name provided.")
@@ -135,10 +139,12 @@ def get_dataset(dataset):
                     continue 
                 if not has_weight:
                     u,v,p = line.split()
-                    G.add_edge(u,v,float(p),construct_nbr=True) # For T_loop/N_Loop we memorize nbrs, so set it to false
+                    # G.add_edge(u,v,float(p),construct_nbr=True) # For T_loop/N_Loop we memorize nbrs, so set it to false
+                    G.add_edge(int(u),int(v),float(p),construct_nbr=True)
                 else:
                     u,v,w,p = line.split()
-                    G.add_edge(u,v,float(p),weight=float(w),construct_nbr=True) # For T_loop/N_Loop we memorize nbrs, so set it to false
+                    # G.add_edge(u,v,float(p),weight=float(w),construct_nbr=True) # For T_loop/N_Loop we memorize nbrs, so set it to false
+                    G.add_edge(int(u),int(v),float(p),weight=float(w),construct_nbr=True) # For T_loop/N_Loop we memorize nbrs, so set it to false
     except KeyError as e:
         print("Wrong dataset name provided.")
         raise e

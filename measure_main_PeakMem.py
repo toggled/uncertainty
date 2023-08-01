@@ -165,7 +165,7 @@ if not debug:
 # Depending on the algorithm to run get the uncertain graph
 if runProbTree: # Efficient variant of algorithm 2 requires pre-computed representative subgraphs
     whichquery = args.queryf.split('.')[0].split('_')[-1]
-    rsubgraphpaths = [ 'data/maniu/'+args.dataset+'_'+whichquery+'_subg/'+dataset_to_filename[args.dataset].split('/')[-1]+'_query_subgraph_'+s+'_'+t+'.txt' \
+    rsubgraphpaths = [ 'data/maniu/'+args.dataset+'_'+whichquery+'_subg/'+dataset_to_filename[args.dataset].split('/')[-1]+'_query_subgraph_'+str(s)+'_'+str(t)+'.txt' \
                      for s,t in queries]
 else: # Exact and normal variant of algorithm 2 requires original uncertain graph
     G = get_dataset(args.dataset)

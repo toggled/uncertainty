@@ -242,7 +242,7 @@ if __name__== '__main__':
         # args.queryf
         if runProbTree: # Efficient variant of algorithm 2 requires pre-computed Prob Tree subgraph.
             whichquery = args.queryf.split('.')[0].split('_')[-1]
-            rsubgraphpaths = [ 'data/maniu/'+args.dataset+'_'+whichquery+'_subg/'+dataset_to_filename[args.dataset].split('/')[-1]+'_query_subgraph_'+s+'_'+t+'.txt' \
+            rsubgraphpaths = [ 'data/maniu/'+args.dataset+'_'+whichquery+'_subg/'+dataset_to_filename[args.dataset].split('/')[-1]+'_query_subgraph_'+str(s)+'_'+str(t)+'.txt' \
                             for s,t in queries]
             for subpath,q in zip(rsubgraphpaths,queries):
                 if (not os.path.isfile(subpath)):
