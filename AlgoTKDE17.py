@@ -644,7 +644,7 @@ if __name__=='__main__':
                     e_clean.remove(e_star)
                 except Exception as e:
                     # print(e_clean)
-                    for e in e_clean:
+                    for e in sorted(e_clean):
                         print(e)
                     print(e_star)
                     print(estar,' not in e_clean')
