@@ -16,7 +16,7 @@ class UGraph:
     def __init__(self):
         self.Edges = [] # Edge list of the uncertain graph
         self.edict = {} # Edge -> Prob mapping of the uncertain graph.
-        self.notedict = {} # Edge -> (1-Prob) mapping of the uncertain graph. Mostly to assist faster computation.
+        # self.notedict = {} # Edge -> (1-Prob) mapping of the uncertain graph. Mostly to assist faster computation.
         # self.sample_time_list = [] # exec. time to generate individual possible worlds
         self.total_sample_tm = 0
         self.weights = {}
@@ -26,7 +26,7 @@ class UGraph:
     def clear(self):
         self.Edges = []
         self.edict = {}
-        self.notedict = {}
+        # self.notedict = {}
         self.weights = {}
         del self.nbrs 
         del self.nx_format
@@ -444,7 +444,7 @@ class UGraph:
         else:
             self.Edges.append((u,v))
             self.edict[(u,v)] = prob 
-            self.notedict[(u,v)] = 1-prob 
+            # self.notedict[(u,v)] = 1-prob # [ Not necessary ]
             self.weights[(u,v)] = weight
         if construct_nbr:
             _tmp = self.nbrs.get(u,[])
@@ -471,7 +471,8 @@ class UGraph:
     def edge_update(self, u, v, type = 'o1'):
         '''  Updates the probability of an edge Given an op type '''
         (u,v) = (min(u,v),max(u,v))
-        assert ((u,v) in self.edict and (u,v) in self.notedict)
+        # assert ((u,v) in self.edict and (u,v) in self.notedict)
+        assert ((u,v) in self.edict)
         self.update_edge_prob(u,v, self.get_next_prob(u,v,type))
 
     def update_edge_prob(self, u, v, prob):
@@ -482,7 +483,7 @@ class UGraph:
         (u,v) = (min(u,v),max(u,v))
         assert ((u,v) in self.edict and (u,v) in self.notedict)
         self.edict[(u,v)] = prob  
-        self.notedict[(u,v)] = 1 - prob
+        # self.notedict[(u,v)] = 1 - prob
         # else: # stochastic update
         #     self.edict0 = deepcopy(self.edict)
         #     self.edict0[(u,v,id)]  = 0 # Cleaned to 0
@@ -490,30 +491,30 @@ class UGraph:
         #     self.edict1[(u,v,id)] = 1 # Cleaned to 1
         #     return ([self.edict0,self.edict1])
       
-    def enumerate_worlds(self):
-        """
-        Explicitely enumerates all possible worlds.
-        Returns G, Pr(G)
-        """
-        # start_execution_time = time()
-        m = len(self.Edges)
-        bit_vec = range(m)
-        for _len in range(0, m+1):
-            for sub_bitvec in itertools.combinations(bit_vec,_len):
-                sub_bitvec_s = set(sub_bitvec)
-                poss_world = []
-                poss_world_prob = 1
-                # start_execution_time = time()
-                for i,e in enumerate(self.Edges):
-                    if i in sub_bitvec_s:
-                        poss_world.append(e)
-                        poss_world_prob *= self.edict[e]
-                    else:
-                        poss_world_prob *= self.notedict[e]
-                # [(e,[self.notedict[e],self.edict[e]][i in sub_bitvec]) for i,e in enumerate(self.Edges)] 
-                # self.sample_time_list.append(time()-start_execution_time)
-                yield (poss_world, poss_world_prob)
-        # self.sample_time_list.append(time()-start_execution_time)
+    # def enumerate_worlds(self):
+    #     """
+    #     Explicitely enumerates all possible worlds.
+    #     Returns G, Pr(G)
+    #     """
+    #     # start_execution_time = time()
+    #     m = len(self.Edges)
+    #     bit_vec = range(m)
+    #     for _len in range(0, m+1):
+    #         for sub_bitvec in itertools.combinations(bit_vec,_len):
+    #             sub_bitvec_s = set(sub_bitvec)
+    #             poss_world = []
+    #             poss_world_prob = 1
+    #             # start_execution_time = time()
+    #             for i,e in enumerate(self.Edges):
+    #                 if i in sub_bitvec_s:
+    #                     poss_world.append(e)
+    #                     poss_world_prob *= self.edict[e]
+    #                 else:
+    #                     poss_world_prob *= self.notedict[e]
+    #             # [(e,[self.notedict[e],self.edict[e]][i in sub_bitvec]) for i,e in enumerate(self.Edges)] 
+    #             # self.sample_time_list.append(time()-start_execution_time)
+    #             yield (poss_world, poss_world_prob)
+    #     # self.sample_time_list.append(time()-start_execution_time)
     
     # def enumerate_worlds(self):
     #     """
@@ -558,25 +559,25 @@ class UGraph:
     #             yield (poss_world, poss_world_prob)
     #     # self.sample_time_list.append(time()-start_execution_time)
     
-    def enumerate_worlds2(self):
-        """
-        Explicitely enumerates all possible worlds and returns G, Pr(G), sum p(e) for all e \in G
-        """
-        m = len(self.Edges)
-        bit_vec = range(m)
-        for _len in range(0, m+1):
-            for sub_bitvec in itertools.combinations(bit_vec,_len):
-                poss_world = []
-                poss_world_prob = 1
-                _sum = 0
-                for i,e in enumerate(self.Edges):
-                    if i in sub_bitvec:
-                        poss_world.append(e)
-                        poss_world_prob = poss_world_prob * self.edict[e]
-                        _sum += self.edict[e]
-                    else:
-                        poss_world_prob = poss_world_prob * self.notedict[e]
-                yield (poss_world, poss_world_prob,_sum)
+    # def enumerate_worlds2(self):
+    #     """
+    #     Explicitely enumerates all possible worlds and returns G, Pr(G), sum p(e) for all e \in G
+    #     """
+    #     m = len(self.Edges)
+    #     bit_vec = range(m)
+    #     for _len in range(0, m+1):
+    #         for sub_bitvec in itertools.combinations(bit_vec,_len):
+    #             poss_world = []
+    #             poss_world_prob = 1
+    #             _sum = 0
+    #             for i,e in enumerate(self.Edges):
+    #                 if i in sub_bitvec:
+    #                     poss_world.append(e)
+    #                     poss_world_prob = poss_world_prob * self.edict[e]
+    #                     _sum += self.edict[e]
+    #                 else:
+    #                     poss_world_prob = poss_world_prob * self.notedict[e]
+    #             yield (poss_world, poss_world_prob,_sum)
 
     def enumerate_k_edges(self, k = 1):
         """ Generate all possible k-subsets of the Edges. """
@@ -851,7 +852,7 @@ class UMultiGraph(UGraph):
         else:
             self.Edges.append((u,v,id))
             self.edict[(u,v,id)] = prob 
-            self.notedict[(u,v,id)] = 1-prob 
+            # self.notedict[(u,v,id)] = 1-prob 
             self.weights[(u,v,id)] = weight
         if construct_nbr: # here neighbors are not duplicated
             _tmp = self.nbrs.get(u,[])
@@ -877,7 +878,8 @@ class UMultiGraph(UGraph):
     def edge_update(self, u, v, id, type = 'o1'):
         '''  Updates the probability of an edge Given an op type '''
         (u,v) = (min(u,v),max(u,v))
-        assert ((u,v,id) in self.edict and (u,v,id) in self.notedict)
+        # assert ((u,v,id) in self.edict and (u,v,id) in self.notedict)
+        assert ((u,v,id) in self.edict)
         self.update_edge_prob(u, v, id, self.get_next_prob(u,v,id,type))
 
     def update_edge_prob(self, u, v, id, prob):
@@ -886,9 +888,10 @@ class UMultiGraph(UGraph):
         """
         if type(prob) is not list: # Deterministic update
             (u,v) = (min(u,v),max(u,v))
-            assert ((u,v,id) in self.edict and (u,v,id) in self.notedict)
+            # assert ((u,v,id) in self.edict and (u,v,id) in self.notedict)
+            assert ((u,v,id) in self.edict )
             self.edict[(u,v,id)] = prob  
-            self.notedict[(u,v,id)] = 1 - prob
+            # self.notedict[(u,v,id)] = 1 - prob
         else: # stochastic update
             self.edict0 = deepcopy(self.edict)
             self.edict0[(u,v,id)]  = 0 # Cleaned to 0
