@@ -104,7 +104,7 @@ print(args)
     # print(a.algostat)
 def singleQuery_singleRun(G,Query):
     if args.algo == 'exact': #
-        os.environ['time_seed'] = 'True' 
+        # os.environ['time_seed'] = 'True' 
         a = Algorithm(G,Query)
         print("Exact algorithm:")
         a.Bruteforce(k = args.k, update_type=args.utype, verbose = args.verbose)
@@ -114,7 +114,7 @@ def singleQuery_singleRun(G,Query):
         # a.algorithm5(k = args.k, update_type=args.utype, verbose = args.verbose)
     elif args.algo == 'greedy': #
         # os.environ['time_seed'] = 'True' 
-        a = ApproximateAlgorithm(G,Query, debug = args.debug)
+        a = ApproximateAlgorithm(G,Query, debug = args.debug,mode='reduct')
         print("Greedy algorithm (w/o mem.): ")
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
         a.greedy(property = Query.qtype, algorithm = args.est_algo, k = args.k, \
@@ -129,7 +129,7 @@ def singleQuery_singleRun(G,Query):
                      update_type=args.utype, verbose = args.verbose, track_H = args.trackH)
         return
     elif args.algo == 'greedyp': #
-        a = ApproximateAlgorithm(G,Query, debug = args.debug)
+        a = ApproximateAlgorithm(G,Query, debug = args.debug,mode='reduct')
         print("Greedy path selection algorithm (w/o mem.): ")
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
         if args.r >0:

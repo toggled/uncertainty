@@ -1550,14 +1550,14 @@ class ApproximateAlgorithm:
             print('Pr[Omega]: ', self.Query.freq_distr)
             # print('results: ',self.Query.results)
         for i in range(k):
-            # print('iteration: ',i)
+            print('iteration: ',i)
             # local_maxima = None 
             if (verbose):
                 print('Selecting edge#: ',i+1)
             # Estar= [Ecand[i]]
             minima = []
             candidates = []
-            for e in Estar: # Among remaining edges (Estar), find the one (e*) with largest reduction in Entropy
+            for e in tqdm(Estar): # Among remaining edges (Estar), find the one (e*) with largest reduction in Entropy
                 g_copy = deepcopy(self.G)
                 # if (verbose):
                 #     print('g_copy: ',g_copy.edict)
@@ -1880,7 +1880,7 @@ class ApproximateAlgorithm:
         self.algostat['k'] = k
         if property!='tri':
             init_seed = int(str(self.Query.u)+str(self.Query.v))
-        H0 = self.measure_H0(property,algorithm,T, N)
+        H0 = self.measure_H0(property,algorithm,T, N,seed=1)
         self.algostat['result']['H0'] = H0
 
         start_execution_time = time()
@@ -1905,11 +1905,12 @@ class ApproximateAlgorithm:
                     E.append((u,v))
                     self.G.edge_update(u,v, type= update_type)
                     self.Query.reset(self.G)
-                structure_len+=[i for i in range(1,toppath_len)]
-                # print('adding all edges in the top-path: ',E)
-                H_up = self.measure_H0(property, algorithm, T, N, seed = init_seed+k-1)
+                    H_up = self.measure_H0(property, algorithm, T, N, seed = init_seed+k-1)
                 # print('after cleaning ',E[-3:],' H_up = ',H_up)
                 history_Hk.append(H_up)
+                structure_len+=[i for i in range(1,toppath_len)]
+                # print('adding all edges in the top-path: ',E)
+                
             else: # If path length exceeds budget select only k-best entropy edges.
                 t = 'hx'
                 edges_in_top_path = [(toppath[j],toppath[j+1],weightFn((toppath[j],toppath[j+1]),t)) \
