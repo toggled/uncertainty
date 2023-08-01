@@ -42,6 +42,7 @@ else:
 debug = (args.source is not None) and (args.target is not None)
 runProbTree = (args.algo == 'eappr' or args.algo.startswith('pT')) # True if load precomputed ProbTree subgraph
 def singleRun(G,Query, save = True):
+    G.total_sample_tm = 0
     if args.algo == 'exact':
         a = Algorithm(G,Query)
         a.measure_uncertainty()

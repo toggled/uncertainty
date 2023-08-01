@@ -481,7 +481,8 @@ class UGraph:
         """
         # if type(prob) is not list:
         (u,v) = (min(u,v),max(u,v))
-        assert ((u,v) in self.edict and (u,v) in self.notedict)
+        # assert ((u,v) in self.edict and (u,v) in self.notedict)
+        assert ((u,v) in self.edict)
         self.edict[(u,v)] = prob  
         # self.notedict[(u,v)] = 1 - prob
         # else: # stochastic update

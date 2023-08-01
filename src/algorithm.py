@@ -473,10 +473,13 @@ class Algorithm:
 
 class ApproximateAlgorithm:
     """ Implements Algorithm 2 and Approximate variants of Algorithms 3, and 5"""
-    def __init__(self, g, query, debug = False) -> None:
+    def __init__(self, g, query, mode = 'estimation', debug = False) -> None:
         self.debug = debug
         self.algostat = {} 
-        self.G = deepcopy(g) 
+        if mode == 'estimation':
+            self.G = g 
+        else:
+            self.G = deepcopy(g) 
         assert isinstance(self.G, Graph)
         # assert isinstance(query, Query)
         self.Query = query

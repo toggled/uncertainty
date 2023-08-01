@@ -93,6 +93,7 @@ print(args)
 #         a.algorithm6(k = args.k, K = args.K, update_type=args.utype, verbose = args.verbose)
     # print(a.algostat)
 def singleQuery_singleRun(G,Query):
+    G.total_sample_tm = 0
     if args.algo == 'exact': #
         a = Algorithm(G,Query)
         # print("Exact algorithm:")
@@ -103,7 +104,7 @@ def singleQuery_singleRun(G,Query):
     #     print("Greedy algorithm (w/ exact mem.): ")
         # a.algorithm5(k = args.k, update_type=args.utype, verbose = args.verbose)
     elif args.algo == 'greedy': #
-        a = ApproximateAlgorithm(G,Query, debug = args.debug)
+        a = ApproximateAlgorithm(G,Query, mode='reduct', debug = args.debug)
         # print("Greedy algorithm (w/o mem.): ")
         # a.greedy(k = args.k, update_type=args.utype, verbose = args.verbose)
         assert len(cr_dict) != 0
@@ -113,7 +114,7 @@ def singleQuery_singleRun(G,Query):
                      update_type=args.utype, verbose = args.verbose)
         # raise Exception("Greedy w/o mem. is not supported for crowd-source scenario")
     elif args.algo == 'greedymem': #
-        a = ApproximateAlgorithm(G,Query, debug = args.debug)
+        a = ApproximateAlgorithm(G,Query, mode='reduct', debug = args.debug)
         assert len(cr_dict) != 0
         # a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 
         #              N = opt_T_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
@@ -123,7 +124,7 @@ def singleQuery_singleRun(G,Query):
                      N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                     update_type=args.utype, verbose = args.verbose)
     elif args.algo == 'greedyp': #
-        a = ApproximateAlgorithm(G,Query, debug = args.debug)
+        a = ApproximateAlgorithm(G,Query, mode='reduct',debug = args.debug)
         assert len(cr_dict) != 0
         if args.r >0:
             r = args.r 
