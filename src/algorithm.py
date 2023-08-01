@@ -478,6 +478,7 @@ class ApproximateAlgorithm:
     def __init__(self, g, query, mode = 'estimation', debug = False) -> None:
         self.debug = debug
         self.algostat = {} 
+        self.mode = mode
         if mode == 'estimation':
             self.G = g 
         else:
@@ -765,6 +766,7 @@ class ApproximateAlgorithm:
                 
                 hat_Pr[1] =  prOmega
                 hat_Pr[0] =  (1-prOmega)
+                support_observed.append(prOmega)
                 if os.environ['precomp']:
                     save_pickle(prOmega, os.path.join(os.environ['precomp'],str(i)+".pre"))
                     if not os.path.isfile(precomputed_nbrs_path):

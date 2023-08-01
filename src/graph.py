@@ -708,7 +708,10 @@ class UGraph:
                 # nx_graph.add_edge(*e,weight = p)
                 # poss_world.append(e)
                 # poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nx=True)
-                poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
+                if len(self.weights) == 0:
+                    poss_world.add_edge(e[0],e[1],p,weight=None,construct_nbr=True)
+                else:
+                    poss_world.add_edge(e[0],e[1],p,self.weights[e],construct_nbr=True)
                 if verbose:
                     poss_world_prob = poss_world_prob * p
             else:
