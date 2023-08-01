@@ -633,15 +633,13 @@ if __name__=='__main__':
                         if a==v or b==v:
                             e_clean.remove((a,b,w,p))
                             # print('removed: ',(a,b,w,p))
-            index = {}
-            for i,e in enumerate(e_clean):
-                index[e] = i   
+ 
             round = 0
-            for k in range(args.budget):
+            for k in tqdm(range(args.budget),'selecting edges: '):
                 #pruning strategy
                 #pruning by reverse shortest path
                 e_star=find_e(G, s, t, d, e_clean.copy(),probGraph=pG)
-                print(k,' => ',e_star)
+                # print(k,' => ',e_star)
                 _tmp = [e for e in e_clean if e[0]!=e_star[0] and e[1]!=e_star[1]]
                 e_clean = _tmp
                 e = (e_star[0],e_star[1])
