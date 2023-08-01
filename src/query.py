@@ -887,7 +887,7 @@ class multiGraphQuery(Query):
 
     def evalG(self,G):
         """ Function to evaluate a given possible world G (multigraph)"""
-        # print('Multigraph eval.')
+        print('Multigraph eval.')
         # assert isinstance(G,list)
         # if self.qtype == 'reach': # Reachability
         #     u = self.u 
