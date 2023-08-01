@@ -77,7 +77,11 @@ def singleRun(G,Query, save = True):
     elif (args.algo == 'rss' or args.algo == 'pTrss'):
         a = ApproximateAlgorithm(G,Query)
         assert (args.property == 'reach')
-        a.measure_uncertainty_rss(N=args.N, T = args.T, optimise = args.precomputed)
+        try:
+            a.measure_uncertainty_rss(N=args.N, T = args.T, optimise = args.precomputed)
+        except Exception as e:
+            print(Query.u,',',Query.v)
+            raise e
         a.algostat['algorithm'] = ['RSS','PT-RSS'][args.algo=='pTrss']
     else:
         a = ApproximateAlgorithm(G,Query)

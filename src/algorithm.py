@@ -86,6 +86,7 @@ def bfs_sample(nbrs,edict, source,target, seed = 1):
 def dijkstra_sample(nbrs, edict, weights, source,target, seed = 1):
     """ For SP query (unweighted graph). """
     if source not in nbrs or target not in nbrs:
+        print('corner case ')
         return  INFINITY
     
     reached_target = 0

@@ -445,7 +445,8 @@ class UGraph:
             self.Edges.append((u,v))
             self.edict[(u,v)] = prob 
             # self.notedict[(u,v)] = 1-prob # [ Not necessary ]
-            self.weights[(u,v)] = weight
+            if weight is not None:
+                self.weights[(u,v)] = weight
         if construct_nbr:
             _tmp = self.nbrs.get(u,[])
             _tmp.append(v)
@@ -682,7 +683,7 @@ class UGraph:
                 break
             for v in self.nbrs.get(u,[]):
                 (uu,vv) = (min(u,v),max(u,v))
-                dist_uv = dists[u] + self.weights[(uu,vv)]
+                dist_uv = dists[u] + 1
                 if (v not in seen) or (dist_uv < seen[v]):
                     seen[v] = dist_uv
                     heappush(heap,(dist_uv,v))

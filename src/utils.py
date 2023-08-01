@@ -140,7 +140,7 @@ def get_dataset(dataset):
                 if not has_weight:
                     u,v,p = line.split()
                     # G.add_edge(u,v,float(p),construct_nbr=True) # For T_loop/N_Loop we memorize nbrs, so set it to false
-                    G.add_edge(int(u),int(v),float(p),construct_nbr=True)
+                    G.add_edge(int(u),int(v),float(p),construct_nbr=True,weight=None)
                 else:
                     u,v,w,p = line.split()
                     # G.add_edge(u,v,float(p),weight=float(w),construct_nbr=True) # For T_loop/N_Loop we memorize nbrs, so set it to false
