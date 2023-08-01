@@ -20,7 +20,7 @@ from collections import deque
 import sys 
 from heapq import heappush, heappop
 from networkx.algorithms.bipartite.matching import INFINITY
-
+from tqdm import tqdm
 
 def save_pickle(ob, fname):
     with open (fname, 'wb') as f:
@@ -213,7 +213,7 @@ class Algorithm:
         self.Query.eval()
         H0 = self.Query.compute_entropy()
         self.algostat['result']['H0'] = H0
-        for edge_set in self.G.enumerate_k_edges(k):
+        for edge_set in tqdm(self.G.enumerate_k_edges(k)):
             if (verbose):
                 print(edge_set)
             g_copy = deepcopy(self.G)

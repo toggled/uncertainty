@@ -493,30 +493,30 @@ class UGraph:
         #     self.edict1[(u,v,id)] = 1 # Cleaned to 1
         #     return ([self.edict0,self.edict1])
       
-    # def enumerate_worlds(self):
-    #     """
-    #     Explicitely enumerates all possible worlds.
-    #     Returns G, Pr(G)
-    #     """
-    #     # start_execution_time = time()
-    #     m = len(self.Edges)
-    #     bit_vec = range(m)
-    #     for _len in range(0, m+1):
-    #         for sub_bitvec in itertools.combinations(bit_vec,_len):
-    #             sub_bitvec_s = set(sub_bitvec)
-    #             poss_world = []
-    #             poss_world_prob = 1
-    #             # start_execution_time = time()
-    #             for i,e in enumerate(self.Edges):
-    #                 if i in sub_bitvec_s:
-    #                     poss_world.append(e)
-    #                     poss_world_prob *= self.edict[e]
-    #                 else:
-    #                     poss_world_prob *= self.notedict[e]
-    #             # [(e,[self.notedict[e],self.edict[e]][i in sub_bitvec]) for i,e in enumerate(self.Edges)] 
-    #             # self.sample_time_list.append(time()-start_execution_time)
-    #             yield (poss_world, poss_world_prob)
-    #     # self.sample_time_list.append(time()-start_execution_time)
+    def enumerate_worlds(self):
+        """
+        Explicitely enumerates all possible worlds.
+        Returns G, Pr(G)
+        """
+        # start_execution_time = time()
+        m = len(self.Edges)
+        bit_vec = range(m)
+        for _len in range(0, m+1):
+            for sub_bitvec in itertools.combinations(bit_vec,_len):
+                sub_bitvec_s = set(sub_bitvec)
+                poss_world = []
+                poss_world_prob = 1
+                # start_execution_time = time()
+                for i,e in enumerate(self.Edges):
+                    if i in sub_bitvec_s:
+                        poss_world.append(e)
+                        poss_world_prob *= self.edict[e]
+                    else:
+                        poss_world_prob *= (1-self.edict[e])
+                # [(e,[self.notedict[e],self.edict[e]][i in sub_bitvec]) for i,e in enumerate(self.Edges)] 
+                # self.sample_time_list.append(time()-start_execution_time)
+                yield (poss_world, poss_world_prob)
+        # self.sample_time_list.append(time()-start_execution_time)
     
     # def enumerate_worlds(self):
     #     """
