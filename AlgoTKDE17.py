@@ -199,6 +199,8 @@ def find_e(G, s, t, d, e_clean, probGraph= None): #Algorithm 1 of the paper
     f=True
 
     while f==True:
+        if len(NL) == 0 or len(DL)==0:
+            return e
         en=NL.pop(0)
         ed=DL.pop(0)
         Pstar_en=compute_Pstar(en)
@@ -639,23 +641,25 @@ if __name__=='__main__':
                 #pruning strategy
                 #pruning by reverse shortest path
                 e_star=find_e(G, s, t, d, e_clean.copy(),probGraph=pG)
-                # print(k,' => ',e_star)
-                _tmp = [e for e in e_clean if e[0]!=e_star[0] and e[1]!=e_star[1]]
-                e_clean = _tmp
-                e = (e_star[0],e_star[1])
-                estar.append(e)
-                pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
-                # G.remove_edge(*e)
-                if k < args.budget - 1:
-                    r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = int(str(s)+str(t))+k)
-                    # print('r_end: ',r_end)
-                    H_end = h(r_end) + h(1-r_end)
-                    history_Hk.append(H_end)
-                    # e_clean = []
-                    # for i,e in enumerate(probGraph.Edges): 
-                    #     if (e[0],e[1]) not in estar:
-                        #         e_clean.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
-
+                if e_star[0] != -1:
+                    # print(k,' => ',e_star)
+                    _tmp = [e for e in e_clean if e[0]!=e_star[0] and e[1]!=e_star[1]]
+                    e_clean = _tmp
+                    e = (e_star[0],e_star[1])
+                    estar.append(e)
+                    pG.update_edge_prob(e[0],e[1],cr_dict[e]) # Use crowd knowledge to update p(e*)
+                    # G.remove_edge(*e)
+                    if k < args.budget - 1:
+                        r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = int(str(s)+str(t))+k)
+                        # print('r_end: ',r_end)
+                        H_end = h(r_end) + h(1-r_end)
+                        history_Hk.append(H_end)
+                        # e_clean = []
+                        # for i,e in enumerate(probGraph.Edges): 
+                        #     if (e[0],e[1]) not in estar:
+                            #         e_clean.append((e[0],e[1],probGraph.weights[e],probGraph.get_prob(e)))
+                else:
+                    break
         r_end = compute_approx_reach(s,t,d,probGraph=pG,seed = 2*int(str(s)+str(t)))
         # print('r_end: ',r_end)
         H_end = h(r_end) + h(1-r_end)
