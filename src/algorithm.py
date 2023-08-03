@@ -2564,44 +2564,50 @@ class ApproximateAlgorithm:
                 # H_up = self.measure_H0(property, algorithm, T, N, seed = sid)
                 history_Hk.append(H_up)
                 print('round ',round,' => H_up = ',H_up)
-            
-            if update_type == 'c1':
-                assert len(indices_of_otherpaths) == 0
-            # Update entropy of any other path that shares an edge with the toppath at current round
-            for _index_another_path in indices_of_otherpaths:
-                if _index_another_path != _index_toppath:
-                    if property!='tri':
-                        another_path = top_rpaths[_index_another_path]
-                        h_path = path_entropy(another_path)
-                    else:
-                        another_path = top_rpaths[_index_another_path]
-                        u,v,w,_ = another_path
-                        h_path = weightFn((u,v),weight_type) + weightFn((v,w),weight_type) + weightFn((w,u),weight_type)
+                print(structure_len)
+            if update_type == 'c2':
+                # Update entropy of any other path that shares an edge with the toppath at current round
+                for _index_another_path in indices_of_otherpaths:
+                    if _index_another_path != _index_toppath:
+                        if property!='tri':
+                            another_path = top_rpaths[_index_another_path]
+                            h_path = path_entropy(another_path)
+                        else:
+                            another_path = top_rpaths[_index_another_path]
+                            u,v,w,_ = another_path
+                            h_path = weightFn((u,v),weight_type) + weightFn((v,w),weight_type) + weightFn((w,u),weight_type)
 
-                    if another_path in maxheap:
-                        if verbose:
-                            print('update heap: ',another_path, '(before) : ',maxheap[another_path])
-                        # update priority
-                        # if property!='tri':
-                             # U2(adaptive/non-adaptive)
-                        _,_count = maxheap[another_path] 
-                        maxheap[another_path] = (-h_path,_count) 
-                        # else:
-                        #     _,_count = maxheap[another_path] 
-                        #     maxheap[another_path] = (-h_path,_count) 
-                        if verbose:
-                            print('update heap: ',another_path, '(after) : ',maxheap[another_path])
+                        if another_path in maxheap:
+                            if verbose:
+                                print('update heap: ',another_path, '(before) : ',maxheap[another_path])
+                            # update priority
+                            # if property!='tri':
+                                # U2(adaptive/non-adaptive)
+                            _,_count = maxheap[another_path] 
+                            maxheap[another_path] = (-h_path,_count) 
+                            # else:
+                            #     _,_count = maxheap[another_path] 
+                            #     maxheap[another_path] = (-h_path,_count) 
+                            if verbose:
+                                print('update heap: ',another_path, '(after) : ',maxheap[another_path])
         print('#rounds = ',round)
         if update_type == 'c1':
-            for e in E:
+            j = 1
+            for i,e in enumerate(E):
                 if (u,v) in update_dict:
                     cr_pe = update_dict[(u,v)]
                 else:
                     cr_pe = update_dict[(v,u)]
                 self.G.update_edge_prob(e[0],e[1],cr_pe)
-            self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
-            H_up = self.measure_H0(property, algorithm, T, N, seed = 2*int(str(self.Query.u)+str(self.Query.v)))
-            history_Hk.append(H_up)
+                sid = None
+                if (i+1)%structure_len[j] == 0:
+                    sid = init_seed+j # j = round
+                if i==len(E)-1:
+                    sid = 2*int(str(self.Query.u)+str(self.Query.v))
+                self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
+                if sid is not None:
+                    H_up = self.measure_H0(property, algorithm, T, N, seed = sid)
+                    history_Hk.append(H_up)
         history_Hk = np.array(history_Hk)
         min_hkhat = np.argmin(history_Hk)
         print('E = ',E)
