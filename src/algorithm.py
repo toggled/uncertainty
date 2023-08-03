@@ -2600,13 +2600,15 @@ class ApproximateAlgorithm:
                     cr_pe = update_dict[(v,u)]
                 self.G.update_edge_prob(e[0],e[1],cr_pe)
                 sid = None
-                if (i+1)%structure_len[j] == 0:
+                if (i+1) == structure_len[j]:
                     sid = init_seed+j # j = round
+                    j+=1
                 if i==len(E)-1:
                     sid = 2*int(str(self.Query.u)+str(self.Query.v))
                 self.Query.reset(self.G) # Re-initialise Query() with updated UGraph()  
                 if sid is not None:
                     H_up = self.measure_H0(property, algorithm, T, N, seed = sid)
+                    print(sid,' -> ',H_up)
                     history_Hk.append(H_up)
         history_Hk = np.array(history_Hk)
         min_hkhat = np.argmin(history_Hk)
