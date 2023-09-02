@@ -171,12 +171,12 @@ class UGraph:
                         sv_map.add(w)
                         temp_q.append(w)
                         edges.append((v,w))
-        print('edges = ',edges)
+        # print('edges = ',edges)
         # assert len(si_queue) >= r
         # sv_map = set([source])
         #print(self.Edges)
         if verbose: print('si_q: ',edges[:r], ': ',set(nbrs[source]))
-        print('seed = ',seed)
+        # print('seed = ',seed)
         # random.seed(seed)
         random.seed(int(time()))
 
@@ -216,12 +216,12 @@ class UGraph:
                 if len(nbrs_v):
                     for w in nbrs_v:
                         if w in visited:
-                            print('(',v,w,')', 'ignored because w visited already.')
+                            if verbose: print('(',v,w,')', 'ignored because w visited already.')
                             continue 
                         # 3 types of edges: Forbidden (0), always exists(1)
                         # and uncertaint (*)
                         if (v,w) in forbidden_edges or (w,v) in forbidden_edges:
-                            print('(',v,w,')', 'ignored because it is forbidden.')
+                            if verbose: print('(',v,w,')', 'ignored because it is forbidden.')
                             # print('cannot visit forbidden edge : ',(v,w))
                             # visited[w] = True 
                             continue 
@@ -245,7 +245,7 @@ class UGraph:
                                 if w == target:
                                     if verbose: print('target ',target,' found')
                                     poss_world.append((v,w))
-                                    print('world: ',poss_world)
+                                    if verbose: print('world: ',poss_world)
                                     return 1 
                                 if w not in sv_map:
                                     # print('will visit nbr -> ',w)
@@ -253,8 +253,8 @@ class UGraph:
                                     # temp_q.append(w)
                                     poss_world.append((v,w))
                             else:
-                                print('(',v,w,')', 'ignored because coin toss prob too low.')
-            print('world: ',poss_world, 'visited = ',visited)
+                                if verbose: print('(',v,w,')', 'ignored because coin toss prob too low.')
+            if verbose: print('world: ',poss_world, 'visited = ',visited)
             return 0 
         
         def findReliability_RHH_forRSS(sv_map, si_queue, n, flag, node):
@@ -298,23 +298,23 @@ class UGraph:
             # for i in range(r):
             #     if (states[flag][i] == '0'):
             #         forbidden.append(edges[i])
-            print('n = ',n,' flag = ',states[flag],' forbidden: ',len(forbidden), 'si_queue = ',si_queue)
+            if verbose: print('n = ',n,' flag = ',states[flag],' forbidden: ',len(forbidden), 'si_queue = ',si_queue)
         
             num_residual_edges = len(edges) - len(forbidden) 
-            print(num_residual_edges<r)            
+            # print(num_residual_edges<r)            
             # if len(si_queue)==0:
             #     return 0
             # print('temp_q : ', temp_q)
             # print('si_queue 1: ',si_queue)
             if n <= kRecursiveSamplingThreshold or num_residual_edges< r:
-                print('base case')
+                # print('base case')
                 if (n <= 0):
                     # print('leaf: ',0)
                     return 0
                 rhh = 0
                 for i in range(n): #Run n times
                     rhh += samplingR_RSS(si_queue,forbidden)
-                print('leaf: ',rhh*1.0/n)
+                # print('leaf: ',rhh*1.0/n)
                 return rhh*1.0 / n
             # Construct T / Select r edges from current UG (excluding forbidden edges) by running BFS from source
             if len(si_queue)<r:
@@ -323,7 +323,7 @@ class UGraph:
                         si_queue.append(e)
                         if len(si_queue) == r:
                             break 
-            print('T = ',si_queue)
+            # print('T = ',si_queue)
             # nodes = []
             # edges= [] 
             # while len(nodes) < 4:
@@ -366,7 +366,7 @@ class UGraph:
                 # temp_n -= this_n 
                 # temp_prob -= prob 
                 if verbose: print('this_n = ',this_n,' temp_n = ',n, ' temp_prob = ',temp_prob)
-                print('entering recursion')
+                # print('entering recursion')
                 rel = findReliability_RSS(temp_q,forbidden_i, this_n, i, r)
                 # print('---- ',i,flag,' -> ', rel)
                 pi_i_mu_i = prob * rel
@@ -403,11 +403,11 @@ class UGraph:
         import numpy as np 
         if verbose: print('rl = ',np.dot(np.array(ui),np.array(pi)))
         rl = np.dot(np.array(ui),np.array(pi))
-        print('reliability of T batches= ', rl)
-        for i,j,k in zip(states,ui,pi):
-            print('stratum: ',i)
-            print('mu_i: ', j)
-            print('pi_i: ', k)
+        # print('reliability of T batches= ', rl)
+        # for i,j,k in zip(states,ui,pi):
+        #     print('stratum: ',i)
+        #     print('mu_i: ', j)
+        #     print('pi_i: ', k)
         return rl, nbrs
 
     def bfs_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):

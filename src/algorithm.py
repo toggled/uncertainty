@@ -753,7 +753,7 @@ class ApproximateAlgorithm:
                     prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = \
                                                     {'nbrs':loaded_nbrs,'doopt': True})  
                 else:
-                    print('argus: ',argus)
+                    # print('argus: ',argus)
                     prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = argus)   
                     argus = {'nbrs': nbrs, 'doopt': False}                 
                 query_evaluation_times.append(time()-start_tm)

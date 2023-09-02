@@ -110,7 +110,7 @@ def singleRun(G,Query, save = True):
         if k!='result' and k!='k': 
             output[k] = a.algostat[k]
     # print(output['execution_time'])
-    print(output)
+    # print(output)
     if (not args.verbose):
         # csv_name = 'output/measure_'+args.dataset+'.csv'
         csv_name = 'output/mmeasure_' + args.dataset + "_" + args.algo + "_" + args.property + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
