@@ -52,15 +52,13 @@ def load_pickle(fname):
 #     # self.total_sample_tm += sample_tm
 #     return (poss_world,0) 
 
-def bfs_sample(nbrs,edict, source,target, seed = 1):
+def bfs(nbrs,edict, source,target):
         """ For Reachability query. """
-        
         if source not in nbrs or target not in nbrs:
             return 0
         
         queue = deque([source]) # Should be deque()
         reached_target = 0
-        random.seed(seed)
         visited = {source: True}
         while len(queue) and reached_target == 0: # MC+BFS loop
             u = queue.popleft()
@@ -68,29 +66,23 @@ def bfs_sample(nbrs,edict, source,target, seed = 1):
                 reached_target = 1
                 break
             for v in nbrs.get(u,[]):
-                (uu,vv) = (min(u,v),max(u,v))
-                p = edict.get((uu,vv),-1)
-                if p == -1: #
-                    # print(sample,'\n',(uu,vv),' ',u) 
-                    continue 
-                if random.random() < p:
-                    if (not visited.get(v,False)):
-                        visited[v] = True
-                        
-                        queue.append(v)
-                        if v == target:
-                            reached_target = 1
-                            break 
+                if (not visited.get(v,False)):
+                    visited[v] = True
+                    queue.append(v)
+                    if v == target:
+                        reached_target = 1
+                        break 
         return reached_target 
 
-def dijkstra_sample(nbrs, edict, weights, source,target, seed = 1):
+def dijkstra(nbrs, edict, source,target):
     """ For SP query (unweighted graph). """
+    # print(source,' ',target)
+    # print(nbrs)
     if source not in nbrs or target not in nbrs:
-        print('corner case ')
+        # print('corner case ')
         return  INFINITY
     
     reached_target = 0
-    random.seed(seed)
     seen = {source:0}
     dists = {}
     heap = []
@@ -105,22 +97,16 @@ def dijkstra_sample(nbrs, edict, weights, source,target, seed = 1):
             break
         for v in nbrs.get(u,[]):
             (uu,vv) = (min(u,v),max(u,v))
-            if ((uu,vv)) in weights:
-                w = weights[(uu,vv)]
-            else:
-                w = weights[((vv,uu))]
+            w = 1
             dist_uv = dists[u] + w
-            p = edict.get((uu,vv),-1)
-            if p == -1: 
-                continue 
-            if random.random() < p:
-                if (v not in seen) or (dist_uv < seen[v]):
-                    seen[v] = dist_uv
-                    heappush(heap,(dist_uv,v))
-                    if v == target:
-                        reached_target = 1
-                        dists[v] = dist_uv
-                        break 
+            if (v not in seen) or (dist_uv < seen[v]):
+                seen[v] = dist_uv
+                heappush(heap,(dist_uv,v))
+                if v == target:
+                    reached_target = 1
+                    dists[v] = dist_uv
+                    break 
+    print(dists)
     support_value = dists.get(target,INFINITY)
     return support_value 
 
@@ -537,6 +523,7 @@ class ApproximateAlgorithm:
                         # omega = self.Query.evalG(g[0])
                         if self.Query.qtype == 'reach':
                             _, _, _,omega = g[0].bfs_sample(self.Query.u,self.Query.v,seed = s,optimiseargs=None)
+                            
                         elif self.Query.qtype == 'sp':
                             _, _, _,omega = g[0].dijkstra_sample(self.Query.u,self.Query.v, seed = s,optimiseargs=None)
                         elif self.Query.qtype == 'tri':
@@ -588,18 +575,20 @@ class ApproximateAlgorithm:
                         s = seed + i
                     # func_obj = self.G.get_Ksample(T,seed=s)
                     # for g in func_obj:
+                    random.seed(s)
                     for j in range(T):
                         # g,_ = get_sample(self.G,seed=s)
                         
                         start_tm = time()
                         # omega = self.Query.evalG(g)
                         if self.Query.qtype == 'reach':
-                            random.seed(s)
                             g = {}
                             for e in self.G.Edges:
                                 p = self.G.edict[e]
                                 if random.random() < p:
+                                    
                                     u,v = e[0],e[1]
+                                    # print(u,v)
                                     # poss_world.add_edge(e[0],e[1],p,G.weights[e],construct_nbr=True)
                                     _tmp = g.get(u,[])
                                     _tmp.append(v)
@@ -612,13 +601,12 @@ class ApproximateAlgorithm:
                                 omega = 0
                             else:
                                 # _, _, _,omega = bfs_sample(g.nbrs, self.Query.u,self.Query.v,seed = s,optimiseargs=None)
-                                omega = bfs_sample(g, self.G.edict, self.Query.u,self.Query.v,seed = s)
+                                omega = bfs(g, self.G.edict, self.Query.u,self.Query.v)
+                                # print('omega = ',omega)
                         elif self.Query.qtype == 'sp':
-                            print('appr sp')
-                            print(type(self.G))
-                            random.seed(s)
                             g = {}
                             if isinstance(self.G, UMultiGraph): #Probtree-MC
+                                print('eappr sp')
                                 g,_ = self.G.get_sample(seed=s)
                                 omega = self.Query.evalG(g)
                                 # for e in self.G.Edges:
@@ -632,6 +620,7 @@ class ApproximateAlgorithm:
                                 #     g[v] = _tmp
 
                             else: # MC
+                                print('appr sp')
                                 for e in self.G.Edges:
                                     p = self.G.edict[e]
                                     if random.random() < p:
@@ -646,7 +635,8 @@ class ApproximateAlgorithm:
                                 if len(g) == 0:
                                     omega = 0
                                 else:
-                                    omega = dijkstra_sample(g,self.G.edict, self.G.weights, self.Query.u,self.Query.v, seed = s)
+                                    omega = dijkstra(g,self.G.edict, self.Query.u,self.Query.v)
+                                    # print('omega = ',omega)
                         elif self.Query.qtype == 'tri':
                             g,_ = self.G.get_sample(seed=s)
                             if len(g.Edges)<3:
@@ -747,7 +737,9 @@ class ApproximateAlgorithm:
         if optimise:
             precomputed_nbrs_path = os.path.join('_'.join(os.environ['precomp'].split('_')[:-2])+"_nbr.pre")
         if len(precomp)==0: # -pre 0
-            for i in range(N):
+            for i in tqdm(range(N),desc = 'Nloop:'):
+                if i==0:
+                    argus = None 
                 hat_Pr = {}
                 start_tm = time()
                 if 'time_seed' in os.environ:
@@ -761,7 +753,9 @@ class ApproximateAlgorithm:
                     prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = \
                                                     {'nbrs':loaded_nbrs,'doopt': True})  
                 else:
-                    prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = None)                    
+                    print('argus: ',argus)
+                    prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = argus)   
+                    argus = {'nbrs': nbrs, 'doopt': False}                 
                 query_evaluation_times.append(time()-start_tm)
                 
                 hat_Pr[1] =  prOmega
@@ -774,6 +768,7 @@ class ApproximateAlgorithm:
                         save_pickle(nbrs,precomputed_nbrs_path)
                 # print(entropy([hat_Pr[1] ,hat_Pr[0]]))
                 hat_H = entropy([hat_Pr[1] ,hat_Pr[0]])
+                print('Entropy (RSS): ',hat_H)
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
         else: # -pre 1

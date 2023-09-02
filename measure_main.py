@@ -42,6 +42,7 @@ else:
 debug = (args.source is not None) and (args.target is not None)
 runProbTree = (args.algo == 'eappr' or args.algo.startswith('pT')) # True if load precomputed ProbTree subgraph
 def singleRun(G,Query, save = True):
+    
     G.total_sample_tm = 0
     if args.algo == 'exact':
         a = Algorithm(G,Query)
@@ -51,7 +52,6 @@ def singleRun(G,Query, save = True):
         a = ApproximateAlgorithm(G,Query)
         a.measure_uncertainty(N=args.N, T = args.T)
         a.algostat['algorithm'] = ['MC','PT-MC'][args.algo=='eappr']
-
     elif (args.algo == 'mcbfs' or args.algo == 'pTmcbfs'):
         a = ApproximateAlgorithm(G,Query)
         assert (args.property == 'reach')
@@ -110,9 +110,10 @@ def singleRun(G,Query, save = True):
         if k!='result' and k!='k': 
             output[k] = a.algostat[k]
     # print(output['execution_time'])
+    print(output)
     if (not args.verbose):
         # csv_name = 'output/measure_'+args.dataset+'.csv'
-        csv_name = 'output/measure_' + args.dataset + "_" + args.algo + "_" + args.property + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
+        csv_name = 'output/mmeasure_' + args.dataset + "_" + args.algo + "_" + args.property + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
         if os.path.exists(csv_name):
             result_df = pd.read_csv(csv_name)
         else:
@@ -120,7 +121,7 @@ def singleRun(G,Query, save = True):
         result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
         if save: # Save the algorithm run statistics
             result.to_csv(csv_name, header=True, index=False)
-            print(result.head(10))
+            # print(result.head(10))
         else:
             print(result.head(10))
     a = None 
@@ -139,7 +140,7 @@ else: # Exact and normal variant of algorithm 2 requires original uncertain grap
 
 if debug: print(args.property,' (',args.source,',',args.target,')')
 if debug:
-    Query = Query(G,args.property,{'u':args.source,'v':args.target})
+    Query = Query(G,args.property,{'u':int(args.source),'v':int(args.target)})
 else:
     if not runProbTree:
         if args.property == 'sp':

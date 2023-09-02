@@ -117,32 +117,12 @@ class UGraph:
         return floor(absV * (num_tri/k))
     
     def find_rel_rss(self,T, source,target,seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
-        print('RSS: source: ',source, ' target: ',target)
+        print('source: ',source, ' target: ',target)
         kRecursiveSamplingThreshold = 5
-        r = 4
-
-        verbose = False # True 
-        def generate_bit_vectors(n, bit_vector=''):
-            if n == 0:
-                yield bit_vector
-            else:
-                yield from generate_bit_vectors(n - 1, bit_vector + '0')
-                yield from generate_bit_vectors(n - 1, bit_vector + '1')
-
-        # states = [x for x in generate_bit_vectors(r)]
-        states = []
-        for i in range(r+1):
-            if i == 0:
-                states.append(''.join(['0']*r))
-                continue
-            x = ['0']*r 
-            x[i-1] = '1'
-            states.append(str(''.join(x)))
-        print(states)
-        # states = ["0001","0010","0011","0100","0101",\
-        #           "0110","0111","1000","1001","1010",\
-        #          "1011","1100","1101","1110","1111",\
-        #         "0000"]
+        states = ["0001","0010","0011","0100","0101",\
+                  "0110","0111","1000","1001","1010",\
+                 "1011","1100","1101","1110","1111",\
+                "0000"]
         start_execution_time = time()
         assert len(self.nbrs)>0
         if optimiseargs is not None:
@@ -151,110 +131,45 @@ class UGraph:
             else:
                 nbrs = optimiseargs['nbrs']
         else:
-            if verbose: print('constructing nbrs.')
+            print('constructing nbrs.')
             nbrs = self.construct_nbrs()
         if (source not in nbrs) or (target not in nbrs):
-            print('source, target pair not exists in the graph')
-            print('len(nbrs) = ',len(nbrs))
             return 0.0,nbrs
         # print(nbrs)
         sv_map = set([source])
-        edges = [] # contains bfs traversal ordering of edges from source
-        # si_queue = [(source,t) for t in set(nbrs[source])]
-        temp_q = [source]
-        while len(temp_q):
-            v = temp_q.pop(0)
-            nbrs_v = list(set(nbrs[v]))
-            if len(nbrs_v):
-                for w in nbrs_v:
-                    if w not in sv_map:
-                        sv_map.add(w)
-                        temp_q.append(w)
-                        edges.append((v,w))
-        print('edges = ',edges)
-        # assert len(si_queue) >= r
-        # sv_map = set([source])
-        #print(self.Edges)
-        if verbose: print('si_q: ',edges[:r], ': ',set(nbrs[source]))
-        print('seed = ',seed)
-        # random.seed(seed)
-        random.seed(int(time()))
+        si_queue = [(source,t) for t in set(nbrs[source])]
+        print('si_q: ',si_queue, ': ',set(nbrs[source]))
+        random.seed(seed)
 
-        def samplingR_RSS(si_queue, forbidden_edges):
-            verbose = False 
-            # print('------sampline RSS------ ')
+        def samplingR_RSS(sv_map, si_queue):
             # sv_map => nodes visited already.
             # si_queue => initially it holds incident edges on source.
-            poss_world = []
+
             # Returns: 1/0 if the sampled possible world contains (does not) target node 
-            # temp_q = [] # If edges e1,e2,.. in si_queue is selected, it holds [e1[1],e2[1],..]
-            sv_map = [source]
-            # print('si_queue = ',si_queue)
-            # temp_q = si_queue
-            # while len(si_queue): 
-            #     e = si_queue.pop(0)
-            #     p = self.get_prob(e)
-            #     # if e[1] in sv_map:
-            #     #     continue 
-            #     if random.random() < p:
-            #         poss_world.append(e)
-            #         if e[1] == target:
-            #             return 1 
-            #         sv_map.add(e[1])
-            #         sv_map.add(e[0])
-            #         temp_q.append(e[1])
-            # # si_queue is empty at this stage. sv_map, temp_q contains nodes from selected edges in si_queue.
-            # print('temp_q= ',temp_q)
-            visited = {}
-            while len(sv_map):
-                # print('sv_map: ',len(sv_map))
-                v = sv_map.pop(0)
-                visited[v] = True
-                
+            temp_q = [] # If edges e1,e2,.. in si_queue is selected, it holds [e1[1],e2[1],..]
+            while len(si_queue): 
+                e = si_queue.pop(0)
+                p = self.get_prob(e)
+                if e[1] in sv_map:
+                    continue 
+                if random.random() < p:
+                    if e[1] == target:
+                        return 1 
+                    sv_map.add(e[1])
+                    temp_q.append(e[1])
+            # si_queue is empty at this stage. sv_map, temp_q contains nodes from selected edges in si_queue.
+            while len(temp_q):
+                v = temp_q.pop(0)
                 nbrs_v = list(set(nbrs[v]))
-                if verbose: print('visiting v = ',v, ' nbrs_v: ',nbrs_v, ' visited: ', visited)
                 if len(nbrs_v):
                     for w in nbrs_v:
-                        if w in visited:
-                            print('(',v,w,')', 'ignored because w visited already.')
-                            continue 
-                        # 3 types of edges: Forbidden (0), always exists(1)
-                        # and uncertaint (*)
-                        if (v,w) in forbidden_edges or (w,v) in forbidden_edges:
-                            print('(',v,w,')', 'ignored because it is forbidden.')
-                            # print('cannot visit forbidden edge : ',(v,w))
-                            # visited[w] = True 
-                            continue 
-                        elif (v,w) in si_queue or (w,v) in si_queue:
-                            # visited[w] = True 
-                            if w==target:
-                                poss_world.append((v,w))
-                                return 1
+                        p_vw = self.get_prob((v,w))
+                        if random.random() < p_vw:
+                            if w == target:
+                                return 1 
                             if w not in sv_map:
-                                # print('will visit nbr -> ',w)
-                                sv_map.append(w)
-                                poss_world.append((v,w))
-                            continue 
-                        else:
-                            p_vw = self.get_prob((v,w))
-                            r = random.random()
-                            if verbose: print('coin toss. ',r,p_vw, 'w = ',w)
-                            # if r < p_vw:
-                            if r >= p_vw:
-                                # print('r< p_vw')
-                                if w == target:
-                                    if verbose: print('target ',target,' found')
-                                    poss_world.append((v,w))
-                                    print('world: ',poss_world)
-                                    return 1 
-                                if w not in sv_map:
-                                    # print('will visit nbr -> ',w)
-                                    sv_map.append(w)
-                                    # temp_q.append(w)
-                                    poss_world.append((v,w))
-                            else:
-                                print('(',v,w,')', 'ignored because coin toss prob too low.')
-            print('world: ',poss_world, 'visited = ',visited)
+                                sv_map.add(w)
+                                temp_q.append(w)
             return 0 
         
         def findReliability_RHH_forRSS(sv_map, si_queue, n, flag, node):
@@ -291,123 +206,75 @@ class UGraph:
             return pe * findReliability_RHH_forRSS(deepcopy(sv_map),deepcopy(si_queue),floor(n*pe),True,e[1]) + \
             (1- pe)* findReliability_RHH_forRSS(deepcopy(sv_map),deepcopy(si_queue), n - floor(n*pe),False,e[1]) 
         
-        def findReliability_RSS(si_queue, forbidden, n, flag, r): 
-            # num_stratums = int(2**r) - 1
-            num_stratums = r
-            # forbidden = []
-            # for i in range(r):
-            #     if (states[flag][i] == '0'):
-            #         forbidden.append(edges[i])
-            print('n = ',n,' flag = ',states[flag],' forbidden: ',len(forbidden), 'si_queue = ',si_queue)
-        
-            num_residual_edges = len(edges) - len(forbidden) 
-            print(num_residual_edges<r)            
-            # if len(si_queue)==0:
-            #     return 0
-            # print('temp_q : ', temp_q)
-            # print('si_queue 1: ',si_queue)
-            if n <= kRecursiveSamplingThreshold or num_residual_edges< r:
-                print('base case')
+        def findReliability_RSS(sv_map, si_queue, n, flag, nodes): 
+            # flag = stratum index [0-15], n = #MC samples, 
+            # nodes = set of nodes th
+            # sv_map = initially [source]
+            # si_queue = initially [incident edges on source]. 
+            print('sv_map: ', sv_map)
+            print('si_queue: ',si_queue)
+            print('n = ',n,' flag = ',flag)
+            for i in range(4):
+                if (states[flag][i] == '1'):
+                    if (nodes[i] == target):
+                        return 1           
+                    sv_map.add(nodes[i])
+                    si_queue += [(nodes[i],t) for t in set(nbrs[nodes[i]])]
+            if len(si_queue)==0:
+                return 0
+            print('sv_map 1: ', sv_map)
+            print('si_queue 1: ',si_queue)
+            if n <= kRecursiveSamplingThreshold:
                 if (n <= 0):
-                    # print('leaf: ',0)
                     return 0
                 rhh = 0
                 for i in range(n): #Run n times
-                    rhh += samplingR_RSS(si_queue,forbidden)
+                    rhh += samplingR_RSS(deepcopy(sv_map), deepcopy(si_queue))
                 print('leaf: ',rhh*1.0/n)
                 return rhh*1.0 / n
-            # Construct T / Select r edges from current UG (excluding forbidden edges) by running BFS from source
-            if len(si_queue)<r:
-                for e in edges:
-                    if (e not in forbidden) and (e not in si_queue):
-                        si_queue.append(e)
-                        if len(si_queue) == r:
-                            break 
-            print('T = ',si_queue)
-            # nodes = []
-            # edges= [] 
-            # while len(nodes) < 4:
-            #     print(len(nodes),'==',len(si_queue))
-            #     if len(si_queue) == 0:
-            #         si_queue += [e for e in edges]
-            #         # print(si_queue, sv_map, nodes,target)
-            #         print('findReliability_RHH_forRSS')
-            #         return findReliability_RHH_forRSS(deepcopy(sv_map), deepcopy(si_queue), n, False, target)
-            #         # return samplingR_RSS(deepcopy(sv_map), deepcopy(si_queue))
-            #     e = si_queue.pop(0)
-            #     if e[1] in sv_map:
-            #         continue 
-            #     else:
-            #         # nodes.append(e[1])
-            #         edges.append(e)
-
-            # print('flag = ',flag,' edges: ',edges)
+            nodes = []
+            edges= [] 
+            while len(nodes) < 4:
+                print(len(nodes),'==',len(si_queue))
+                if len(si_queue) == 0:
+                    si_queue += [e for e in edges]
+                    # print(si_queue, sv_map, nodes,target)
+                    print('findReliability_RHH_forRSS')
+                    return findReliability_RHH_forRSS(deepcopy(sv_map), deepcopy(si_queue), n, False, target)
+                    # return samplingR_RSS(deepcopy(sv_map), deepcopy(si_queue))
+                e = si_queue.pop(0)
+                if e[1] in sv_map:
+                    continue 
+                else:
+                    nodes.append(e[1])
+                    edges.append(e)
+                    
+            print('flag = ',flag, ' => nodes: ',nodes,' edges: ',edges)
             reliablity= 0
-            # temp_n = n 
+            temp_n = n 
             temp_prob = 1.0 
             probs = []
-            for i in range(r):
-                probs.append(self.get_prob(si_queue[i]))
-            for i in range(num_stratums+1):
-                # if i == 15:
-                #     reliablity += temp_prob * findReliability_RSS(si_queue, temp_n, 15)
-                #     break 
+            for i in range(4):
+                probs.append(self.get_prob(edges[i]))
+            for i in range(16):
+                if i == 15:
+                    reliablity += temp_prob * findReliability_RSS(deepcopy(sv_map), deepcopy(si_queue), temp_n, 15, nodes)
+                    break 
                 prob = 1.0
-                temp_q = []
-                forbidden_i = deepcopy(forbidden)
-                for j in range(r):
+                for j in range(4):
                     if states[i][j] == '1':
                         prob = prob * probs[j]
-                        temp_q.append(si_queue[j])
                     else:
                         prob = prob * (1-probs[j])
-                        forbidden_i.append(si_queue[j])
                 this_n = floor(n*prob)
-                # temp_n -= this_n 
-                # temp_prob -= prob 
-                if verbose: print('this_n = ',this_n,' temp_n = ',n, ' temp_prob = ',temp_prob)
-                print('entering recursion')
-                rel = findReliability_RSS(temp_q,forbidden_i, this_n, i, r)
-                # print('---- ',i,flag,' -> ', rel)
-                pi_i_mu_i = prob * rel
-                reliablity += (pi_i_mu_i)
-            if verbose: print('back => flag = ',flag, 'reliability: ',reliablity)
+                temp_n -= this_n 
+                temp_prob -= prob 
+                reliablity += (prob * findReliability_RSS(deepcopy(sv_map), deepcopy(si_queue), this_n, i, nodes))
+            print('reliability: ',reliablity)
             return reliablity
     
-        
-        probs = []
-        for i in range(r):
-            probs.append(self.get_prob(edges[i]))
-        ui = []
-        pi = []
-        # Implicitely T <- the first r edges in edges list 
-        # for i in range(int(2**r)):
-        for i in range(r+1):
-            # random.seed(i*int(time()))
-            prob = 1.0
-            temp_q = [] # Edges must exists.
-            forbidden = [] # Edges must not exists.
-            for j in range(r):
-                if states[i][j] == '1':
-                    prob = prob * probs[j]
-                    temp_q.append(edges[j])
-                else:
-                    prob = prob * (1-probs[j])
-                    forbidden.append(edges[j])
-            if verbose:
-                print('n = ',T,' flag = ',i, ' r = ',r, ' => ',states[i])
-                print('------------')
-            rl =  findReliability_RSS(temp_q, forbidden, n = floor(T*prob),flag = i, r = r)
-            ui.append(rl)
-            pi.append(prob)
-        import numpy as np 
-        if verbose: print('rl = ',np.dot(np.array(ui),np.array(pi)))
-        rl = np.dot(np.array(ui),np.array(pi))
-        print('reliability of T batches= ', rl)
-        for i,j,k in zip(states,ui,pi):
-            print('stratum: ',i)
-            print('mu_i: ', j)
-            print('pi_i: ', k)
+        rl =  findReliability_RSS(sv_map,si_queue, n = T,flag = 15, nodes = [])
+        print('rl = ',rl)
         return rl, nbrs
 
     def bfs_sample(self,source,target, seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}, verbose = False):
@@ -415,7 +282,6 @@ class UGraph:
         # print(self.Edges)
         # print('bfs_sample: seed = ',seed)
         start_execution_time = time()
-        
         assert len(self.nbrs)>0
         if optimiseargs is not None:
             if optimiseargs['nbrs'] is None:
@@ -604,8 +470,6 @@ class UGraph:
             # self.notedict[(u,v)] = 1-prob # [ Not necessary ]
             if weight is not None:
                 self.weights[(u,v)] = weight
-            else:
-                self.weights[(u,v)] = 1
         if construct_nbr:
             _tmp = self.nbrs.get(u,[])
             _tmp.append(v)
