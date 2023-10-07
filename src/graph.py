@@ -118,8 +118,8 @@ class UGraph:
     
     def find_rel_rss(self,T, source,target,seed = 1, optimiseargs = {'nbrs':None, 'doopt': False}):
         print('RSS: source: ',source, ' target: ',target)
-        kRecursiveSamplingThreshold = 5
-        r = 5
+        kRecursiveSamplingThreshold = 30
+        r = 2
         time_spent = {'mc': 0,'genT':0}
         verbose = False # True 
         def generate_bit_vectors(n, bit_vector=''):
@@ -163,9 +163,9 @@ class UGraph:
         edge_map = {}
         edges = [] # contains bfs traversal ordering of edges from source
         # si_queue = [(source,t) for t in set(nbrs[source])]
-        temp_q = deque([source])
+        temp_q = [source]
         while len(temp_q):
-            v = temp_q.popleft()
+            v = temp_q.pop(0)
             nbrs_v = list(set(nbrs[v]))
             if len(nbrs_v):
                 for w in nbrs_v:
