@@ -22,6 +22,7 @@ parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, ma
 parser.add_argument('-pr','--property',type = str, default = 'sp', help = "either tri/sp/reach")
 parser.add_argument('-b','--bucketing',type = int, help='Whether to compute bucketed entropy or not', default = 0) # only tri query is supported
 parser.add_argument('-pre','--precomputed',type = int, help='Use pre-computed possible world support value or not', default = 0)
+parser.add_argument('-r','--r',type = int, help='#stratums', default = 3) # only tri query is supported
 
 # Demo usages:
 # Reachability query from x to u in default dataset using sampling: N = 10, T = 10
@@ -88,7 +89,7 @@ def singleRun(G,Query, save = True):
         a.measure_uncertainty(N=args.N, T = args.T)
         a.algostat['algorithm'] = args.algo
 
-    # print(a.algostat)
+    print(a.algostat['H'])
     if args.verbose:
         G.plot_probabilistic_graph()
     os.system('mkdir -p output/')
@@ -113,7 +114,7 @@ def singleRun(G,Query, save = True):
     # print(output)
     if (not args.verbose):
         # csv_name = 'output/measure_'+args.dataset+'.csv'
-        csv_name = 'output/mmeasure_' + args.dataset + "_" + args.algo + "_" + args.property + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
+        csv_name = 'output/mmeasure_'+str(args.r)+"_" + args.dataset + "_" + args.algo + "_" + args.property + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
         if os.path.exists(csv_name):
             result_df = pd.read_csv(csv_name)
         else:

@@ -194,30 +194,31 @@ class Algorithm:
         assert k>=1
         self.algostat['algorithm'] = 'exact'
         self.algostat['k'] = k
-        start_execution_time = time()
-        self.Global_maxima = None  
+        start_execution_time = time() 
         self.Query.eval()
         H0 = self.Query.compute_entropy()
         self.algostat['result']['H0'] = H0
-        for edge_set in tqdm(self.G.enumerate_k_edges(k)):
-            if (verbose):
-                print(edge_set)
-            g_copy = deepcopy(self.G)
-            for e in edge_set:
-                g_copy.edge_update(e[0],e[1], type= update_type)
+        self.Global_maxima = ([],H0) # for i = 0, no edge are selected, H* = H0 
+        for i in range(1,k+1):
+            for edge_set in tqdm(self.G.enumerate_k_edges(i)):
+                if (verbose):
+                    print(edge_set)
+                g_copy = deepcopy(self.G)
+                for e in edge_set:
+                    g_copy.edge_update(e[0],e[1], type= update_type)
 
-            self.Query.reset(g_copy)
-            self.Query.eval()
-            Hi = self.Query.compute_entropy()
-            if self.Global_maxima is not None:
-                if H0 -  Hi > H0 - self.Global_maxima[1]:
+                self.Query.reset(g_copy)
+                self.Query.eval()
+                Hi = self.Query.compute_entropy()
+                if self.Global_maxima is not None:
+                    if H0 -  Hi > H0 - self.Global_maxima[1]:
+                        self.Global_maxima = (edge_set, Hi)
+                        if (verbose):
+                            print('new maxima: ',self.Global_maxima)
+                else:
                     self.Global_maxima = (edge_set, Hi)
                     if (verbose):
-                        print('new maxima: ',self.Global_maxima)
-            else:
-                self.Global_maxima = (edge_set, Hi)
-                if (verbose):
-                    print('Initial maxima: ',self.Global_maxima)
+                        print('Initial maxima: ',self.Global_maxima)
             # print('e: ',edge_set,' \Delta H = ', H0-Hi, ' H0:', H0, ' H_next: ',Hi)
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['result']['edges'] = self.Global_maxima[0]
@@ -506,6 +507,7 @@ class ApproximateAlgorithm:
         hat_H_list = []
         support_observed = []
         sum_H = 0
+        print('SS: source: ',self.Query.u,' target: ',self.Query.v)
         if len(precomp)==0: # no pre
             for i in range(N):
                 if self.Query.bucketing: # buckeing & no-pre
@@ -654,8 +656,10 @@ class ApproximateAlgorithm:
                             save_pickle(omega, os.path.join(os.environ['precomp'],str(i)+"_"+str(j)+".pre"))
                             # j+=1
                         # gc.collect()
+                    print(hat_Pr)
                 # hat_H = -sum([hat_Pr[omega] * log2(hat_Pr[omega]) for omega in hat_Pr])
                 hat_H = entropy([j for i,j in hat_Pr.items()], base = 2)
+                print("Entropy(MC): ",hat_H)
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
         else:
@@ -754,7 +758,7 @@ class ApproximateAlgorithm:
                                                     {'nbrs':loaded_nbrs,'doopt': True})  
                 else:
                     # print('argus: ',argus)
-                    prOmega,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = argus)   
+                    prOmega,S,nbrs = self.G.find_rel_rss(T,source,target,seed=s,optimiseargs = argus)   
                     argus = {'nbrs': nbrs, 'doopt': False}                 
                 query_evaluation_times.append(time()-start_tm)
                 
@@ -766,8 +770,9 @@ class ApproximateAlgorithm:
                     if not os.path.isfile(precomputed_nbrs_path):
                         # print('saving nbrs file for the 1st time.')
                         save_pickle(nbrs,precomputed_nbrs_path)
+                print(hat_Pr)
                 # print(entropy([hat_Pr[1] ,hat_Pr[0]]))
-                hat_H = entropy([hat_Pr[1] ,hat_Pr[0]])
+                hat_H = entropy([hat_Pr[1] ,hat_Pr[0]],base=2)
                 print('Entropy (RSS): ',hat_H)
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
@@ -780,10 +785,11 @@ class ApproximateAlgorithm:
                 hat_Pr[1] =  prOmega
                 hat_Pr[0] =  (1-prOmega)
                 query_evaluation_times.append(time()-start_tm)
-                hat_H = entropy([hat_Pr[1] ,hat_Pr[0]])
+                hat_H = entropy([hat_Pr[1] ,hat_Pr[0]],base=2)
                 hat_H_list.append(hat_H)
                 sum_H += hat_H 
         mean_H =  sum_H /N
+        # print('entropy(N) = ',mean_H)
         self.algostat['execution_time'] = time() - start_execution_time
         self.algostat['algorithm'] = 'rss'
         self.algostat['H'] = mean_H
