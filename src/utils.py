@@ -201,3 +201,8 @@ def h(x):
         except:
             print(x)
     return -x*log2(x)
+
+# 0 1 0.6
+# 0 10 0.7
+# 1 10 0.4
+# 10 11 0.5

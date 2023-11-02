@@ -14,13 +14,13 @@ parser.add_argument("-a", "--algo", type=str, default="greedymem") # exact/greed
 parser.add_argument("-u",'--utype',type = str, default = 'c1') # c = crowdsourced update, c1=non-adaptive, c2 = adaptive
 parser.add_argument("-k",'--k',type = int, default = 1)
 parser.add_argument("-v", "--verbose", action='store_true')
-parser.add_argument('-s','--source',type = str, default = None)
-parser.add_argument('-t','--target',type = str, default = None)
+parser.add_argument('-s','--source',type = int, default = None)
+parser.add_argument('-t','--target',type = int, default = None)
 parser.add_argument('-pr','--property',type = str, default = 'reach', help = "either tri/diam/reach")
 # parser.add_argument('-va','--variant',type = str, default = 'exact',help = 'Either exact/appr')
 parser.add_argument("-K",'--K',type = int, default = 10, help='#of Possible world samples')
 parser.add_argument("-ea", "--est_algo", type=str, default="appr") # exact/appr/eappr/mcbfs/pTmcbfs/mcdij/pTmcdij/rss/pTrss/mcapproxtri 
-parser.add_argument('-q','--queryf', type=str,help='query file',default = 'data/queries/papers/papers_2.queries') # 'data/queries/ER/ER_15_22_2.queries'
+parser.add_argument('-q','--queryf', type=str,help='query file',default = None) # 'data/queries/ER/ER_15_22_2.queries'
 parser.add_argument('-b','--bucketing',type = int, help='Whether to compute bucketed entropy or not', default = 0) # only tri query is supported
 parser.add_argument("-dh",'--hop',type = int, default = 2) # <d-hop reach
 parser.add_argument("-db",'--debug', action = 'store_true')
@@ -35,8 +35,9 @@ opt_N_dict = {
         {'reach': 11, 'sp': 26, 'tri': 6},
     'biomine': {'reach': 171},
     'flickr': {'tri': 76},
-    'papers': {'reach': 71},
-    'products': {'reach': 46},
+    'papers': {'reach': 71,'tri':100},
+    # 'products': {'reach': 46},
+    'products': {'reach': 100,'tri':76},
     'restaurants': {'reach': 156}
 }
 opt_T_dict = {
@@ -44,8 +45,9 @@ opt_T_dict = {
     'ER_15_22': {'reach': 6, 'sp': 11, 'tri': 11},
     'biomine': {'reach': 10},
     'flickr': {'tri': 51},
-    'papers': {'reach': 10},
-    'products': {'reach': 4},
+    'papers': {'reach': 10,'tri':60},
+    # 'products': {'reach': 4},
+    'products': {'reach': 50,'tri':51},
     'restaurants': {'reach': 6}
 }
 cr_dict = {}
@@ -141,7 +143,13 @@ def singleQuery_singleRun(G,Query):
         # a.algorithm5(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, 
         #              N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
         #             update_type=args.utype, verbose = args.verbose)
-        a.crowd_greedyp(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, r = r,\
+        if args.property == 'tri':
+            a.crowd_greedypTri(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, r = r,\
+                      update_dict = cr_dict,\
+                     N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
+                    update_type=args.utype, verbose = args.verbose)
+        else:
+            a.crowd_greedyp(property = Query.qtype, algorithm = args.est_algo, k = args.k, K = args.K, r = r,\
                       update_dict = cr_dict,\
                      N = opt_N_dict[args.dataset][args.property], T = opt_T_dict[args.dataset][args.property],\
                     update_type=args.utype, verbose = args.verbose)
@@ -198,7 +206,7 @@ def singleQuery_singleRun(G,Query):
         if args.queryf:
             csv_name = 'CRureduct/reduce_k_'+str(args.k)+"_K_"+str(args.K)+"_" + args.dataset + "_" + args.algo + "_" + Query.qtype + "_" + args.queryf.split("/")[-1].split("_")[-1] + '.csv'
         else:
-            csv_name = 'CRureduct/res_k'+str(args.k)+'.csv'
+            csv_name = 'CRureduct/res_'+args.dataset+'_'+Query.qtype+'4.csv'
         if os.path.exists(csv_name):
             result_df = pd.read_csv(csv_name)
         else:
@@ -214,8 +222,12 @@ def singleQuery_singleRun(G,Query):
 
 if __name__== '__main__':
     if args.queryf is None: # single query mode
+        print('single query mode')
         G = get_dataset(args.dataset)
-        
+        with open(args.cr,'r') as f:
+            for i,line in enumerate(f.readlines()):
+                cr_value = int(line.strip())
+                cr_dict[G.Edges[i]] = cr_value 
         if args.property == 'reach':
             if dhopreach:
                 print('#<d-hop reachability (',args.source,',',args.target,')')

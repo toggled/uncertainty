@@ -120,6 +120,7 @@ def singleRun(G,Query, save = True):
         else:
             result_df = pd.DataFrame()
         result = pd.concat([result_df, pd.DataFrame(output,index = [0])])
+        save = False
         if save: # Save the algorithm run statistics
             result.to_csv(csv_name, header=True, index=False)
             # print(result.head(10))

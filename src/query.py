@@ -294,7 +294,8 @@ class Query:
 
     def compute_entropy(self, base = 2):
         """ Given a base for logarithm, returns the entropy of the Property_value distribution. """
-        # print('distr: ',self.get_distribution())
+        print('distr: ',self.get_distribution())
+        # print('Expected value: ',sum([i*j for i,j in self.get_distribution()]))
         # print('edict: ',self.p_graph.edict)
         if str(base) == 'e':
             return entropy([j for i,j in self.get_distribution()])

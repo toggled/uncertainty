@@ -158,3 +158,6 @@ pre/
 plot.ipynb
 figs/
 *.if
+TrainedModels/
+tmp/
+datafiles.zip

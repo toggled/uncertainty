@@ -7,7 +7,7 @@ from src.query import Query,wQuery,multiGraphQuery,multiGraphwQuery
 import pandas as pd
 from datetime import datetime
 import math
-
+from copy import deepcopy
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-d", "--dataset", type=str, default="default")
@@ -29,7 +29,7 @@ parser.add_argument('-mq','--maxquery',type = int,help='#query pairs to take, ma
 parser.add_argument("-th",'--trackH', action = 'store_true')
 parser.add_argument("-r",'--r',type = int, default = -1) 
 # parser.add_argument("-t", "--thread", help="index of thread", default=-1, type=int) 
-save_dir = 'reduce_main'
+save_dir = 'reduce_main3'
 # save_dir = 'baseline'
 opt_N_dict = {
     'default': {'reach': 100,'sp': 100, 'tri': 100},
@@ -330,10 +330,11 @@ if __name__== '__main__':
             if args.property == 'sp':
                 Querylist = [wQuery(G,args.property,{'u':s,'v':t}) for s,t in queries]
             elif args.property == 'reach': # For reachability query, we ignore edge weights.  
+                copyG = deepcopy(G)
                 if dhopreach:
-                    Querylist = [Query(G,'reach_d',{'u':s,'v':t,'d':args.hop}) for s,t in queries]
+                    Querylist = [Query(copyG,'reach_d',{'u':s,'v':t,'d':args.hop}) for s,t in queries]
                 else:     
-                    Querylist = [Query(G,'reach',{'u':s,'v':t}) for s,t in queries]
+                    Querylist = [Query(copyG,'reach',{'u':s,'v':t}) for s,t in queries]
             elif args.property == 'tri':
                 Q = Query(G,'tri')
                 Q.bucketing = args.bucketing 
