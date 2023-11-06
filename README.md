@@ -22,10 +22,10 @@ Codes for Uncertainty of Uncertain graphs
 4. Reducing uncertainty with U2 update (Non-adaptive):
    - python reduce_main_crowd.py -d [DATASET] -a [ALGORITHM] -k [BUDGET] -ea [UNCERTAINTY_ESTIMATE_METHOD] -pr [PROPERTY] -q [QUERYFILE] -dh [HOP_DISTANCE_FOR_dhop_REACH] -cr [GROUNDTRUTH_CLEAN_FILE]
 
-<h> Demo: </h>
-TO DO
+<h> Node classification application: </h>
+Please check the notebooks under `casestudy/`
 
-Running RelComp/ to generate Induced Subgraphs:
+Running RelComp to generate ProbTree Subgraphs (needed for ProbTree-MC, ProbTree-MC+BFS and ProbTree-RSS):
 --------
 
 <h> Requirements </h>
@@ -48,5 +48,5 @@ Running RelComp/ to generate Induced Subgraphs:
 
 - Unweighted graph:
   - `./RelComp -i test_graph.txt -l [full path of the directory containing test_graph.txt] -d decomp/ -s test_sourcetarget.txt -m 5 -w 0`
-- Weighted graph:
-  - `./RelComp -i test_wgraph.txt -l [full path of the directory containing test_wgraph.txt] -d decomp/ -s test_sourcetarget.txt -m 5 -w 1`
+<!-- - Weighted graph:
+  - `./RelComp -i test_wgraph.txt -l [full path of the directory containing test_wgraph.txt] -d decomp/ -s test_sourcetarget.txt -m 5 -w 1` -->
