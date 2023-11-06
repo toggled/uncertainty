@@ -1,4 +1,4 @@
-Codes for Uncertainty of Uncertain graphs
+Codes for the VLDB2024 submission titled `Estimate and Reduce Uncertainty of Network Measurements`
 -----------
 <h> Requirements: </h>
  * Python 3.8
@@ -8,7 +8,11 @@ Codes for Uncertainty of Uncertain graphs
  * pandas
  * pptree
  * heapdict
+ * pytorch 1.12
 
+<h> Datasets: </h>
+
+Datasets and Queries can be downloaded from here: https://drive.google.com/file/d/12sNW29Dpo68vqvIw7uJl16Byn0z_whIw/view?usp=sharing 
 
 <h> Experiments: </h>
 1. Measuring uncertainty:
