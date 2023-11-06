@@ -161,3 +161,7 @@ figs/
 TrainedModels/
 tmp/
 datafiles.zip
+*.sh
+*.graph
+*.txt 
+*.cr 
