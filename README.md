@@ -1,4 +1,4 @@
-*Codes for the DSAA24 paper titled `Estimate and Reduce Uncertainty of Network Measurements`*
+**Codes for the DSAA24 paper titled `Estimate and Reduce Uncertainty of Network Measurements`**
 
 ![](intro.png)
 -----------
